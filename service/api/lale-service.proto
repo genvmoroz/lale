@@ -1,0 +1,115 @@
+syntax = "proto3";
+option go_package = "github.com/genvmoroz/lale-service/api";
+package api;
+
+import "google/protobuf/timestamp.proto";
+
+message Card {
+  string id = 1;
+  string userID = 2;
+  string language = 3;
+  repeated WordInformation wordInformationList = 4;
+  uint32 correctAnswers = 5;
+  google.protobuf.Timestamp nextDueDate = 6;
+}
+
+message WordInformation {
+  string word = 1;
+  Translate translate = 2;
+  string origin = 3;
+  repeated Phonetic phonetics = 4;
+  repeated Meaning meanings = 5;
+  repeated string sentences = 6;
+}
+
+message Translate {
+  string language = 1;
+  repeated string translates = 2;
+}
+
+message Phonetic {
+  string text = 1;
+  string audioLink = 2;
+}
+
+message Meaning {
+  string partOfSpeech = 1;
+  repeated Definition Definitions = 2;
+}
+
+message Definition {
+  string definition = 1;
+  string example = 2;
+  repeated string synonyms = 3;
+  repeated string antonyms = 4;
+}
+
+message GetCardsRequest {
+  string userID = 1;
+  string language = 2;
+}
+
+message GetCardsForReviewRequest {
+  string userID = 1;
+  string language = 2;
+  uint32 sentencesCount = 3;
+}
+
+message CreateCardParameters {
+  bool enrichWordInformationFromDictionary = 1;
+}
+
+message CreateCardRequest {
+  string userID = 1;
+  string language = 2;
+  repeated WordInformation wordInformationList = 3;
+  CreateCardParameters params = 4;
+}
+
+message CreateCardResponse {
+  Card card = 1;
+}
+
+message InspectCardRequest {
+  string userID = 1;
+  string language = 2;
+  string word = 3;
+}
+
+message InspectCardResponse {
+  Card card = 1;
+}
+
+message GetCardsResponse {
+  string userID = 1;
+  string language = 2;
+  repeated Card cards = 3;
+}
+
+message UpdateCardPerformanceRequest {
+  string userID = 1;
+  string cardID = 2;
+  uint32 performanceRating = 3;
+}
+
+message UpdateCardPerformanceResponse {
+  google.protobuf.Timestamp nextDueDate = 1;
+}
+
+message DeleteCardRequest {
+  string userID = 1;
+  string cardID = 2;
+}
+
+message DeleteCardResponse {
+  Card card = 1;
+}
+
+service LaleService {
+  rpc InspectCard(InspectCardRequest) returns (InspectCardResponse);
+  rpc CreateCard(CreateCardRequest) returns (CreateCardResponse);
+  rpc GetAllCards(GetCardsRequest) returns (GetCardsResponse);
+  rpc UpdateCardPerformance(UpdateCardPerformanceRequest) returns (UpdateCardPerformanceResponse);
+  rpc GetCardsToReview(GetCardsForReviewRequest) returns (GetCardsResponse);
+  rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
+}

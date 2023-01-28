@@ -1,0 +1,31 @@
+version: 2.1
+
+executors:
+  base-executor:
+    docker:
+      - image: cimg/base:2022.06
+        auth:
+          username: $DOCKER_HUB_USER
+          password: $DOCKER_HUB_PASSWORD
+
+jobs:
+  build:
+    executor: base-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.14
+      - run:
+          name: Build Docker Image
+          command: make build-docker DOCKER_TAG=latest
+      - run:
+          name: Docker Login
+          command: docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD
+      - run:
+          name: Push Docker Image
+          command: if [ $CIRCLE_BRANCH = 'master' ]; then make push-docker DOCKER_TAG=latest; fi
+
+workflows:
+  build:
+    jobs:
+      - build

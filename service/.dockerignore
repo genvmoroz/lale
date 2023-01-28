@@ -1,0 +1,21 @@
+# IDEA's config files
+.idea
+
+# Git's config files
+.git
+
+# Mac OS X files
+.DS_Store
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test-data -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out

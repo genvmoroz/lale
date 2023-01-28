@@ -1,0 +1,8 @@
+mongo:
+  protocol: "mongodb+srv"
+  host: "dictionary.zxrao.mongodb.net"
+  params: "retryWrites=true,w=majority"
+  user: genvmoroz
+  pass: adjxlp6iifLOR5Mx
+  database: dictionary
+  collection: cards
