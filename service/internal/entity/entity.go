@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/genvmoroz/lale-service/pkg/auxiliary"
-	"github.com/genvmoroz/lale-service/pkg/lang"
+	"github.com/genvmoroz/lale/service/pkg/auxiliary"
+	"github.com/genvmoroz/lale/service/pkg/lang"
 )
 
 type (

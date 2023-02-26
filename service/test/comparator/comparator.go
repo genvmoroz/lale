@@ -1,8 +1,8 @@
 package comparator
 
 import (
-	"github.com/genvmoroz/lale-service/api"
-	"github.com/genvmoroz/lale-service/internal/entity"
+	"github.com/genvmoroz/lale/service/api"
+	"github.com/genvmoroz/lale/service/internal/entity"
 )
 
 type GRPCComparator struct {

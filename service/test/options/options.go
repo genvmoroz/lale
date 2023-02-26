@@ -5,7 +5,7 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
-	"github.com/genvmoroz/lale-service/test/client"
+	"github.com/genvmoroz/lale/service/test/client"
 )
 
 const defaultAppPrefix = "APP"

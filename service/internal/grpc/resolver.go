@@ -8,8 +8,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/genvmoroz/lale-service/api"
-	"github.com/genvmoroz/lale-service/internal/core"
+	"github.com/genvmoroz/lale/service/api"
+	"github.com/genvmoroz/lale/service/internal/core"
 )
 
 type Resolver struct {

@@ -3,7 +3,7 @@ package card
 import (
 	"go.mongodb.org/mongo-driver/bson"
 
-	"github.com/genvmoroz/lale-service/internal/entity"
+	"github.com/genvmoroz/lale/service/internal/entity"
 )
 
 func cardToDoc(card entity.Card) bson.M {

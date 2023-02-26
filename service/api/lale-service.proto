@@ -1,8 +1,17 @@
 syntax = "proto3";
-option go_package = "github.com/genvmoroz/lale-service/api";
+option go_package = "github.com/genvmoroz/lale/service/api";
 package api;
 
 import "google/protobuf/timestamp.proto";
+
+service LaleService {
+  rpc InspectCard(InspectCardRequest) returns (InspectCardResponse);
+  rpc CreateCard(CreateCardRequest) returns (CreateCardResponse);
+  rpc GetAllCards(GetCardsRequest) returns (GetCardsResponse);
+  rpc UpdateCardPerformance(UpdateCardPerformanceRequest) returns (UpdateCardPerformanceResponse);
+  rpc GetCardsToReview(GetCardsForReviewRequest) returns (GetCardsResponse);
+  rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
+}
 
 message Card {
   string id = 1;
@@ -103,13 +112,4 @@ message DeleteCardRequest {
 
 message DeleteCardResponse {
   Card card = 1;
-}
-
-service LaleService {
-  rpc InspectCard(InspectCardRequest) returns (InspectCardResponse);
-  rpc CreateCard(CreateCardRequest) returns (CreateCardResponse);
-  rpc GetAllCards(GetCardsRequest) returns (GetCardsResponse);
-  rpc UpdateCardPerformance(UpdateCardPerformanceRequest) returns (UpdateCardPerformanceResponse);
-  rpc GetCardsToReview(GetCardsForReviewRequest) returns (GetCardsResponse);
-  rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
 }

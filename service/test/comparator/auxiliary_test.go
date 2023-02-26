@@ -3,7 +3,7 @@ package comparator
 import (
 	"testing"
 
-	"github.com/genvmoroz/lale-service/internal/entity"
+	"github.com/genvmoroz/lale/service/internal/entity"
 )
 
 func TestContainDuplicatesByID(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/genvmoroz/lale-service/api"
+	"github.com/genvmoroz/lale/service/api"
 )
 
 type (

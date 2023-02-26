@@ -14,8 +14,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
-	"github.com/genvmoroz/lale-service/internal/entity"
-	"github.com/genvmoroz/lale-service/test/comparator"
+	"github.com/genvmoroz/lale/service/internal/entity"
+	"github.com/genvmoroz/lale/service/test/comparator"
 )
 
 type (

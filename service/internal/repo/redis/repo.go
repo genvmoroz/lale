@@ -5,7 +5,8 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"net"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -28,7 +29,7 @@ type (
 
 func NewRepo(config Config) *Repo {
 	cfg := redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", config.Host, config.Port),
+		Addr:     net.JoinHostPort(config.Host, strconv.Itoa(config.Port)),
 		DB:       config.DB,
 		Password: config.Pass,
 	}

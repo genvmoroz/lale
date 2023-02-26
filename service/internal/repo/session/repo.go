@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/genvmoroz/lale-service/internal/entity"
+	"github.com/genvmoroz/lale/service/internal/entity"
 )
 
 type (

@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 
-	"github.com/genvmoroz/lale-service/internal/entity"
-	"github.com/genvmoroz/lale-service/pkg/lang"
+	"github.com/genvmoroz/lale/service/internal/entity"
+	"github.com/genvmoroz/lale/service/pkg/lang"
 )
 
 type (

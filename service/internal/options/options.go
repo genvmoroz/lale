@@ -8,11 +8,11 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 
-	"github.com/genvmoroz/lale-service/internal/repo/card"
-	"github.com/genvmoroz/lale-service/internal/repo/redis"
-	"github.com/genvmoroz/lale-service/internal/repo/session"
-	"github.com/genvmoroz/lale-service/pkg/sentence/hippo"
-	"github.com/genvmoroz/lale-service/pkg/sentence/yourdictionary"
+	"github.com/genvmoroz/lale/service/internal/repo/card"
+	"github.com/genvmoroz/lale/service/internal/repo/redis"
+	"github.com/genvmoroz/lale/service/internal/repo/session"
+	"github.com/genvmoroz/lale/service/pkg/sentence/hippo"
+	"github.com/genvmoroz/lale/service/pkg/sentence/yourdictionary"
 )
 
 type (

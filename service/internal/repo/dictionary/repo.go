@@ -9,8 +9,8 @@ import (
 	"time"
 
 	clientHTTP "github.com/genvmoroz/client-go/http"
-	"github.com/genvmoroz/lale-service/internal/entity"
-	"github.com/genvmoroz/lale-service/pkg/lang"
+	"github.com/genvmoroz/lale/service/internal/entity"
+	"github.com/genvmoroz/lale/service/pkg/lang"
 )
 
 type (

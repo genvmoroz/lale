@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strconv"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"github.com/genvmoroz/lale-service/api"
+	"github.com/genvmoroz/lale/service/api"
 )
 
 type Service struct {
@@ -29,7 +30,7 @@ func NewService(port int, resolver api.LaleServiceServer) *Service {
 }
 
 func (s *Service) Run(ctx context.Context) error {
-	addr := fmt.Sprintf("0.0.0.0:%d", s.port)
+	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(s.port))
 	lis, err := net.Listen(network, addr)
 	if err != nil {
 		return fmt.Errorf("failed to listen address [%s]: %w", addr, err)

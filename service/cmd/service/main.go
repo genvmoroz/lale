@@ -13,9 +13,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/genvmoroz/lale-service/internal/dependency"
-	"github.com/genvmoroz/lale-service/internal/grpc"
-	"github.com/genvmoroz/lale-service/internal/options"
+	"github.com/genvmoroz/lale/service/internal/dependency"
+	"github.com/genvmoroz/lale/service/internal/grpc"
+	"github.com/genvmoroz/lale/service/internal/options"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 }
 
 func run() error {
-	rand.Seed(time.Now().UTC().UnixNano())
+	rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
