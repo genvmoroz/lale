@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/genvmoroz/lale/service/api"
-	"github.com/genvmoroz/lale/service/internal/entity"
+	"github.com/genvmoroz/lale/service/pkg/entity"
 	"github.com/genvmoroz/lale/service/pkg/lang"
 	"github.com/genvmoroz/lale/service/test/client"
 	"github.com/genvmoroz/lale/service/test/comparator"

@@ -2,8 +2,8 @@ package review
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"strconv"
 	"strings"
 
@@ -39,7 +39,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		ctx,
 		isStringNotBlank,
 		chatID,
-		"Send the language of Translations, ex: en",
+		"Send the language of translation, ex: en",
 		func(input string, _ int64, _ *bot.Client) (string, error) {
 			return strings.TrimSpace(input), nil
 		},
@@ -64,7 +64,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			parsed, err := strconv.Atoi(strings.TrimSpace(input))
 			switch {
 			case err != nil:
-				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Parsing error: <code>%s</code>", err.Error()), "HTML")
+				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Parsing error: %s", err.Error()), "HTML")
 			case parsed < 0:
 				return nil, client.Send(chatID, "The value cannot be negative")
 			default:
@@ -93,7 +93,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	resp, err := s.laleRepo.GetCardsToReview(ctx, req)
 	if err != nil {
-		if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("grpc [GetCardsToReview] err: <code>%s</code>", err.Error()), "HTML"); sendErr != nil {
+		if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("grpc [GetCardsToReview] err: %s", err.Error()), "HTML"); sendErr != nil {
 			logrus.
 				WithField("grpc error", err.Error()).
 				WithField("tg-bot error", sendErr.Error()).
@@ -104,11 +104,11 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	for _, card := range resp.Cards {
 		for _, word := range card.GetWordInformationList() {
-			empJSON, err := json.MarshalIndent(word, "", "\t\t\t")
+			empJSON, err := yaml.Marshal(word)
 			if err != nil {
 				return err
 			}
-			if err = client.SendWithParseMode(chatID, fmt.Sprintf("Word: %s<code>%s</code>", word.GetWord(), empJSON), "HTML"); err != nil {
+			if err = client.SendWithParseMode(chatID, fmt.Sprintf("Word: %s", empJSON), "HTML"); err != nil {
 				return err
 			}
 		}
@@ -124,7 +124,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 				parsed, err := strconv.Atoi(strings.TrimSpace(input))
 				switch {
 				case err != nil:
-					return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Parsing error: <code>%s</code>", err.Error()), "HTML")
+					return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Parsing error: %s", err.Error()), "HTML")
 				case parsed < 0 || parsed > 5:
 					return nil, client.Send(chatID, "The value is out of range [0:5]")
 				default:
@@ -153,7 +153,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 		resp, err := s.laleRepo.UpdateCardPerformance(ctx, perfReq)
 		if err != nil {
-			if err = client.SendWithParseMode(chatID, fmt.Sprintf("grpc [InspectCard] err: <code>%s</code>", err.Error()), "HTML"); err != nil {
+			if err = client.SendWithParseMode(chatID, fmt.Sprintf("grpc [InspectCard] err: %s", err.Error()), "HTML"); err != nil {
 				return err
 			}
 		}

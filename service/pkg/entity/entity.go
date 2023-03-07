@@ -16,41 +16,41 @@ type (
 		UserID   string
 		Language lang.Language
 
-		WordInformationList []WordInformation
+		WordInformationList []WordInformation `yaml:"WordInformationList,omitempty"`
 
 		CorrectAnswers uint32
 		NextDueDate    time.Time
 	}
 
 	WordInformation struct {
-		Word        string
-		Translation *Translation
-		Origin      string
-		Phonetics   []Phonetic
-		Meanings    []Meaning
-		Sentences   []string
+		Word        string       `yaml:"Word,omitempty"`
+		Translation *Translation `yaml:"Translation,omitempty"`
+		Origin      string       `yaml:"Origin,omitempty"`
+		Phonetics   []Phonetic   `yaml:"Phonetics,omitempty"`
+		Meanings    []Meaning    `yaml:"Meanings,omitempty"`
+		Sentences   []string     `yaml:"Sentences,omitempty"`
 	}
 
 	Translation struct {
-		Language     lang.Language
-		Translations []string
+		Language     lang.Language `yaml:"Language,omitempty"`
+		Translations []string      `yaml:"Translations,omitempty"`
 	}
 
 	Phonetic struct {
-		Text      string
-		AudioLink string
+		Text      string `yaml:"Text,omitempty"`
+		AudioLink string `yaml:"AudioLink,omitempty"`
 	}
 
 	Meaning struct {
-		PartOfSpeech string
-		Definitions  []Definition
+		PartOfSpeech string       `yaml:"PartOfSpeech,omitempty"`
+		Definitions  []Definition `yaml:"Definitions,omitempty"`
 	}
 
 	Definition struct {
-		Definition string
-		Example    string
-		Synonyms   []string
-		Antonyms   []string
+		Definition string   `yaml:"Definition,omitempty"`
+		Example    string   `yaml:"Example,omitempty"`
+		Synonyms   []string `yaml:"Synonyms,omitempty"`
+		Antonyms   []string `yaml:"Antonyms,omitempty"`
 	}
 
 	User struct {

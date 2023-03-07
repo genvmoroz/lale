@@ -6,7 +6,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/genvmoroz/lale/service/api"
-	"github.com/genvmoroz/lale/service/internal/entity"
+	"github.com/genvmoroz/lale/service/pkg/entity"
 )
 
 func ContainDuplicatesByID(cards []entity.Card) bool {

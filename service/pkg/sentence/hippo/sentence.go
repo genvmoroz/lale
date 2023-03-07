@@ -70,12 +70,12 @@ func (s *Scraper) ScrapeSentences(word string, size uint32) ([]string, error) {
 
 	sentences, err := scrapeSentences(sentencesXPath, sentenceXPath, scr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to scrape sentences XPath [%s]: %w", sentences, err)
+		return nil, fmt.Errorf("failed to scrape sentences XPath [%s]: %w", sentencesXPath, err)
 	}
 
 	classicalLiteratureSentences, err := scrapeSentences(classicalLiteratureSentencesXPath, classicalLiteratureSentenceXPath, scr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to scrape classical literarure sentences XPath [%s]: %w", sentences, err)
+		return nil, fmt.Errorf("failed to scrape classical literarure sentences XPath [%s]: %w", classicalLiteratureSentencesXPath, err)
 	}
 
 	res := append(sentences, classicalLiteratureSentences...)
@@ -89,7 +89,10 @@ func (s *Scraper) ScrapeSentences(word string, size uint32) ([]string, error) {
 func scrapeSentences(tableFullXPath, sentenceFullXPath string, scr *web.Scraper) ([]string, error) {
 	node, err := scr.FindNode(tableFullXPath)
 	if err != nil {
-		return nil, err
+		if strings.Contains(err.Error(), "element not found") {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to find Node: %w", err)
 	}
 
 	count := 0

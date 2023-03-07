@@ -90,7 +90,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	resp, err := s.laleRepo.InspectCard(ctx, req)
 	if err != nil {
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("grpc [InspectCard] err: <code>%s</code>", err.Error()), "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("grpc [InspectCard] err: %s", err.Error()), "HTML"); err != nil {
 			return err
 		}
 	}
@@ -100,7 +100,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		return err
 	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card:\n<code>%s</code>", string(empJSON)), "HTML"); err != nil {
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card:\n%s", string(empJSON)), "HTML"); err != nil {
 		return err
 	}
 

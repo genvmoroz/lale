@@ -1,9 +1,10 @@
 package core
 
 import (
-	"github.com/genvmoroz/lale/service/internal/entity"
-	"github.com/genvmoroz/lale/service/pkg/lang"
 	"time"
+
+	"github.com/genvmoroz/lale/service/pkg/entity"
+	"github.com/genvmoroz/lale/service/pkg/lang"
 )
 
 type (

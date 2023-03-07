@@ -58,7 +58,7 @@ func (s Scraper) ScrapeSentences(word string, size uint32) ([]string, error) {
 	query := fmt.Sprintf("%s/%s", s.host.String(), strings.TrimSpace(word))
 	scr, err := web.New(query, s.cli)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create web sentence: %w", err)
+		return nil, fmt.Errorf("failed to create web sentence scraper: %w", err)
 	}
 
 	sentences, err := scrapeSentences(sentencesXPath, scr)
@@ -76,6 +76,9 @@ func (s Scraper) ScrapeSentences(word string, size uint32) ([]string, error) {
 func scrapeSentences(fullXPath string, scr *web.Scraper) ([]string, error) {
 	node, err := scr.FindNode(fullXPath)
 	if err != nil {
+		if strings.Contains(err.Error(), "element not found") {
+			return nil, nil
+		}
 		return nil, err
 	}
 
