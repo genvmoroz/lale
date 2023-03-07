@@ -3,15 +3,16 @@ package review
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale/service/api"
+	"github.com/genvmoroz/lale/tg-client/internal/auxl"
 	"github.com/genvmoroz/lale/tg-client/internal/repository"
-	"github.com/sirupsen/logrus"
 )
 
 type State struct {
@@ -34,11 +35,11 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		return err
 	}
 
-	language, userName, back, err := requestInput[string](
+	language, userName, back, err := auxl.RequestInput[string](
 		ctx,
 		isStringNotBlank,
 		chatID,
-		"Send language. Ex. en",
+		"Send the language of Translations, ex: en",
 		func(input string, _ int64, _ *bot.Client) (string, error) {
 			return strings.TrimSpace(input), nil
 		},
@@ -52,7 +53,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		return nil
 	}
 
-	sentencesCount, _, back, err := requestInput[*uint32](
+	sentencesCount, _, back, err := auxl.RequestInput[*uint32](
 		ctx,
 		func(u *uint32) bool {
 			return u != nil
@@ -63,18 +64,13 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			parsed, err := strconv.Atoi(strings.TrimSpace(input))
 			switch {
 			case err != nil:
-				if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("Parsing error: <code>%s</code>", err.Error()), "HTML"); sendErr != nil {
-					return nil, sendErr
-				}
+				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Parsing error: <code>%s</code>", err.Error()), "HTML")
 			case parsed < 0:
-				if sendErr := client.Send(chatID, "The value cannot be negative"); sendErr != nil {
-					return nil, sendErr
-				}
+				return nil, client.Send(chatID, "The value cannot be negative")
 			default:
 				v := uint32(parsed)
 				return &v, nil
 			}
-			return nil, nil
 		},
 		client,
 		updateChan,
@@ -117,7 +113,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			}
 		}
 
-		easinessLevel, _, back, err := requestInput[*uint32](
+		easinessLevel, _, back, err := auxl.RequestInput[*uint32](
 			ctx,
 			func(u *uint32) bool {
 				return u != nil
@@ -128,22 +124,13 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 				parsed, err := strconv.Atoi(strings.TrimSpace(input))
 				switch {
 				case err != nil:
-					if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("Parsing error: <code>%s</code>", err.Error()), "HTML"); sendErr != nil {
-						return nil, sendErr
-					}
-				case parsed < 0:
-					if sendErr := client.Send(chatID, "The value cannot be negative"); sendErr != nil {
-						return nil, sendErr
-					}
-				case parsed > 5:
-					if sendErr := client.Send(chatID, "The value is out of range [0:5]"); sendErr != nil {
-						return nil, sendErr
-					}
+					return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Parsing error: <code>%s</code>", err.Error()), "HTML")
+				case parsed < 0 || parsed > 5:
+					return nil, client.Send(chatID, "The value is out of range [0:5]")
 				default:
 					v := uint32(parsed)
 					return &v, nil
 				}
-				return nil, nil
 			},
 			client,
 			updateChan,
@@ -185,55 +172,6 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 func isStringNotBlank(s string) bool {
 	return len(strings.TrimSpace(s)) != 0
-}
-
-func requestInput[T any](
-	ctx context.Context,
-	until func(T) bool,
-	chatID int64,
-	message string,
-	processInput func(input string, chatID int64, client *bot.Client) (T, error),
-	client *bot.Client,
-	updateChan bot.UpdatesChannel) (T, string, bool, error) {
-
-	var (
-		val      T
-		userName string
-	)
-
-	if err := client.Send(chatID, message); err != nil {
-		return val, userName, false, err
-	}
-
-	for !until(val) {
-		select {
-		case <-ctx.Done():
-			return val, userName, false, nil
-		case update, ok := <-updateChan:
-			if !ok {
-				return val, userName, false, errors.New("updateChan is closed")
-			}
-			text := strings.TrimSpace(update.Message.Text)
-			switch text {
-			case "/back":
-				return val, userName, true, client.Send(chatID, "Back to previous state")
-			case "":
-				if err := client.Send(chatID, "Empty value is not allowed"); err != nil {
-					return val, userName, false, err
-				}
-			default:
-				input, err := processInput(text, chatID, client)
-				if err != nil {
-					return val, userName, false, fmt.Errorf("failed ")
-				}
-
-				val = input
-				userName = update.Message.From.UserName
-			}
-		}
-	}
-
-	return val, userName, false, nil
 }
 
 func (s *State) Command() string {

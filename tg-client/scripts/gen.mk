@@ -1,5 +1,5 @@
 .PHONY: gen
-gen: protoc-gen mockgen
+gen: mockgen
 
 .PHONY: mockgen
 mockgen:
