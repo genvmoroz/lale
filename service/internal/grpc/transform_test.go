@@ -58,15 +58,15 @@ func TestAPICard(t *testing.T) {
 			name: "with Word",
 			arg: entity.Card{
 				WordInformationList: []entity.WordInformation{
-					{Word: "word1", Translate: &entity.Translate{Language: "en", Translates: []string{"translate1"}}, Origin: "origin1"},
-					{Word: "word2", Translate: &entity.Translate{Language: "en", Translates: []string{"translate2"}}, Origin: "origin2"},
+					{Word: "word1", Translation: &entity.Translation{Language: "en", Translations: []string{"Translation1"}}, Origin: "origin1"},
+					{Word: "word2", Translation: &entity.Translation{Language: "en", Translations: []string{"Translation2"}}, Origin: "origin2"},
 				},
 				NextDueDate: time.Date(2022, 2, 24, 2, 0, 0, 0, time.UTC),
 			},
 			want: &api.Card{
 				WordInformationList: []*api.WordInformation{
-					{Word: "word1", Translate: &api.Translate{Language: "en", Translates: []string{"translate1"}}, Origin: "origin1"},
-					{Word: "word2", Translate: &api.Translate{Language: "en", Translates: []string{"translate2"}}, Origin: "origin2"},
+					{Word: "word1", Translation: &api.Translation{Language: "en", Translations: []string{"Translation1"}}, Origin: "origin1"},
+					{Word: "word2", Translation: &api.Translation{Language: "en", Translations: []string{"Translation2"}}, Origin: "origin2"},
 				},
 				NextDueDate: timestamppb.New(time.Date(2022, 2, 24, 2, 0, 0, 0, time.UTC)),
 			},
@@ -99,17 +99,17 @@ func TestAPIWordInformation(t *testing.T) {
 			want: &api.WordInformation{Word: "someWord"},
 		},
 		{
-			name: "with translate",
+			name: "with Translation",
 			arg: entity.WordInformation{
-				Translate: &entity.Translate{
-					Language:   "en",
-					Translates: []string{"translate1", "translate2"},
+				Translation: &entity.Translation{
+					Language:     "en",
+					Translations: []string{"Translation1", "Translation2"},
 				},
 			},
 			want: &api.WordInformation{
-				Translate: &api.Translate{
-					Language:   "en",
-					Translates: []string{"translate1", "translate2"},
+				Translation: &api.Translation{
+					Language:     "en",
+					Translations: []string{"Translation1", "Translation2"},
 				},
 			},
 		},
@@ -234,9 +234,9 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 			WordInformationList: []entity.WordInformation{
 				{
 					Word: "Word_1",
-					Translate: &entity.Translate{
-						Language:   lang.English,
-						Translates: []string{"translate_1", "translate_11"},
+					Translation: &entity.Translation{
+						Language:     lang.English,
+						Translations: []string{"Translation_1", "Translation_11"},
 					},
 					Origin: "Origin_1",
 					Phonetics: []entity.Phonetic{
@@ -283,9 +283,9 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 				},
 				{
 					Word: "Word_2",
-					Translate: &entity.Translate{
-						Language:   lang.English,
-						Translates: []string{"translate_2", "translate_21"},
+					Translation: &entity.Translation{
+						Language:     lang.English,
+						Translations: []string{"Translation_2", "Translation_21"},
 					},
 					Origin: "Origin_2",
 					Phonetics: []entity.Phonetic{
@@ -344,9 +344,9 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 			WordInformationList: []*api.WordInformation{
 				{
 					Word: "Word_1",
-					Translate: &api.Translate{
-						Language:   lang.English.String(),
-						Translates: []string{"translate_1", "translate_11"},
+					Translation: &api.Translation{
+						Language:     lang.English.String(),
+						Translations: []string{"Translation_1", "Translation_11"},
 					},
 					Origin: "Origin_1",
 					Phonetics: []*api.Phonetic{
@@ -393,9 +393,9 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 				},
 				{
 					Word: "Word_2",
-					Translate: &api.Translate{
-						Language:   lang.English.String(),
-						Translates: []string{"translate_2", "translate_21"},
+					Translation: &api.Translation{
+						Language:     lang.English.String(),
+						Translations: []string{"Translation_2", "Translation_21"},
 					},
 					Origin: "Origin_2",
 					Phonetics: []*api.Phonetic{
@@ -472,9 +472,9 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 					WordInformationList: []*api.WordInformation{
 						{
 							Word: "Word_1",
-							Translate: &api.Translate{
-								Language:   lang.Ukrainian.String(),
-								Translates: []string{"Translates_11", "Translates_12"},
+							Translation: &api.Translation{
+								Language:     lang.Ukrainian.String(),
+								Translations: []string{"Translations_11", "Translations_12"},
 							},
 							Origin: "Origin_1",
 							Phonetics: []*api.Phonetic{
@@ -522,9 +522,9 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 						},
 						{
 							Word: "Word_2",
-							Translate: &api.Translate{
-								Language:   lang.Ukrainian.String(),
-								Translates: []string{"Translates_21", "Translates_22"},
+							Translation: &api.Translation{
+								Language:     lang.Ukrainian.String(),
+								Translations: []string{"Translations_21", "Translations_22"},
 							},
 							Origin: "Origin_2",
 							Phonetics: []*api.Phonetic{
@@ -580,9 +580,9 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 					WordInformationList: []entity.WordInformation{
 						{
 							Word: "Word_1",
-							Translate: &entity.Translate{
-								Language:   lang.Ukrainian,
-								Translates: []string{"Translates_11", "Translates_12"},
+							Translation: &entity.Translation{
+								Language:     lang.Ukrainian,
+								Translations: []string{"Translations_11", "Translations_12"},
 							},
 							Origin: "Origin_1",
 							Phonetics: []entity.Phonetic{
@@ -629,9 +629,9 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 						},
 						{
 							Word: "Word_2",
-							Translate: &entity.Translate{
-								Language:   lang.Ukrainian,
-								Translates: []string{"Translates_21", "Translates_22"},
+							Translation: &entity.Translation{
+								Language:     lang.Ukrainian,
+								Translations: []string{"Translations_21", "Translations_22"},
 							},
 							Origin: "Origin_2",
 							Phonetics: []entity.Phonetic{
@@ -736,9 +736,9 @@ func TestTransformerToAPICreateCardResponse(t *testing.T) {
 			WordInformationList: []entity.WordInformation{
 				{
 					Word: "Word_11",
-					Translate: &entity.Translate{
-						Language:   lang.Ukrainian,
-						Translates: []string{"translate_11", "translate_12"},
+					Translation: &entity.Translation{
+						Language:     lang.Ukrainian,
+						Translations: []string{"Translation_11", "Translation_12"},
 					},
 					Origin: "Origin_1",
 					Phonetics: []entity.Phonetic{
@@ -797,9 +797,9 @@ func TestTransformerToAPICreateCardResponse(t *testing.T) {
 			WordInformationList: []*api.WordInformation{
 				{
 					Word: "Word_11",
-					Translate: &api.Translate{
-						Language:   lang.Ukrainian.String(),
-						Translates: []string{"translate_11", "translate_12"},
+					Translation: &api.Translation{
+						Language:     lang.Ukrainian.String(),
+						Translations: []string{"Translation_11", "Translation_12"},
 					},
 					Origin: "Origin_1",
 					Phonetics: []*api.Phonetic{
@@ -921,9 +921,9 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 							WordInformationList: []entity.WordInformation{
 								{
 									Word: "Word_11",
-									Translate: &entity.Translate{
-										Language:   lang.Ukrainian,
-										Translates: []string{"translate_11", "translate_12"},
+									Translation: &entity.Translation{
+										Language:     lang.Ukrainian,
+										Translations: []string{"Translation_11", "Translation_12"},
 									},
 									Origin: "Origin_1",
 									Phonetics: []entity.Phonetic{
@@ -979,9 +979,9 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 							WordInformationList: []entity.WordInformation{
 								{
 									Word: "Word_21",
-									Translate: &entity.Translate{
-										Language:   lang.Ukrainian,
-										Translates: []string{"translate_21", "translate_22"},
+									Translation: &entity.Translation{
+										Language:     lang.Ukrainian,
+										Translations: []string{"Translation_21", "Translation_22"},
 									},
 									Origin: "Origin_2",
 									Phonetics: []entity.Phonetic{
@@ -1045,9 +1045,9 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 							WordInformationList: []*api.WordInformation{
 								{
 									Word: "Word_11",
-									Translate: &api.Translate{
-										Language:   lang.Ukrainian.String(),
-										Translates: []string{"translate_11", "translate_12"},
+									Translation: &api.Translation{
+										Language:     lang.Ukrainian.String(),
+										Translations: []string{"Translation_11", "Translation_12"},
 									},
 									Origin: "Origin_1",
 									Phonetics: []*api.Phonetic{
@@ -1103,9 +1103,9 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 							WordInformationList: []*api.WordInformation{
 								{
 									Word: "Word_21",
-									Translate: &api.Translate{
-										Language:   lang.Ukrainian.String(),
-										Translates: []string{"translate_21", "translate_22"},
+									Translation: &api.Translation{
+										Language:     lang.Ukrainian.String(),
+										Translations: []string{"Translation_21", "Translation_22"},
 									},
 									Origin: "Origin_2",
 									Phonetics: []*api.Phonetic{
@@ -1370,9 +1370,9 @@ func TestTransformerToAPIDeleteCardResponse(t *testing.T) {
 						WordInformationList: []entity.WordInformation{
 							{
 								Word: "Word_11",
-								Translate: &entity.Translate{
-									Language:   lang.Ukrainian,
-									Translates: []string{"translate_11", "translate_12"},
+								Translation: &entity.Translation{
+									Language:     lang.Ukrainian,
+									Translations: []string{"Translation_11", "Translation_12"},
 								},
 								Origin: "Origin_1",
 								Phonetics: []entity.Phonetic{
@@ -1432,9 +1432,9 @@ func TestTransformerToAPIDeleteCardResponse(t *testing.T) {
 						WordInformationList: []*api.WordInformation{
 							{
 								Word: "Word_11",
-								Translate: &api.Translate{
-									Language:   lang.Ukrainian.String(),
-									Translates: []string{"translate_11", "translate_12"},
+								Translation: &api.Translation{
+									Language:     lang.Ukrainian.String(),
+									Translations: []string{"Translation_11", "Translation_12"},
 								},
 								Origin: "Origin_1",
 								Phonetics: []*api.Phonetic{

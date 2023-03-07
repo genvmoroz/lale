@@ -213,7 +213,7 @@ func (s *service) enrichWordInformationListFromDictionary(language lang.Language
 		}
 
 		enrichedWordInfo.Word = wordInfo.Word
-		enrichedWordInfo.Translate = wordInfo.Translate
+		enrichedWordInfo.Translation = wordInfo.Translation
 
 		enrichedWords = append(enrichedWords, enrichedWordInfo)
 	}

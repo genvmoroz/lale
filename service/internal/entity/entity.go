@@ -23,17 +23,17 @@ type (
 	}
 
 	WordInformation struct {
-		Word      string
-		Translate *Translate
-		Origin    string
-		Phonetics []Phonetic
-		Meanings  []Meaning
-		Sentences []string
+		Word        string
+		Translation *Translation
+		Origin      string
+		Phonetics   []Phonetic
+		Meanings    []Meaning
+		Sentences   []string
 	}
 
-	Translate struct {
-		Language   lang.Language
-		Translates []string
+	Translation struct {
+		Language     lang.Language
+		Translations []string
 	}
 
 	Phonetic struct {

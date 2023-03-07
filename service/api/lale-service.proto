@@ -24,16 +24,16 @@ message Card {
 
 message WordInformation {
   string word = 1;
-  Translate translate = 2;
+  Translation Translation = 2;
   string origin = 3;
   repeated Phonetic phonetics = 4;
   repeated Meaning meanings = 5;
   repeated string sentences = 6;
 }
 
-message Translate {
+message Translation {
   string language = 1;
-  repeated string translates = 2;
+  repeated string Translations = 2;
 }
 
 message Phonetic {

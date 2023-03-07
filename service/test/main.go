@@ -83,38 +83,38 @@ func NewUser(ctx context.Context, cfg client.Config, count int) (User, error) {
 		words: []WordPack{
 			{
 				words: []entity.WordInformation{
-					{Word: "anticipation", Translate: &entity.Translate{Language: "uk", Translates: []string{"очікування"}}},
-					{Word: "anticipate", Translate: &entity.Translate{Language: "uk", Translates: []string{"передбачити", "очікувати", "передчувати"}}},
-					{Word: "anticipated", Translate: &entity.Translate{Language: "uk", Translates: []string{"очікуваний"}}},
+					{Word: "anticipation", Translation: &entity.Translation{Language: "uk", Translations: []string{"очікування"}}},
+					{Word: "anticipate", Translation: &entity.Translation{Language: "uk", Translations: []string{"передбачити", "очікувати", "передчувати"}}},
+					{Word: "anticipated", Translation: &entity.Translation{Language: "uk", Translations: []string{"очікуваний"}}},
 				},
 				language: "en",
 			},
 			{
 				words: []entity.WordInformation{
-					{Word: "stir", Translate: &entity.Translate{Language: "uk", Translates: []string{"перемішати", "замішувати", "ворушіння", "метушня", "розмішування"}}},
+					{Word: "stir", Translation: &entity.Translation{Language: "uk", Translations: []string{"перемішати", "замішувати", "ворушіння", "метушня", "розмішування"}}},
 				},
 				language: "en",
 			},
 			{
 				words: []entity.WordInformation{
-					{Word: "spread", Translate: &entity.Translate{Language: "uk", Translates: []string{"поширювати", "поширення", "розкидати", "поширюватися"}}},
+					{Word: "spread", Translation: &entity.Translation{Language: "uk", Translations: []string{"поширювати", "поширення", "розкидати", "поширюватися"}}},
 				},
 				language: "en",
 			},
 			{
 				words: []entity.WordInformation{
-					{Word: "restrict", Translate: &entity.Translate{Language: "uk", Translates: []string{"обмеження", "обмежуватися", "засекречувати", "забороняти", "тримати в певних межах"}}},
-					{Word: "restrictor", Translate: &entity.Translate{Language: "uk", Translates: []string{"обмежувач"}}},
-					{Word: "restricted", Translate: &entity.Translate{Language: "uk", Translates: []string{"обмежений", "для службового користування"}}},
-					{Word: "restrictively", Translate: &entity.Translate{Language: "uk", Translates: []string{"обмежено"}}},
+					{Word: "restrict", Translation: &entity.Translation{Language: "uk", Translations: []string{"обмеження", "обмежуватися", "засекречувати", "забороняти", "тримати в певних межах"}}},
+					{Word: "restrictor", Translation: &entity.Translation{Language: "uk", Translations: []string{"обмежувач"}}},
+					{Word: "restricted", Translation: &entity.Translation{Language: "uk", Translations: []string{"обмежений", "для службового користування"}}},
+					{Word: "restrictively", Translation: &entity.Translation{Language: "uk", Translations: []string{"обмежено"}}},
 				},
 				language: "en",
 			},
 			{
 				words: []entity.WordInformation{
-					{Word: "object", Translate: &entity.Translate{Language: "uk", Translates: []string{"предмет", "об'єкт", "безглузда річ", "висловлювати несхвалення", "заперечувати", "протестувати"}}},
-					{Word: "objective", Translate: &entity.Translate{Language: "uk", Translates: []string{"об'єктивний", "предметний", "дійсний", "мета"}}},
-					{Word: "objectively", Translate: &entity.Translate{Language: "uk", Translates: []string{"об'єктивно", "неупереджено", "реально"}}},
+					{Word: "object", Translation: &entity.Translation{Language: "uk", Translations: []string{"предмет", "об'єкт", "безглузда річ", "висловлювати несхвалення", "заперечувати", "протестувати"}}},
+					{Word: "objective", Translation: &entity.Translation{Language: "uk", Translations: []string{"об'єктивний", "предметний", "дійсний", "мета"}}},
+					{Word: "objectively", Translation: &entity.Translation{Language: "uk", Translations: []string{"об'єктивно", "неупереджено", "реально"}}},
 				},
 				language: "en",
 			},

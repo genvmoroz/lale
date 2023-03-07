@@ -129,28 +129,28 @@ func TestCompareCard(t *testing.T) {
 				card: &entity.Card{
 					WordInformationList: []entity.WordInformation{
 						{
-							Word:      "someWord0",
-							Origin:    "origin",
-							Translate: &entity.Translate{Language: "en", Translates: []string{"trans0"}},
+							Word:        "someWord0",
+							Origin:      "origin",
+							Translation: &entity.Translation{Language: "en", Translations: []string{"trans0"}},
 						},
 						{
-							Word:      "someWord1",
-							Origin:    "origin",
-							Translate: &entity.Translate{Language: "en", Translates: []string{"trans1"}},
+							Word:        "someWord1",
+							Origin:      "origin",
+							Translation: &entity.Translation{Language: "en", Translations: []string{"trans1"}},
 						},
 					},
 				},
 				target: &api.Card{
 					WordInformationList: []*api.WordInformation{
 						{
-							Word:      "someWord0",
-							Origin:    "origin",
-							Translate: &api.Translate{Language: "en", Translates: []string{"trans0"}},
+							Word:        "someWord0",
+							Origin:      "origin",
+							Translation: &api.Translation{Language: "en", Translations: []string{"trans0"}},
 						},
 						{
-							Word:      "someWord1",
-							Origin:    "origin",
-							Translate: &api.Translate{Language: "en", Translates: []string{"trans1"}},
+							Word:        "someWord1",
+							Origin:      "origin",
+							Translation: &api.Translation{Language: "en", Translations: []string{"trans1"}},
 						},
 					},
 				},
@@ -354,18 +354,18 @@ func TestCompareWord(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "equal translate",
+			name: "equal Translation",
 			args: args{
-				word:   &entity.WordInformation{Translate: &entity.Translate{Language: "en", Translates: []string{"trans"}}},
-				target: &api.WordInformation{Translate: &api.Translate{Language: "en", Translates: []string{"trans"}}},
+				word:   &entity.WordInformation{Translation: &entity.Translation{Language: "en", Translations: []string{"trans"}}},
+				target: &api.WordInformation{Translation: &api.Translation{Language: "en", Translations: []string{"trans"}}},
 			},
 			want: true,
 		},
 		{
-			name: "not equal translate",
+			name: "not equal Translation",
 			args: args{
-				word:   &entity.WordInformation{Translate: &entity.Translate{Language: "en", Translates: []string{"trans"}}},
-				target: &api.WordInformation{Translate: &api.Translate{Language: "en", Translates: []string{"anotherTrans"}}},
+				word:   &entity.WordInformation{Translation: &entity.Translation{Language: "en", Translations: []string{"trans"}}},
+				target: &api.WordInformation{Translation: &api.Translation{Language: "en", Translations: []string{"anotherTrans"}}},
 			},
 			want: false,
 		},
@@ -752,12 +752,12 @@ func TestNewGRPCComparator(t *testing.T) {
 	}
 }
 
-func TestGRPCComparator_CompareTranslate(t *testing.T) {
+func TestGRPCComparator_CompareTranslation(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
-		translate *entity.Translate
-		target    *api.Translate
+		Translation *entity.Translation
+		target      *api.Translation
 	}
 	tests := []struct {
 		name string
@@ -767,56 +767,56 @@ func TestGRPCComparator_CompareTranslate(t *testing.T) {
 		{
 			name: "both nullable",
 			args: args{
-				translate: nil,
-				target:    nil,
+				Translation: nil,
+				target:      nil,
 			},
 			want: true,
 		},
 		{
-			name: "translate nullable",
+			name: "Translation nullable",
 			args: args{
-				translate: nil,
-				target:    &api.Translate{},
+				Translation: nil,
+				target:      &api.Translation{},
 			},
 			want: false,
 		},
 		{
 			name: "target nullable",
 			args: args{
-				translate: &entity.Translate{},
-				target:    nil,
+				Translation: &entity.Translation{},
+				target:      nil,
 			},
 			want: false,
 		},
 		{
 			name: "equal lang",
 			args: args{
-				translate: &entity.Translate{Language: "uk"},
-				target:    &api.Translate{Language: "uk"},
+				Translation: &entity.Translation{Language: "uk"},
+				target:      &api.Translation{Language: "uk"},
 			},
 			want: true,
 		},
 		{
 			name: "not equal lang",
 			args: args{
-				translate: &entity.Translate{Language: "uk"},
-				target:    &api.Translate{Language: "gb"},
+				Translation: &entity.Translation{Language: "uk"},
+				target:      &api.Translation{Language: "gb"},
 			},
 			want: false,
 		},
 		{
-			name: "equal translates",
+			name: "equal Translations",
 			args: args{
-				translate: &entity.Translate{Translates: []string{"trans0", "trans1"}},
-				target:    &api.Translate{Translates: []string{"trans0", "trans1"}},
+				Translation: &entity.Translation{Translations: []string{"trans0", "trans1"}},
+				target:      &api.Translation{Translations: []string{"trans0", "trans1"}},
 			},
 			want: true,
 		},
 		{
-			name: "not equal translates",
+			name: "not equal Translations",
 			args: args{
-				translate: &entity.Translate{Translates: []string{"trans0", "trans1"}},
-				target:    &api.Translate{Translates: []string{"trans0"}},
+				Translation: &entity.Translation{Translations: []string{"trans0", "trans1"}},
+				target:      &api.Translation{Translations: []string{"trans0"}},
 			},
 			want: false,
 		},
@@ -827,8 +827,8 @@ func TestGRPCComparator_CompareTranslate(t *testing.T) {
 			t.Parallel()
 
 			gr := &GRPCComparator{}
-			if got := gr.CompareTranslate(tt.args.translate, tt.args.target); got != tt.want {
-				t.Errorf("CompareTranslate() = %v, want %v", got, tt.want)
+			if got := gr.CompareTranslation(tt.args.Translation, tt.args.target); got != tt.want {
+				t.Errorf("CompareTranslation() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -167,36 +167,36 @@ func (t transformer) toCoreWordInformationList(list []*api.WordInformation) []en
 	return res
 }
 
-func (transformer) toCoreTranslate(t *api.Translate) *entity.Translate {
+func (transformer) toCoreTranslation(t *api.Translation) *entity.Translation {
 	if t == nil {
 		return nil
 	}
 
-	return &entity.Translate{
-		Language:   lang.Language(t.Language),
-		Translates: t.Translates,
+	return &entity.Translation{
+		Language:     lang.Language(t.Language),
+		Translations: t.Translations,
 	}
 }
 
 func (t transformer) toAPIWordInformation(info entity.WordInformation) *api.WordInformation {
 	return &api.WordInformation{
-		Word:      info.Word,
-		Translate: t.toAPITranslate(info.Translate),
-		Origin:    info.Origin,
-		Phonetics: t.toAPIPhonetics(info.Phonetics),
-		Meanings:  t.toAPIMeanings(info.Meanings),
-		Sentences: info.Sentences,
+		Word:        info.Word,
+		Translation: t.toAPITranslation(info.Translation),
+		Origin:      info.Origin,
+		Phonetics:   t.toAPIPhonetics(info.Phonetics),
+		Meanings:    t.toAPIMeanings(info.Meanings),
+		Sentences:   info.Sentences,
 	}
 }
 
 func (t transformer) toCoreWordInformation(info *api.WordInformation) entity.WordInformation {
 	return entity.WordInformation{
-		Word:      info.Word,
-		Translate: t.toCoreTranslate(info.Translate),
-		Origin:    info.Origin,
-		Phonetics: t.toCorePhonetics(info.Phonetics),
-		Meanings:  t.toCoreMeanings(info.Meanings),
-		Sentences: info.Sentences,
+		Word:        info.Word,
+		Translation: t.toCoreTranslation(info.Translation),
+		Origin:      info.Origin,
+		Phonetics:   t.toCorePhonetics(info.Phonetics),
+		Meanings:    t.toCoreMeanings(info.Meanings),
+		Sentences:   info.Sentences,
 	}
 }
 
@@ -330,9 +330,9 @@ func (transformer) toCorePhonetic(p *api.Phonetic) entity.Phonetic {
 	}
 }
 
-func (transformer) toAPITranslate(p *entity.Translate) *api.Translate {
+func (transformer) toAPITranslation(p *entity.Translation) *api.Translation {
 	if p == nil {
 		return nil
 	}
-	return &api.Translate{Language: string(p.Language), Translates: p.Translates}
+	return &api.Translation{Language: string(p.Language), Translations: p.Translations}
 }

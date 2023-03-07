@@ -34,7 +34,7 @@ func (c *GRPCComparator) CompareWordInformation(word *entity.WordInformation, ta
 	}
 	if target != nil {
 		return word.Word == target.Word &&
-			c.CompareTranslate(word.Translate, target.Translate) &&
+			c.CompareTranslation(word.Translation, target.Translation) &&
 			word.Origin == target.Origin &&
 			Compare(word.Phonetics, target.Phonetics, phoneticEqual) &&
 			Compare(word.Meanings, target.Meanings, meaningEqual)
@@ -81,13 +81,13 @@ func (*GRPCComparator) CompareDefinition(definition *entity.Definition, target *
 	return false
 }
 
-func (*GRPCComparator) CompareTranslate(translate *entity.Translate, target *api.Translate) bool {
-	if translate == nil {
+func (*GRPCComparator) CompareTranslation(Translation *entity.Translation, target *api.Translation) bool {
+	if Translation == nil {
 		return target == nil
 	}
 	if target != nil {
-		return translate.Language.EqualString(target.Language) &&
-			Compare(translate.Translates, target.Translates, stringEqual)
+		return Translation.Language.EqualString(target.Language) &&
+			Compare(Translation.Translations, target.Translations, stringEqual)
 	}
 
 	return false
