@@ -176,9 +176,10 @@ func (s *service) CreateCard(ctx context.Context, req CreateCardRequest) (Create
 	}
 
 	card := entity.Card{
-		ID:       uuid.NewString(),
-		UserID:   req.UserID,
-		Language: req.Language,
+		ID:                  uuid.NewString(),
+		UserID:              req.UserID,
+		Language:            req.Language,
+		WordInformationList: req.WordInformationList,
 	}
 
 	if req.Params.EnrichWordInformationFromDictionary {

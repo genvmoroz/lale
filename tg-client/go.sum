@@ -8,8 +8,8 @@ github.com/genvmoroz/bot-engine v1.0.12 h1:VXSmWN8hXTt3iHT/Hb4JTwXSQV1vuTfF61usn
 github.com/genvmoroz/bot-engine v1.0.12/go.mod h1:jklw+emLNgBcjLAUo6MZ1b93DX2X6AjOEBa4feKUOpQ=
 github.com/genvmoroz/client-go v1.0.1 h1:x6xBlLqCYkYPQbauoQ3lJ6tnQOoYUVCKdZCERFFCHWY=
 github.com/genvmoroz/client-go v1.0.1/go.mod h1:h8SHhVWEigVCDUfSb9o+bTZ9uG+DghaIyMM4h8+LJas=
-github.com/genvmoroz/lale/service v0.0.3 h1:jr57reI+1Mu3JN6abscs26ZtV+NsqJDfd0X87Nppv9w=
-github.com/genvmoroz/lale/service v0.0.3/go.mod h1:RxhobTPF6H/FfWKYK9bj2+r9ntXY4nhTWXH438vjXeo=
+github.com/genvmoroz/lale/service v0.0.4 h1:6NjzliYPNFaPtKBk+xb4k3pDkJtWmDSbpoqINo/vJzU=
+github.com/genvmoroz/lale/service v0.0.4/go.mod h1:RxhobTPF6H/FfWKYK9bj2+r9ntXY4nhTWXH438vjXeo=
 github.com/go-playground/assert/v2 v2.2.0 h1:JvknZsQTYeFEAhQwI4qEt9cyV5ONwRHC+lYKSsYSR8s=
 github.com/go-playground/locales v0.14.1 h1:EWaQ/wswjilfKLTECiXz7Rh+3BjFhfDFKv/oXslEjJA=
 github.com/go-playground/locales v0.14.1/go.mod h1:hxrqLVvrK65+Rwrd5Fc6F2O76J/NuW9t0sjnWqG1slY=
@@ -24,6 +24,8 @@ github.com/golang/protobuf v1.5.2 h1:ROPKBNFfQgOUMifHyP+KYbvpjbdoFNs+aK7DXlji0Tw
 github.com/golang/protobuf v1.5.2/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiuN0vRsmY=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
+github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
+github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/kelseyhightower/envconfig v1.4.0 h1:Im6hONhd3pLkfDFsbRgu68RDNkGF1r3dvMUtDTo2cv8=
 github.com/kelseyhightower/envconfig v1.4.0/go.mod h1:cccZRl6mQpaq41TPp5QxidR+Sa3axMbJDNb//FQX6Gg=
 github.com/klauspost/compress v1.15.9 h1:wKRjX6JRtDdrE9qwa4b/Cip7ACOshUI4smpCQanqjSY=

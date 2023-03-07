@@ -3,16 +3,18 @@ package review
 import (
 	"context"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 
 	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/tg-client/internal/auxl"
 	"github.com/genvmoroz/lale/tg-client/internal/repository"
+	"github.com/genvmoroz/lale/tg-client/internal/transform"
 )
 
 type State struct {
@@ -103,12 +105,18 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 	}
 
 	for _, card := range resp.Cards {
-		for _, word := range card.GetWordInformationList() {
+		if len(card.GetWordInformationList()) == 0 {
+			if err = client.Send(chatID, fmt.Sprintf("No words for Card [%s]: inspect the Card and delete if empty", card.GetId())); err != nil {
+				return err
+			}
+			continue
+		}
+		for _, word := range transform.DefaultTransformer.ToCoreWordInformationList(card.GetWordInformationList()) {
 			empJSON, err := yaml.Marshal(word)
 			if err != nil {
 				return err
 			}
-			if err = client.SendWithParseMode(chatID, fmt.Sprintf("Word: %s", empJSON), "HTML"); err != nil {
+			if err = client.SendWithParseMode(chatID, fmt.Sprintf("%s", empJSON), "HTML"); err != nil {
 				return err
 			}
 		}
@@ -158,7 +166,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			}
 		}
 
-		if err = client.Send(chatID, fmt.Sprintf("NextDueDate: %s", resp.GetNextDueDate().AsTime())); err != nil {
+		if err = client.Send(chatID, fmt.Sprintf("NextDueDate in %s", resp.GetNextDueDate().AsTime().Sub(time.Now().UTC()))); err != nil {
 			return err
 		}
 	}

@@ -40,10 +40,6 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	req := &api.CreateCardRequest{}
 
-	if err := client.Send(chatID, "Send the language of Translations, ex: en"); err != nil {
-		return err
-	}
-
 	language, userName, back, err := auxl.RequestInput[string](
 		ctx,
 		func(s string) bool {
@@ -101,6 +97,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		req.WordInformationList = append(req.WordInformationList, &api.WordInformation{
 			Word: strings.TrimSpace(word[0]),
 			Translation: &api.Translation{
+				Language:     language,
 				Translations: s.parseTranslations(word[1]),
 			},
 		})
@@ -150,7 +147,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	resp, err := s.laleRepo.CreateCard(ctx, req)
 	if err != nil {
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("grpc [CreateCard] err: <code>%s</code>", err.Error()), "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("grpc [CreateCard] err: %s", err.Error()), "HTML"); err != nil {
 			return err
 		}
 	}
@@ -159,7 +156,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		return err
 	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Creation completed, card:\n<code>%s</code>", string(empJSON)), "HTML"); err != nil {
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Creation completed, card:\n%s", string(empJSON)), "HTML"); err != nil {
 		return err
 	}
 	return nil
