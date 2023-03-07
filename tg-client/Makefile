@@ -52,7 +52,7 @@ test_coverage:
 
 .PHONY: run-infra
 run-infra:
-	docker compose -f ./deployments/docker-compose.yml up -d
+	docker compose -f ./deployments/docker-compose.yml up -d --build --remove-orphans --force-recreate
 
 .PHONY: stop-infra
 stop-infra:

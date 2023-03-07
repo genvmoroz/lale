@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -60,8 +59,8 @@ func run() error {
 		return grpcService.Run(ctx)
 	})
 
-	log.Println("service started")
-	defer logrus.Println("service stopped")
+	logrus.Info("service started")
+	defer logrus.Info("service stopped")
 
 	return errGroup.Wait()
 }

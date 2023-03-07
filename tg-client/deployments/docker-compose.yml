@@ -1,0 +1,56 @@
+services:
+  redis:
+    image: redis:latest
+    networks:
+      - default
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass pass
+
+  mongo:
+    image: mongo:latest
+    networks:
+      - default
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: pass
+
+  lale-service:
+    build: ../../service
+    networks:
+      - default
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo
+      - redis
+    environment:
+      APP_LOG_LEVEL: DEBUG
+      APP_GRPC_PORT: 8080
+      APP_HIPPO_SENTENCE_HOST: "https://www.wordhippo.com"
+      APP_HIPPO_SENTENCE_RETRIES: 3
+      APP_HIPPO_SENTENCE_TIMEOUT: 5s
+      APP_YOUR_DICTIONARY_SENTENCE_HOST: "https://sentence.yourdictionary.com"
+      APP_YOUR_DICTIONARY_SENTENCE_RETRIES: 3
+      APP_YOUR_DICTIONARY_SENTENCE_TIMEOUT: 5s
+      APP_MONGO_CARD_PROTOCOL: "mongodb"
+      APP_MONGO_CARD_HOST: "mongo"
+      APP_MONGO_CARD_PORT: 27017
+      APP_MONGO_CARD_URI_PARAMS: ""
+      APP_MONGO_USER: "admin"
+      APP_MONGO_PASS: "pass"
+      APP_MONGO_CARD_DATABASE: "dictionary"
+      APP_MONGO_CARD_COLLECTION: "cards"
+      APP_REDIS_DB: 0
+      APP_REDIS_HOST: "redis"
+      APP_REDIS_INSECURE_SKIP_VERIFY: true
+      APP_REDIS_PASS: "pass"
+      APP_REDIS_PORT: 6379
+      APP_REDIS_USE_TLS: false
+      APP_USER_SESSION_EXPIRATION: 1h
+      APP_USER_SESSION_KEY_PREFIX: "user-session"
+      APP_DICTIONARY_HOST: "https://api.dictionaryapi.dev" 

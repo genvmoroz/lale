@@ -89,6 +89,9 @@ func scrapeSentences(fullXPath string, scr *web.Scraper) ([]string, error) {
 	for i := 1; i <= count; i = i + 1 {
 		nodes, err := scr.NextAfter(fmt.Sprintf(sentenceXPath, i))
 		if err != nil {
+			if strings.Contains(err.Error(), "element not found") {
+				continue
+			}
 			return nil, err
 		}
 

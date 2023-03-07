@@ -3,10 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"net"
-	"strconv"
 
 	"github.com/genvmoroz/lale/service/api"
 )
@@ -16,21 +12,36 @@ type LaleRepo struct {
 }
 
 func NewLaleRepo(ctx context.Context, cfg ClientConfig) (*LaleRepo, error) {
-	target := net.JoinHostPort(cfg.Host, strconv.Itoa(int(cfg.Port)))
-	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, cfg.Timeout)
-	defer cancel()
-
-	conn, err := grpc.DialContext(ctx, target, opts...)
+	conn, err := connectToGRPCService(ctx, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("grpc: dial error: %w", err)
+		return nil, fmt.Errorf("failed to connect to GRPC service: %w", err)
 	}
 
-	return &Client{
-		conn: api.NewLaleServiceClient(conn),
+	return &LaleRepo{
+		client: api.NewLaleServiceClient(conn),
 	}, nil
+}
+
+func (r *LaleRepo) InspectCard(ctx context.Context, req *api.InspectCardRequest) (*api.InspectCardResponse, error) {
+	return r.client.InspectCard(ctx, req)
+}
+
+func (r *LaleRepo) CreateCard(ctx context.Context, req *api.CreateCardRequest) (*api.CreateCardResponse, error) {
+	return r.client.CreateCard(ctx, req)
+}
+
+func (r *LaleRepo) GetAllCards(ctx context.Context, req *api.GetCardsRequest) (*api.GetCardsResponse, error) {
+	return r.client.GetAllCards(ctx, req)
+}
+
+func (r *LaleRepo) UpdateCardPerformance(ctx context.Context, req *api.UpdateCardPerformanceRequest) (*api.UpdateCardPerformanceResponse, error) {
+	return r.client.UpdateCardPerformance(ctx, req)
+}
+
+func (r *LaleRepo) GetCardsToReview(ctx context.Context, req *api.GetCardsForReviewRequest) (*api.GetCardsResponse, error) {
+	return r.client.GetCardsToReview(ctx, req)
+}
+
+func (r *LaleRepo) DeleteCard(ctx context.Context, req *api.DeleteCardRequest) (*api.DeleteCardResponse, error) {
+	return r.client.DeleteCard(ctx, req)
 }

@@ -3,16 +3,24 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/genvmoroz/bot-engine/bot"
-	"github.com/genvmoroz/bot-engine/dispatcher"
-	"github.com/genvmoroz/bot-engine/processor"
-	"github.com/genvmoroz/lale-tg-client/internal/options"
-	"github.com/sirupsen/logrus"
 	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+
+	"github.com/genvmoroz/bot-engine/bot"
+	"github.com/genvmoroz/bot-engine/dispatcher"
+	"github.com/genvmoroz/bot-engine/processor"
+	"github.com/genvmoroz/lale/tg-client/internal/options"
+	"github.com/genvmoroz/lale/tg-client/internal/repository"
+	createstate "github.com/genvmoroz/lale/tg-client/internal/state/create"
+	deletestate "github.com/genvmoroz/lale/tg-client/internal/state/delete"
+	getallstate "github.com/genvmoroz/lale/tg-client/internal/state/getall"
+	helpstate "github.com/genvmoroz/lale/tg-client/internal/state/help"
+	inspectstate "github.com/genvmoroz/lale/tg-client/internal/state/inspect"
+	reviewstate "github.com/genvmoroz/lale/tg-client/internal/state/review"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -23,7 +31,7 @@ func main() {
 	}()
 
 	if err := launch(); err != nil {
-		log.Fatalf("launch error: %s", err.Error())
+		log.Fatalf("service error: %s", err.Error())
 	}
 }
 
@@ -43,34 +51,47 @@ func launch() error {
 		return err
 	}
 
-	/*
-		inspectcard
-		createcard
-		getallcards
-		updatecardperformance
-		getcardstoreview
-		deletecard
-	*/
-	states := map[string]processor.StateProcessor{}
-
-	stateProvider := func(*bot.Client, int64) map[string]processor.StateProcessor {
-		return states
+	clientCfg := repository.ClientConfig{
+		Host:    cfg.LaleService.Host,
+		Port:    cfg.LaleService.Port,
+		Timeout: cfg.LaleService.Timeout,
+	}
+	laleRepo, err := repository.NewLaleRepo(ctx, clientCfg)
+	if err != nil {
+		return fmt.Errorf("failed to connect to LaleRepo: %w", err)
 	}
 
-	baseDispatcher, err := dispatcher.New(baseBot, stateProvider, cfg.TelegramUpdateTimeout)
+	states := map[string]processor.StateProcessor{
+		createstate.Command:  createstate.NewState(laleRepo),
+		inspectstate.Command: inspectstate.NewState(laleRepo),
+		getallstate.Command:  getallstate.NewState(laleRepo),
+		deletestate.Command:  deletestate.NewState(laleRepo),
+		reviewstate.Command:  reviewstate.NewState(laleRepo),
+		helpstate.Command: helpstate.NewState([]processor.StateProcessor{
+			&createstate.State{},
+			&inspectstate.State{},
+			&getallstate.State{},
+			&deletestate.State{},
+			&reviewstate.State{},
+			&helpstate.State{},
+		}),
+	}
+
+	baseDispatcher, err := dispatcher.New(baseBot, states, cfg.TelegramUpdateTimeout)
 	if err != nil {
 		return fmt.Errorf("failed to create new sidpatcher: %w", err)
 	}
 
 	wg := sync.WaitGroup{}
 
+	logrus.Info("service started")
 	if err = baseDispatcher.Dispatch(ctx, &wg, -1, 256); err != nil {
 		return fmt.Errorf("failed to dispatch: %w", err)
 	}
-
-	logrus.Debug("waiting until all members of sync.WaitGroup close")
+	logrus.Debug("waiting until all members of sync.WaitGroup closes")
 	wg.Wait()
-	logrus.Debug("stop the service")
+
+	logrus.Info("stop the service")
 
 	return nil
 }

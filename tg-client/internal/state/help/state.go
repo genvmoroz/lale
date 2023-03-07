@@ -2,7 +2,6 @@ package help
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -11,42 +10,31 @@ import (
 )
 
 type State struct {
-	*bot.Client
 	states []processor.StateProcessor
 }
 
 const Command = "/help"
 
-func NewState(client *bot.Client, states []processor.StateProcessor) *State {
-	return &State{Client: client, states: states}
+func NewState(states []processor.StateProcessor) *State {
+	return &State{states: states}
 }
 
-func (s *State) Process(ctx context.Context, updateChan bot.UpdatesChannel) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case update, ok := <-updateChan:
-			if !ok {
-				return errors.New("updateChan is closed")
-			}
-			if err := s.process(update.Message.Chat.ID); err != nil {
-				return err
-			}
-		}
+func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, _ bot.UpdatesChannel) error {
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
 	}
-}
 
-func (s *State) process(chatID int64) error {
 	b := strings.Builder{}
 
 	for _, state := range s.states {
 		b.WriteString(state.Command())
 		b.WriteString(" - ")
-		b.WriteString(state.Description())
+		b.WriteString(fmt.Sprintf("%s\n", state.Description()))
 	}
 
-	if err := s.Send(chatID, b.String()); err != nil {
+	if err := client.Send(chatID, b.String()); err != nil {
 		return fmt.Errorf("failed to send message: %w", err)
 	}
 
@@ -58,5 +46,5 @@ func (s *State) Command() string {
 }
 
 func (s *State) Description() string {
-	return "shows available commands"
+	return "Shows available commands"
 }

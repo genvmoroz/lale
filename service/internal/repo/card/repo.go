@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 	"unicode/utf8"
 
@@ -51,6 +50,7 @@ func NewRepo(ctx context.Context, cfg Config) (*Repo, error) {
 		collection: cfg.Collection,
 	}
 
+	logrus.Debugf("connecting to mongo [%s]", cfg.Host)
 	if err := repo.Ping(ctx); err != nil {
 		return nil, fmt.Errorf("failed to ping mongo: %w", err)
 	}
@@ -61,9 +61,9 @@ func NewRepo(ctx context.Context, cfg Config) (*Repo, error) {
 func prepareURI(cfg Config) string {
 	uri := strings.Builder{}
 
-	uri.WriteString(fmt.Sprintf("%s://", url.QueryEscape(cfg.Protocol)))
-	uri.WriteString(fmt.Sprintf("%s:%s", url.QueryEscape(cfg.Creds.User), url.QueryEscape(cfg.Creds.Pass)))
-	uri.WriteString(fmt.Sprintf("@%s", url.QueryEscape(cfg.Host)))
+	uri.WriteString(fmt.Sprintf("%s://", cfg.Protocol))
+	uri.WriteString(fmt.Sprintf("%s:%s", cfg.Creds.User, cfg.Creds.Pass))
+	uri.WriteString(fmt.Sprintf("@%s", cfg.Host))
 
 	if cfg.Port != nil {
 		uri.WriteString(fmt.Sprintf(":%d", *cfg.Port))
@@ -74,8 +74,13 @@ func prepareURI(cfg Config) string {
 	if len(cfg.Params) != 0 {
 		uri.WriteString("?")
 
+		firstParam := true
 		for k, v := range cfg.Params {
-			uri.WriteString(fmt.Sprintf("%s=%s", url.QueryEscape(k), url.QueryEscape(v)))
+			if !firstParam {
+				uri.WriteString("&")
+			}
+			uri.WriteString(fmt.Sprintf("%s=%s", k, v))
+			firstParam = false
 		}
 	}
 
@@ -89,7 +94,7 @@ func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Car
 
 	client, err := mongo.Connect(ctx, r.opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to creds.yml: %w", err)
+		return nil, fmt.Errorf("failed to connect to mongo: %w", err)
 	}
 
 	defer func() {
@@ -190,7 +195,7 @@ func (r *Repo) DeleteCard(ctx context.Context, cardID string) error {
 
 	client, err := mongo.Connect(ctx, r.opts)
 	if err != nil {
-		return fmt.Errorf("failed to connect to creds.yml: %w", err)
+		return fmt.Errorf("failed to connect to mongo: %w", err)
 	}
 
 	defer func() {
@@ -213,7 +218,7 @@ func (r *Repo) DeleteCard(ctx context.Context, cardID string) error {
 func (r *Repo) Ping(ctx context.Context) error {
 	client, err := mongo.Connect(ctx, r.opts)
 	if err != nil {
-		return fmt.Errorf("failed to connect to creds.yml: %w", err)
+		return fmt.Errorf("failed to connect to mongo: %w", err)
 	}
 
 	defer func() {
@@ -221,7 +226,7 @@ func (r *Repo) Ping(ctx context.Context) error {
 	}()
 
 	if err = client.Ping(ctx, readpref.Primary()); err != nil {
-		return fmt.Errorf("failed to ping creds.yml: %w", err)
+		return fmt.Errorf("failed to ping mongo: %w", err)
 	}
 
 	return nil

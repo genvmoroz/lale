@@ -1,27 +1,43 @@
-package help
+package delete
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/genvmoroz/bot-engine/bot"
-	"github.com/genvmoroz/bot-engine/processor"
 	"strings"
+
+	"github.com/genvmoroz/bot-engine/bot"
+	"github.com/genvmoroz/lale/service/api"
+	"github.com/genvmoroz/lale/tg-client/internal/repository"
 )
 
 type State struct {
-	*bot.Client
-	states []processor.StateProcessor
+	laleRepo *repository.LaleRepo
 }
 
-const Command = "/help"
+const Command = "/delete"
 
-func NewState(client *bot.Client, states []processor.StateProcessor) *State {
-	return &State{Client: client, states: states}
+func NewState(laleRepo *repository.LaleRepo) *State {
+	return &State{laleRepo: laleRepo}
 }
 
-func (s *State) Process(ctx context.Context, updateChan bot.UpdatesChannel) error {
-	for {
+const initialMessage = `
+Delete Card State
+`
+
+func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) error {
+	if err := client.Send(chatID, initialMessage); err != nil {
+		return err
+	}
+
+	var req *api.DeleteCardRequest
+
+	for req == nil {
+		if err := client.Send(chatID, "Send the CardID of the Card you want it to be deleted"); err != nil {
+			return err
+		}
+
 		select {
 		case <-ctx.Done():
 			return nil
@@ -29,24 +45,37 @@ func (s *State) Process(ctx context.Context, updateChan bot.UpdatesChannel) erro
 			if !ok {
 				return errors.New("updateChan is closed")
 			}
-			if err := s.process(update.Message.Chat.ID); err != nil {
-				return err
+			text := strings.ToLower(strings.TrimSpace(update.Message.Text))
+			switch text {
+			case "/back":
+				return client.Send(chatID, "Back to previous state")
+			case "":
+				if err := client.Send(chatID, "Empty value is not allowed"); err != nil {
+					return err
+				}
+			default:
+				req = &api.DeleteCardRequest{
+					UserID: strings.TrimSpace(update.Message.From.UserName),
+					CardID: text,
+				}
 			}
 		}
 	}
-}
 
-func (s *State) process(chatID int64) error {
-	b := strings.Builder{}
-
-	for _, state := range s.states {
-		b.WriteString(state.Command())
-		b.WriteString(" - ")
-		b.WriteString(state.Description())
+	resp, err := s.laleRepo.DeleteCard(ctx, req)
+	if err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("grpc [DeleteCard] err: <code>%s</code>", err.Error()), "HTML"); err != nil {
+			return err
+		}
 	}
 
-	if err := s.Send(chatID, b.String()); err != nil {
-		return fmt.Errorf("failed to send message: %w", err)
+	empJSON, err := json.MarshalIndent(resp.GetCard(), "", "\t\t\t")
+	if err != nil {
+		return err
+	}
+
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Deleted Card:\n<code>%s</code>", string(empJSON)), "HTML"); err != nil {
+		return err
 	}
 
 	return nil
@@ -57,5 +86,5 @@ func (s *State) Command() string {
 }
 
 func (s *State) Description() string {
-	return "shows available commands"
+	return "Inspect Card"
 }

@@ -105,6 +105,9 @@ func scrapeSentences(tableFullXPath, sentenceFullXPath string, scr *web.Scraper)
 		xPath := fmt.Sprintf(sentenceFullXPath, i)
 		nodes, err := scr.GetChildes(xPath)
 		if err != nil {
+			if strings.Contains(err.Error(), "element not found") {
+				continue
+			}
 			return nil, fmt.Errorf("failed to get childes by xpath [%s]: %w", xPath, err)
 		}
 

@@ -15,7 +15,7 @@ type (
 		TelegramToken         string       `envconfig:"APP_TELEGRAM_TOKEN" required:"true"`
 		TelegramUpdateTimeout uint         `envconfig:"APP_TELEGRAM_UPDATE_TIMEOUT" default:"60"`
 
-		LaleServiceConfig LaleServiceConfig
+		LaleService LaleServiceConfig
 	}
 
 	LaleServiceConfig struct {
