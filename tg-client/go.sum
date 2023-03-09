@@ -4,8 +4,8 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/genvmoroz/bot-engine v1.0.12 h1:VXSmWN8hXTt3iHT/Hb4JTwXSQV1vuTfF61usn7A7fsw=
-github.com/genvmoroz/bot-engine v1.0.12/go.mod h1:jklw+emLNgBcjLAUo6MZ1b93DX2X6AjOEBa4feKUOpQ=
+github.com/genvmoroz/bot-engine v1.0.13 h1:rEtu2UJ62z9XP0nz+GF/faMZIueXAWvOoMykFw4d3Ec=
+github.com/genvmoroz/bot-engine v1.0.13/go.mod h1:kx1SGTbb3f3sPzLr5oJs0zeZt4Qd2hd2Jzw5XMAkceE=
 github.com/genvmoroz/client-go v1.0.1 h1:x6xBlLqCYkYPQbauoQ3lJ6tnQOoYUVCKdZCERFFCHWY=
 github.com/genvmoroz/client-go v1.0.1/go.mod h1:h8SHhVWEigVCDUfSb9o+bTZ9uG+DghaIyMM4h8+LJas=
 github.com/genvmoroz/lale/service v0.0.4 h1:6NjzliYPNFaPtKBk+xb4k3pDkJtWmDSbpoqINo/vJzU=

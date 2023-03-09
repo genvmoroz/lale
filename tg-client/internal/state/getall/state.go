@@ -2,13 +2,13 @@ package getall
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale/service/api"
+	"github.com/genvmoroz/lale/tg-client/internal/pretty"
 	"github.com/genvmoroz/lale/tg-client/internal/repository"
 )
 
@@ -34,7 +34,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 	var req *api.GetCardsRequest
 
 	for req == nil {
-		if err := client.Send(chatID, "Send the language. Ex. en. Or all to request cards without filtering by language"); err != nil {
+		if err := client.SendWithParseMode(chatID, "Send the language. Ex. <code>en</code>. Or  <code>all</code> to request cards without filtering by language", "HTML"); err != nil {
 			return err
 		}
 
@@ -69,17 +69,20 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	resp, err := s.laleRepo.GetAllCards(ctx, req)
 	if err != nil {
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("grpc [InspectCard] err: %s", err.Error()), "HTML"); err != nil {
+		if err = client.Send(chatID, fmt.Sprintf("grpc [GetAllCards] err: %s", err.Error())); err != nil {
 			return err
 		}
 	}
 
-	empJSON, err := json.MarshalIndent(resp.GetCards(), "", "\t\t\t")
-	if err != nil {
-		return err
+	for _, card := range resp.GetCards() {
+		for _, msg := range pretty.Card(card) {
+			if err = client.SendWithParseMode(chatID, msg, "HTML"); err != nil {
+				return err
+			}
+		}
 	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("%d Cards found:\n%s", len(resp.GetCards()), string(empJSON)), "HTML"); err != nil {
+	if err = client.Send(chatID, fmt.Sprintf("Cards found %d", len(resp.GetCards()))); err != nil {
 		return err
 	}
 

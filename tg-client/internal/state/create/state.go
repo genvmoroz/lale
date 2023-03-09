@@ -2,13 +2,13 @@ package create
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/genvmoroz/lale/tg-client/internal/auxl"
 	"strings"
 
 	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale/service/api"
+	"github.com/genvmoroz/lale/tg-client/internal/auxl"
+	"github.com/genvmoroz/lale/tg-client/internal/pretty"
 	"github.com/genvmoroz/lale/tg-client/internal/repository"
 )
 
@@ -147,20 +147,23 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	resp, err := s.laleRepo.CreateCard(ctx, req)
 	if err != nil {
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("grpc [CreateCard] err: %s", err.Error()), "HTML"); err != nil {
+		if sendErr := client.Send(chatID, fmt.Sprintf("grpc [CreateCard] err: %s", err.Error())); sendErr != nil {
+			return fmt.Errorf("failed to send error [%s] message: %w", err.Error(), sendErr)
+		}
+		return err
+	}
+
+	if err = client.Send(chatID, "Card created"); err != nil {
+		return err
+	}
+
+	for _, msg := range pretty.Card(resp.GetCard()) {
+		if err = client.SendWithParseMode(chatID, msg, "HTML"); err != nil {
 			return err
 		}
 	}
-	empJSON, err := json.MarshalIndent(resp.GetCard(), "", "\t\t\t")
-	if err != nil {
-		return err
-	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Creation completed, card:\n%s", string(empJSON)), "HTML"); err != nil {
-		return err
-	}
 	return nil
-
 }
 
 func (s *State) parseTranslations(raw string) []string {

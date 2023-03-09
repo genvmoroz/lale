@@ -2,7 +2,6 @@ package delete
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -69,12 +68,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		}
 	}
 
-	empJSON, err := json.MarshalIndent(resp.GetCard(), "", "\t\t\t")
-	if err != nil {
-		return err
-	}
-
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Deleted Card:\n%s", string(empJSON)), "HTML"); err != nil {
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card with ID <code>%s</code> deleted", resp.GetCard().GetId()), "HTML"); err != nil {
 		return err
 	}
 

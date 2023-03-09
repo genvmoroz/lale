@@ -3,7 +3,7 @@ module github.com/genvmoroz/lale/tg-client
 go 1.20
 
 require (
-	github.com/genvmoroz/bot-engine v1.0.12
+	github.com/genvmoroz/bot-engine v1.0.13
 	github.com/genvmoroz/lale/service v0.0.4
 	github.com/go-playground/validator/v10 v10.11.2
 	github.com/kelseyhightower/envconfig v1.4.0
