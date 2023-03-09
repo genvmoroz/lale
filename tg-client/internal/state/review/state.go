@@ -104,6 +104,10 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		}
 	}
 
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Found <code>%d</code> Cards", len(resp.GetCards())), "HTML"); err != nil {
+		return err
+	}
+
 	for _, card := range resp.Cards {
 		if len(card.GetWordInformationList()) == 0 {
 			if err = client.Send(chatID, fmt.Sprintf("No words for Card [%s]: inspect the Card and delete if empty", card.GetId())); err != nil {
