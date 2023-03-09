@@ -29,7 +29,7 @@ func NewState(laleRepo *repository.LaleRepo) *State {
 
 const initialMessage = `
 Review Cards State
-Send the Word, Language to inspect the Card with that values
+Send the Language to review the Cards with that language
 `
 
 func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) error {
