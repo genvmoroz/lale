@@ -2,6 +2,7 @@ package hippo
 
 import (
 	"fmt"
+	"math/rand"
 	"net/url"
 	"strings"
 	"time"
@@ -79,6 +80,9 @@ func (s *Scraper) ScrapeSentences(word string, size uint32) ([]string, error) {
 	}
 
 	res := append(sentences, classicalLiteratureSentences...)
+
+	rand.Shuffle(len(res), func(i, j int) { res[i], res[j] = res[j], res[i] })
+
 	if len(res) > int(size) {
 		return res[:size], nil
 	}

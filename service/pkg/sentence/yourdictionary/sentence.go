@@ -2,6 +2,7 @@ package yourdictionary
 
 import (
 	"fmt"
+	"math/rand"
 	"net/url"
 	"strings"
 	"time"
@@ -65,6 +66,8 @@ func (s Scraper) ScrapeSentences(word string, size uint32) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all sentences: %w", err)
 	}
+
+	rand.Shuffle(len(sentences), func(i, j int) { sentences[i], sentences[j] = sentences[j], sentences[i] })
 
 	if len(sentences) > int(size) {
 		return sentences[:size], nil
