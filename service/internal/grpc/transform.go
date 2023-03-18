@@ -31,9 +31,10 @@ var DefaultTransformer Transformer = transformer{}
 
 func (transformer) ToCoreInspectCardRequest(req *api.InspectCardRequest) core.InspectCardRequest {
 	return core.InspectCardRequest{
-		UserID:   req.GetUserID(),
-		Language: lang.Language(req.GetLanguage()),
-		Word:     req.GetWord(),
+		UserID:         req.GetUserID(),
+		Language:       lang.Language(req.GetLanguage()),
+		Word:           req.GetWord(),
+		SentencesCount: req.GetSentencesCount(),
 	}
 }
 

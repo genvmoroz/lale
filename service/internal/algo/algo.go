@@ -21,7 +21,7 @@ func (a Anki) CalculateNextDueDate(performance uint32, correctAnswers uint32) ti
 				float64(performance),
 				float64(correctAnswers),
 			),
-		)
+		).Truncate(24 * time.Hour)
 }
 
 func (Anki) calculateShift(performance float64, correctAnswers float64) time.Duration {

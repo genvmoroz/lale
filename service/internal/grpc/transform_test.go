@@ -203,15 +203,17 @@ func TestTransformerToCoreInspectCardRequest(t *testing.T) {
 	t.Parallel()
 
 	inReq := &api.InspectCardRequest{
-		UserID:   "UserID",
-		Language: lang.English.String(),
-		Word:     "Word",
+		UserID:         "UserID",
+		Language:       lang.English.String(),
+		Word:           "Word",
+		SentencesCount: 2,
 	}
 
 	expReq := core.InspectCardRequest{
-		UserID:   "UserID",
-		Language: lang.English,
-		Word:     "Word",
+		UserID:         "UserID",
+		Language:       lang.English,
+		Word:           "Word",
+		SentencesCount: 2,
 	}
 
 	tr := DefaultTransformer

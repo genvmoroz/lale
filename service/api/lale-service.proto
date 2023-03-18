@@ -83,6 +83,7 @@ message InspectCardRequest {
   string userID = 1;
   string language = 2;
   string word = 3;
+  uint32 sentencesCount = 4;
 }
 
 message InspectCardResponse {

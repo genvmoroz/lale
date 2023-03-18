@@ -9,9 +9,10 @@ import (
 
 type (
 	InspectCardRequest struct {
-		UserID   string
-		Language lang.Language
-		Word     string
+		UserID         string
+		Language       lang.Language
+		Word           string
+		SentencesCount uint32
 	}
 
 	InspectCardResponse struct {

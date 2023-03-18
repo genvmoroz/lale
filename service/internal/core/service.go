@@ -120,9 +120,17 @@ func (s *service) InspectCard(ctx context.Context, req InspectCardRequest) (Insp
 	}
 
 	for _, card := range cards {
+		card := card
+
 		if card.Language.Equal(req.Language) {
 			for _, wordInfo := range card.WordInformationList {
 				if strings.EqualFold(wordInfo.Word, req.Word) {
+					if err = s.enrichCardWithSentences(&card, req.SentencesCount); err != nil {
+						return InspectCardResponse{}, logAndReturnError(
+							fmt.Sprintf("failed to enrich card with sentences: %s", err.Error()),
+							map[string]interface{}{"UserID": req.UserID, "CardID": card.ID},
+						)
+					}
 
 					resp.Card = card
 					return resp, nil
@@ -295,8 +303,10 @@ func (s *service) UpdateCardPerformance(ctx context.Context, req UpdateCardPerfo
 
 	var card *entity.Card
 	for _, c := range cards {
+		c := c
 		if c.ID == req.CardID {
 			card = &c
+			break
 		}
 	}
 
@@ -429,8 +439,10 @@ func (s *service) DeleteCard(ctx context.Context, req DeleteCardRequest) (Delete
 
 	var card *entity.Card
 	for _, c := range cards {
+		c := c
 		if c.ID == req.CardID {
 			card = &c
+			break
 		}
 	}
 

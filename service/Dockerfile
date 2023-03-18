@@ -16,6 +16,4 @@ RUN apt update && apt install -y apt-utils ca-certificates && rm -rf /var/lib/ap
 
 COPY --from=builder /app/bin/svc /svc
 
-EXPOSE 8080
-
 CMD ["./svc"]
