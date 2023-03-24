@@ -12,6 +12,7 @@ import (
 
 	"github.com/genvmoroz/lale/service/pkg/entity"
 	"github.com/genvmoroz/lale/service/pkg/lang"
+	"github.com/genvmoroz/lale/service/pkg/logger"
 )
 
 type (
@@ -44,6 +45,7 @@ type (
 		GetAllCards(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error)
 		UpdateCardPerformance(ctx context.Context, req UpdateCardPerformanceRequest) (UpdateCardPerformanceResponse, error)
 		GetCardsToReview(ctx context.Context, req GetCardsForReviewRequest) (GetCardsResponse, error)
+		GetSentences(ctx context.Context, req GetSentencesRequest) (GetSentencesResponse, error)
 		DeleteCard(ctx context.Context, req DeleteCardRequest) (DeleteCardResponse, error)
 	}
 
@@ -99,6 +101,7 @@ func (s *service) InspectCard(ctx context.Context, req InspectCardRequest) (Insp
 
 	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
 		return resp, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to create user session: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -114,6 +117,7 @@ func (s *service) InspectCard(ctx context.Context, req InspectCardRequest) (Insp
 	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
 	if err != nil {
 		return resp, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to get cards: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -125,13 +129,6 @@ func (s *service) InspectCard(ctx context.Context, req InspectCardRequest) (Insp
 		if card.Language.Equal(req.Language) {
 			for _, wordInfo := range card.WordInformationList {
 				if strings.EqualFold(wordInfo.Word, req.Word) {
-					if err = s.enrichCardWithSentences(&card, req.SentencesCount); err != nil {
-						return InspectCardResponse{}, logAndReturnError(
-							fmt.Sprintf("failed to enrich card with sentences: %s", err.Error()),
-							map[string]interface{}{"UserID": req.UserID, "CardID": card.ID},
-						)
-					}
-
 					resp.Card = card
 					return resp, nil
 				}
@@ -151,6 +148,7 @@ func (s *service) CreateCard(ctx context.Context, req CreateCardRequest) (Create
 
 	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
 		return resp, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to create user session: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -166,6 +164,7 @@ func (s *service) CreateCard(ctx context.Context, req CreateCardRequest) (Create
 	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
 	if err != nil {
 		return resp, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to get cards: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -194,6 +193,7 @@ func (s *service) CreateCard(ctx context.Context, req CreateCardRequest) (Create
 		enrichedWordInformationList, err := s.enrichWordInformationListFromDictionary(req.Language, req.WordInformationList)
 		if err != nil {
 			return resp, logAndReturnError(
+				ctx,
 				fmt.Sprintf("failed to get words from dictionary: %s", err.Error()),
 				map[string]interface{}{"UserID": req.UserID},
 			)
@@ -203,6 +203,7 @@ func (s *service) CreateCard(ctx context.Context, req CreateCardRequest) (Create
 
 	if err = s.cardRepo.SaveCards(ctx, []entity.Card{card}); err != nil {
 		return resp, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to save card: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -237,6 +238,7 @@ func (s *service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCard
 
 	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
 		return GetCardsResponse{}, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to create user session: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -252,6 +254,7 @@ func (s *service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCard
 	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
 	if err != nil {
 		return GetCardsResponse{}, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to get cards: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -281,6 +284,7 @@ func (s *service) UpdateCardPerformance(ctx context.Context, req UpdateCardPerfo
 
 	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
 		return resp, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to create user session: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -296,6 +300,7 @@ func (s *service) UpdateCardPerformance(ctx context.Context, req UpdateCardPerfo
 	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
 	if err != nil {
 		return resp, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to get cards: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -319,6 +324,7 @@ func (s *service) UpdateCardPerformance(ctx context.Context, req UpdateCardPerfo
 
 	if err = s.cardRepo.SaveCards(ctx, []entity.Card{*card}); err != nil {
 		return resp, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to save card: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -336,6 +342,7 @@ func (s *service) GetCardsToReview(ctx context.Context, req GetCardsForReviewReq
 
 	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
 		return GetCardsResponse{}, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to create user session: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -351,6 +358,7 @@ func (s *service) GetCardsToReview(ctx context.Context, req GetCardsForReviewReq
 	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
 	if err != nil {
 		return GetCardsResponse{}, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to get cards: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -359,13 +367,6 @@ func (s *service) GetCardsToReview(ctx context.Context, req GetCardsForReviewReq
 	cardsToReview := make([]entity.Card, 0, len(cards))
 	for _, card := range cards {
 		if card.Language.Equal(req.Language) && card.NeedToReview() {
-			if err = s.enrichCardWithSentences(&card, req.SentencesCount); err != nil {
-				return GetCardsResponse{}, logAndReturnError(
-					fmt.Sprintf("failed to enrich card with sentences: %s", err.Error()),
-					map[string]interface{}{"UserID": req.UserID, "CardID": card.ID},
-				)
-			}
-
 			cardsToReview = append(cardsToReview, card)
 		}
 	}
@@ -377,35 +378,65 @@ func (s *service) GetCardsToReview(ctx context.Context, req GetCardsForReviewReq
 	}, nil
 }
 
-func (s *service) enrichCardWithSentences(card *entity.Card, size uint32) error {
-	if card == nil {
-		return nil
+func (s *service) GetSentences(ctx context.Context, req GetSentencesRequest) (GetSentencesResponse, error) {
+	if err := s.validator.ValidateGetSentencesRequest(req); err != nil {
+		return GetSentencesResponse{}, NewRequestValidationError(err)
 	}
 
-	for i := 0; i < len(card.WordInformationList); i++ {
-		if err := s.enrichWordInformationWithSentences(&card.WordInformationList[i], size); err != nil {
-			return fmt.Errorf("failed to scrape sentences for word [%s]: %w", card.WordInformationList[i].Word, err)
+	contextLogger := logger.
+		FromContext(ctx).
+		WithFields(
+			logrus.Fields{
+				"UserID":         req.UserID,
+				"Word":           req.Word,
+				"SentencesCount": req.SentencesCount,
+			},
+		).Logger
+
+	contextLogger.Debug("get sentences request")
+
+	ctx = logger.ContextWithLogger(ctx, contextLogger)
+
+	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
+		return GetSentencesResponse{}, logAndReturnError(
+			ctx,
+			fmt.Sprintf("failed to create user session: %s", err.Error()),
+			map[string]interface{}{"UserID": req.UserID},
+		)
+	}
+	defer func() {
+		if closeErr := s.sessionRepo.CloseSession(req.UserID); closeErr != nil {
+			logger.FromContext(ctx).
+				WithField("UserID", req.UserID).
+				Errorf("failed to close user session: %s", closeErr.Error())
 		}
+	}()
+
+	sentences, err := s.getSentences(req.Word, req.SentencesCount)
+	if err != nil {
+		return GetSentencesResponse{}, fmt.Errorf("failed to get sentences for word [%s]: %w", req.Word, err)
 	}
 
-	return nil
+	return GetSentencesResponse{Sentences: sentences}, nil
 }
 
-func (s *service) enrichWordInformationWithSentences(wordInfo *entity.WordInformation, size uint32) error {
-	if wordInfo == nil {
-		return nil
+func (s *service) getSentences(word string, size uint32) ([]string, error) {
+	if len(strings.TrimSpace(word)) == 0 {
+		return nil, nil
 	}
 
+	allSentences := make([]string, 0, size)
+
 	for sizeLeft, scraperIndex := size, 0; sizeLeft > 0 && scraperIndex < len(s.sentenceScrapers); scraperIndex++ {
-		sentences, err := s.sentenceScrapers[scraperIndex].ScrapeSentences(wordInfo.Word, sizeLeft)
+		sentences, err := s.sentenceScrapers[scraperIndex].ScrapeSentences(word, sizeLeft)
 		if err != nil {
-			return fmt.Errorf("failed to scrape sentences for word [%s]: %w", wordInfo.Word, err)
+			return nil, fmt.Errorf("failed to scrape sentences for word [%s]: %w", word, err)
 		}
-		wordInfo.Sentences = sentences
+		allSentences = append(allSentences, sentences...)
 		sizeLeft -= uint32(len(sentences))
 	}
 
-	return nil
+	return allSentences, nil
 }
 
 func (s *service) DeleteCard(ctx context.Context, req DeleteCardRequest) (DeleteCardResponse, error) {
@@ -417,6 +448,7 @@ func (s *service) DeleteCard(ctx context.Context, req DeleteCardRequest) (Delete
 
 	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
 		return resp, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to create user session: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -432,6 +464,7 @@ func (s *service) DeleteCard(ctx context.Context, req DeleteCardRequest) (Delete
 	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
 	if err != nil {
 		return resp, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to get cards: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
@@ -452,6 +485,7 @@ func (s *service) DeleteCard(ctx context.Context, req DeleteCardRequest) (Delete
 
 	if err = s.cardRepo.DeleteCard(ctx, req.CardID); err != nil {
 		return resp, logAndReturnError(
+			ctx,
 			fmt.Sprintf("failed to delete card: %s", err.Error()),
 			map[string]interface{}{
 				"UserID": req.UserID,
@@ -465,8 +499,9 @@ func (s *service) DeleteCard(ctx context.Context, req DeleteCardRequest) (Delete
 	return resp, nil
 }
 
-func logAndReturnError(msg string, fields logrus.Fields) error {
-	logrus.
+func logAndReturnError(ctx context.Context, msg string, fields logrus.Fields) error {
+	logger.
+		FromContext(ctx).
 		WithFields(fields).
 		Errorf(msg)
 

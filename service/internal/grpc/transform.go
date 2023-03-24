@@ -22,6 +22,8 @@ type (
 		ToCoreGetCardsForReviewRequest(req *api.GetCardsForReviewRequest) core.GetCardsForReviewRequest
 		ToCoreDeleteCardRequest(req *api.DeleteCardRequest) core.DeleteCardRequest
 		ToAPIDeleteCardResponse(resp core.DeleteCardResponse) *api.DeleteCardResponse
+		ToCoreGetSentencesRequest(req *api.GetSentencesRequest) core.GetSentencesRequest
+		ToAPIGetSentencesResponse(resp core.GetSentencesResponse) *api.GetSentencesResponse
 	}
 
 	transformer struct{}
@@ -31,10 +33,9 @@ var DefaultTransformer Transformer = transformer{}
 
 func (transformer) ToCoreInspectCardRequest(req *api.InspectCardRequest) core.InspectCardRequest {
 	return core.InspectCardRequest{
-		UserID:         req.GetUserID(),
-		Language:       lang.Language(req.GetLanguage()),
-		Word:           req.GetWord(),
-		SentencesCount: req.GetSentencesCount(),
+		UserID:   req.GetUserID(),
+		Language: lang.Language(req.GetLanguage()),
+		Word:     req.GetWord(),
 	}
 }
 
@@ -90,9 +91,8 @@ func (transformer) ToAPIUpdateCardPerformanceResponse(resp core.UpdateCardPerfor
 
 func (transformer) ToCoreGetCardsForReviewRequest(req *api.GetCardsForReviewRequest) core.GetCardsForReviewRequest {
 	return core.GetCardsForReviewRequest{
-		UserID:         req.GetUserID(),
-		Language:       lang.Language(req.GetLanguage()),
-		SentencesCount: req.GetSentencesCount(),
+		UserID:   req.GetUserID(),
+		Language: lang.Language(req.GetLanguage()),
 	}
 }
 
@@ -107,6 +107,18 @@ func (t transformer) ToAPIDeleteCardResponse(resp core.DeleteCardResponse) *api.
 	return &api.DeleteCardResponse{
 		Card: t.toAPICard(resp.Card),
 	}
+}
+
+func (t transformer) ToCoreGetSentencesRequest(req *api.GetSentencesRequest) core.GetSentencesRequest {
+	return core.GetSentencesRequest{
+		UserID:         req.GetUserID(),
+		Word:           req.GetWord(),
+		SentencesCount: req.GetSentencesCount(),
+	}
+}
+
+func (t transformer) ToAPIGetSentencesResponse(resp core.GetSentencesResponse) *api.GetSentencesResponse {
+	return &api.GetSentencesResponse{Sentences: resp.Sentences}
 }
 
 func (t transformer) toAPICards(cards []entity.Card) []*api.Card {
@@ -186,7 +198,6 @@ func (t transformer) toAPIWordInformation(info entity.WordInformation) *api.Word
 		Origin:      info.Origin,
 		Phonetics:   t.toAPIPhonetics(info.Phonetics),
 		Meanings:    t.toAPIMeanings(info.Meanings),
-		Sentences:   info.Sentences,
 	}
 }
 
@@ -197,7 +208,6 @@ func (t transformer) toCoreWordInformation(info *api.WordInformation) entity.Wor
 		Origin:      info.Origin,
 		Phonetics:   t.toCorePhonetics(info.Phonetics),
 		Meanings:    t.toCoreMeanings(info.Meanings),
-		Sentences:   info.Sentences,
 	}
 }
 

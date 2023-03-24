@@ -180,11 +180,6 @@ func TestAPIWordInformation(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "with sentences",
-			arg:  entity.WordInformation{Sentences: []string{"sentence1", "sentence2", "sentence3"}},
-			want: &api.WordInformation{Sentences: []string{"sentence1", "sentence2", "sentence3"}},
-		},
 	}
 	for _, tt := range tests {
 		tt := tt
@@ -203,17 +198,15 @@ func TestTransformerToCoreInspectCardRequest(t *testing.T) {
 	t.Parallel()
 
 	inReq := &api.InspectCardRequest{
-		UserID:         "UserID",
-		Language:       lang.English.String(),
-		Word:           "Word",
-		SentencesCount: 2,
+		UserID:   "UserID",
+		Language: lang.English.String(),
+		Word:     "Word",
 	}
 
 	expReq := core.InspectCardRequest{
-		UserID:         "UserID",
-		Language:       lang.English,
-		Word:           "Word",
-		SentencesCount: 2,
+		UserID:   "UserID",
+		Language: lang.English,
+		Word:     "Word",
 	}
 
 	tr := DefaultTransformer
@@ -281,7 +274,6 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 							},
 						},
 					},
-					Sentences: []string{"sentence_11", "sentence_12"},
 				},
 				{
 					Word: "Word_2",
@@ -330,7 +322,6 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 							},
 						},
 					},
-					Sentences: []string{"sentence_21", "sentence_22"},
 				},
 			},
 			CorrectAnswers: 1,
@@ -391,7 +382,6 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 							},
 						},
 					},
-					Sentences: []string{"sentence_11", "sentence_12"},
 				},
 				{
 					Word: "Word_2",
@@ -440,7 +430,6 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 							},
 						},
 					},
-					Sentences: []string{"sentence_21", "sentence_22"},
 				},
 			},
 			CorrectAnswers: 1,
@@ -520,7 +509,6 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 									},
 								},
 							},
-							Sentences: []string{"Sentence_1", "Sentences_2"},
 						},
 						{
 							Word: "Word_2",
@@ -569,7 +557,6 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 									},
 								},
 							},
-							Sentences: []string{"Sentence_1", "Sentences_2"},
 						},
 					},
 					Params: &api.CreateCardParameters{EnrichWordInformationFromDictionary: true},
@@ -627,7 +614,6 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 									},
 								},
 							},
-							Sentences: []string{"Sentence_1", "Sentences_2"},
 						},
 						{
 							Word: "Word_2",
@@ -676,7 +662,6 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 									},
 								},
 							},
-							Sentences: []string{"Sentence_1", "Sentences_2"},
 						},
 					},
 					Params: core.CreateCardParameters{EnrichWordInformationFromDictionary: true},
@@ -783,7 +768,6 @@ func TestTransformerToAPICreateCardResponse(t *testing.T) {
 							},
 						},
 					},
-					Sentences: []string{"Sentence_1", "Sentence_2"},
 				},
 			},
 			CorrectAnswers: 1,
@@ -844,7 +828,6 @@ func TestTransformerToAPICreateCardResponse(t *testing.T) {
 							},
 						},
 					},
-					Sentences: []string{"Sentence_1", "Sentence_2"},
 				},
 			},
 			CorrectAnswers: 1,
@@ -968,7 +951,6 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 											},
 										},
 									},
-									Sentences: []string{"Sentence_11", "Sentence_12"},
 								},
 							},
 							CorrectAnswers: 1,
@@ -1026,7 +1008,6 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 											},
 										},
 									},
-									Sentences: []string{"Sentence_21", "Sentence_22"},
 								},
 							},
 							CorrectAnswers: 1,
@@ -1092,7 +1073,6 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 											},
 										},
 									},
-									Sentences: []string{"Sentence_11", "Sentence_12"},
 								},
 							},
 							CorrectAnswers: 1,
@@ -1150,7 +1130,6 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 											},
 										},
 									},
-									Sentences: []string{"Sentence_21", "Sentence_22"},
 								},
 							},
 							CorrectAnswers: 1,
@@ -1293,16 +1272,14 @@ func TestTransformerToCoreGetCardsForReviewRequest(t *testing.T) {
 		"positive case": {
 			input: input{
 				req: &api.GetCardsForReviewRequest{
-					UserID:         "UserID",
-					Language:       lang.English.String(),
-					SentencesCount: 1,
+					UserID:   "UserID",
+					Language: lang.English.String(),
 				},
 			},
 			want: want{
 				req: core.GetCardsForReviewRequest{
-					UserID:         "UserID",
-					Language:       lang.English,
-					SentencesCount: 1,
+					UserID:   "UserID",
+					Language: lang.English,
 				},
 			},
 		},
@@ -1417,7 +1394,6 @@ func TestTransformerToAPIDeleteCardResponse(t *testing.T) {
 										},
 									},
 								},
-								Sentences: []string{"Sentence_11", "Sentence_12"},
 							},
 						},
 						CorrectAnswers: 1,
@@ -1479,7 +1455,6 @@ func TestTransformerToAPIDeleteCardResponse(t *testing.T) {
 										},
 									},
 								},
-								Sentences: []string{"Sentence_11", "Sentence_12"},
 							},
 						},
 						CorrectAnswers: 1,

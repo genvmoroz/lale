@@ -10,6 +10,7 @@ service LaleService {
   rpc GetAllCards(GetCardsRequest) returns (GetCardsResponse);
   rpc UpdateCardPerformance(UpdateCardPerformanceRequest) returns (UpdateCardPerformanceResponse);
   rpc GetCardsToReview(GetCardsForReviewRequest) returns (GetCardsResponse);
+  rpc GetSentences(GetSentencesRequest) returns (GetSentencesResponse);
   rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
 }
 
@@ -28,7 +29,6 @@ message WordInformation {
   string origin = 3;
   repeated Phonetic phonetics = 4;
   repeated Meaning meanings = 5;
-  repeated string sentences = 6;
 }
 
 message Translation {
@@ -61,7 +61,6 @@ message GetCardsRequest {
 message GetCardsForReviewRequest {
   string userID = 1;
   string language = 2;
-  uint32 sentencesCount = 3;
 }
 
 message CreateCardParameters {
@@ -83,7 +82,6 @@ message InspectCardRequest {
   string userID = 1;
   string language = 2;
   string word = 3;
-  uint32 sentencesCount = 4;
 }
 
 message InspectCardResponse {
@@ -104,6 +102,16 @@ message UpdateCardPerformanceRequest {
 
 message UpdateCardPerformanceResponse {
   google.protobuf.Timestamp nextDueDate = 1;
+}
+
+message GetSentencesRequest {
+  string userID = 1;
+  string word = 2;
+  uint32 sentencesCount = 3;
+}
+
+message GetSentencesResponse {
+  repeated string sentences = 1;
 }
 
 message DeleteCardRequest {

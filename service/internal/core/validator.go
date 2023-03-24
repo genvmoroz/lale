@@ -81,3 +81,14 @@ func (Validator) ValidateGetCardsRequest(req GetCardsRequest) error {
 
 	return nil
 }
+
+func (Validator) ValidateGetSentencesRequest(req GetSentencesRequest) error {
+	if len(strings.TrimSpace(req.UserID)) == 0 {
+		return errors.New("userID is required")
+	}
+	if len(strings.TrimSpace(req.Word)) == 0 {
+		return errors.New("word is required")
+	}
+
+	return nil
+}

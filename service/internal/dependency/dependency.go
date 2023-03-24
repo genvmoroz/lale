@@ -13,6 +13,7 @@ import (
 	"github.com/genvmoroz/lale/service/internal/repo/redis"
 	"github.com/genvmoroz/lale/service/internal/repo/session"
 	"github.com/genvmoroz/lale/service/pkg/sentence/hippo"
+	"github.com/genvmoroz/lale/service/pkg/sentence/openai"
 	"github.com/genvmoroz/lale/service/pkg/sentence/yourdictionary"
 )
 
@@ -30,6 +31,12 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create hippo sentence scraper: %w", err)
 	}
+
+	openaiScraper, err := openai.NewSentenceScraper(cfg.OpenAISentence)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create openai sentence scraper: %w", err)
+	}
+
 	redisRepo := redis.NewRepo(cfg.Redis)
 	userSessionRepo, err := session.NewRepo(cfg.Session)
 	if err != nil {
@@ -50,10 +57,11 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dictionary client: %w", err)
 	}
+	_ = hippoSentenceScraper
+	_ = yourDictionarySentenceScraper
 
 	scrapers := []core.SentenceScraper{
-		hippoSentenceScraper,
-		yourDictionarySentenceScraper,
+		openaiScraper,
 	}
 
 	service, err := core.NewService(

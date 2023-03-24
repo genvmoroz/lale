@@ -59,12 +59,12 @@ func TestAnkiCalculateNextDueDate(t *testing.T) {
 		"2 correct answer, 1 performance": {
 			field: field{now: testNow},
 			input: input{performance: 1, correctAnswers: 2},
-			want:  want{nextDueDate: testNowTime.Add(-3 * 24 * time.Hour).Truncate(24 * time.Hour)},
+			want:  want{nextDueDate: testNowTime.Add(24 * time.Hour).Truncate(24 * time.Hour)},
 		},
 		"2 correct answer, 2 performance": {
 			field: field{now: testNow},
 			input: input{performance: 2, correctAnswers: 2},
-			want:  want{nextDueDate: testNowTime.Truncate(24 * time.Hour)},
+			want:  want{nextDueDate: testNowTime.Add(24 * time.Hour).Truncate(24 * time.Hour)},
 		},
 		"0 correct answer, 2 performance": {
 			field: field{now: testNow},
@@ -81,7 +81,7 @@ func TestAnkiCalculateNextDueDate(t *testing.T) {
 			input: input{performance: 4, correctAnswers: 2},
 			want:  want{nextDueDate: testNowTime.Add(3 * 24 * time.Hour).Truncate(24 * time.Hour)},
 		},
-		"10 correct answer, 3 performance": {
+		"10 correct answer, 5 performance": {
 			field: field{now: testNow},
 			input: input{performance: 5, correctAnswers: 10},
 			want:  want{nextDueDate: testNowTime.Add(14 * 24 * time.Hour).Truncate(24 * time.Hour)},

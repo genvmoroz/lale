@@ -9,10 +9,9 @@ import (
 
 type (
 	InspectCardRequest struct {
-		UserID         string
-		Language       lang.Language
-		Word           string
-		SentencesCount uint32
+		UserID   string
+		Language lang.Language
+		Word     string
 	}
 
 	InspectCardResponse struct {
@@ -44,9 +43,8 @@ type (
 	}
 
 	GetCardsForReviewRequest struct {
-		UserID         string
-		Language       lang.Language
-		SentencesCount uint32
+		UserID   string
+		Language lang.Language
 	}
 
 	GetCardsRequest struct {
@@ -68,5 +66,15 @@ type (
 
 	UpdateCardPerformanceResponse struct {
 		NextDueDate time.Time
+	}
+
+	GetSentencesRequest struct {
+		UserID         string
+		Word           string
+		SentencesCount uint32
+	}
+
+	GetSentencesResponse struct {
+		Sentences []string
 	}
 )

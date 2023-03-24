@@ -28,7 +28,6 @@ type (
 		Origin      string       `yaml:"Origin,omitempty"`
 		Phonetics   []Phonetic   `yaml:"Phonetics,omitempty"`
 		Meanings    []Meaning    `yaml:"Meanings,omitempty"`
-		Sentences   []string     `yaml:"Sentences,omitempty"`
 	}
 
 	Translation struct {

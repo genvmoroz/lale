@@ -106,6 +106,21 @@ func (r *Resolver) GetCardsToReview(ctx context.Context, req *api.GetCardsForRev
 	)
 }
 
+func (r *Resolver) GetSentences(ctx context.Context, req *api.GetSentencesRequest) (*api.GetSentencesResponse, error) {
+	return genericResolver[
+		api.GetSentencesRequest,
+		core.GetSentencesRequest,
+		api.GetSentencesResponse,
+		core.GetSentencesResponse,
+	](
+		ctx,
+		req,
+		r.transformer.ToCoreGetSentencesRequest,
+		r.service.GetSentences,
+		r.transformer.ToAPIGetSentencesResponse,
+	)
+}
+
 func (r *Resolver) DeleteCard(ctx context.Context, req *api.DeleteCardRequest) (*api.DeleteCardResponse, error) {
 	return genericResolver[
 		api.DeleteCardRequest,

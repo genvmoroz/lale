@@ -12,6 +12,7 @@ import (
 	"github.com/genvmoroz/lale/service/internal/repo/redis"
 	"github.com/genvmoroz/lale/service/internal/repo/session"
 	"github.com/genvmoroz/lale/service/pkg/sentence/hippo"
+	"github.com/genvmoroz/lale/service/pkg/sentence/openai"
 	"github.com/genvmoroz/lale/service/pkg/sentence/yourdictionary"
 )
 
@@ -23,6 +24,7 @@ type (
 		Redis                  redis.Config
 		YourDictionarySentence yourdictionary.Config
 		HippoSentence          hippo.Config
+		OpenAISentence         openai.Config
 		Session                session.Config
 		CardRepo               card.Config
 		Dictionary             DictionaryConfig

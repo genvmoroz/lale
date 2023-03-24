@@ -14,7 +14,7 @@ func NewAnki(now func() time.Time) *Anki {
 }
 
 func (a Anki) CalculateNextDueDate(performance uint32, correctAnswers uint32) time.Time {
-	return a.now().
+	next := a.now().
 		UTC().
 		Add(
 			a.calculateShift(
@@ -22,6 +22,14 @@ func (a Anki) CalculateNextDueDate(performance uint32, correctAnswers uint32) ti
 				float64(correctAnswers),
 			),
 		).Truncate(24 * time.Hour)
+
+	if next.Before(a.now()) {
+		return a.now().
+			Add(24 * time.Hour).
+			Truncate(24 * time.Hour)
+	} else {
+		return next
+	}
 }
 
 func (Anki) calculateShift(performance float64, correctAnswers float64) time.Duration {
