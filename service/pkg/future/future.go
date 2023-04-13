@@ -10,7 +10,7 @@ import (
 type (
 	Task[R any] interface {
 		Get(duration time.Duration) (R, error)
-		IsComplete() bool
+		IsCompleted() bool
 		IsCancelled() bool
 		Cancel()
 	}
@@ -18,6 +18,7 @@ type (
 	task[R any] struct {
 		completed bool
 		canceled  bool
+		closed    bool
 
 		resultChan chan R
 		errChan    chan error
@@ -35,8 +36,8 @@ func NewTask[R any](ctx context.Context, run runFunc[R]) Task[R] {
 	task := &task[R]{
 		completed:  false,
 		canceled:   false,
-		resultChan: make(chan R),
-		errChan:    make(chan error),
+		resultChan: make(chan R, 1),
+		errChan:    make(chan error, 1),
 		ctx:        ctx,
 		cancel:     cancel,
 	}
@@ -50,10 +51,10 @@ func (t *task[R]) Get(timeout time.Duration) (R, error) {
 	var empty R
 
 	switch {
-	case t.completed:
-		return empty, errors.New("task is completed")
 	case t.canceled:
 		return empty, errors.New("task is canceled")
+	case t.closed:
+		return empty, errors.New("task is completed")
 	}
 
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), timeout)
@@ -64,7 +65,7 @@ func (t *task[R]) Get(timeout time.Duration) (R, error) {
 		return empty, err
 	}
 
-	t.complete()
+	t.close()
 
 	return res, err
 }
@@ -98,7 +99,7 @@ func (t *task[R]) wait(ctx context.Context) (R, error) {
 }
 
 func (t *task[R]) run(ctx context.Context, run runFunc[R]) {
-	go func() {
+	go func(t *task[R]) {
 		select {
 		case <-ctx.Done():
 			return
@@ -109,11 +110,12 @@ func (t *task[R]) run(ctx context.Context, run runFunc[R]) {
 			} else {
 				t.resultChan <- res
 			}
+			t.complete()
 		}
-	}()
+	}(t)
 }
 
-func (t *task[R]) IsComplete() bool {
+func (t *task[R]) IsCompleted() bool {
 	return t.completed
 }
 
@@ -135,13 +137,17 @@ func (t *task[R]) complete() {
 		return
 	}
 	t.completed = true
-
-	t.close()
 }
 
 func (t *task[R]) close() {
+	if t.closed {
+		return
+	}
+
 	t.cancel()
 
 	close(t.resultChan)
 	close(t.errChan)
+
+	t.closed = true
 }
