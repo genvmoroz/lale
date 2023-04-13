@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	basehttp "net/http"
 	"net/url"
 	"regexp"
@@ -69,28 +68,25 @@ const (
 
 func (s *Scraper) ScrapeSentences(word string, size uint32) ([]string, error) {
 	var result []string
-	log.Println("scrape for Beginner, word", word)
-	sent, err := s.sentences(word, size, Beginner)
+	//sent, err := s.sentences(word, size, Beginner)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	//result = append(result, sent...)
+
+	sent, err := s.sentences(word, size, Intermediate)
 	if err != nil {
 		return nil, err
 	}
-
 	result = append(result, sent...)
 
-	log.Println("scrape for Intermediate, word", word)
-	sent, err = s.sentences(word, size, Intermediate)
-	if err != nil {
-		return nil, err
-	}
-
-	result = append(result, sent...)
-	log.Println("scrape for Advanced, word", word)
-	sent, err = s.sentences(word, size, Advanced)
-	if err != nil {
-		return nil, err
-	}
-
-	result = append(result, sent...)
+	//sent, err = s.sentences(word, size, Advanced)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//result = append(result, sent...)
 
 	return result, nil
 }
@@ -113,7 +109,7 @@ func (s *Scraper) sentences(word string, size uint32, complexity EnglishComplexi
 
 	body, err := s.prepareRequestBody(
 		fmt.Sprintf(
-			"Generate %d sentences with the word \"%s\" for %s English",
+			"Generate %d random sentences with the word \"%s\" for %s English level with any topics.",
 			size,
 			strings.TrimSpace(word),
 			complexity.String(),
@@ -151,9 +147,12 @@ func (s *Scraper) sentences(word string, size uint32, complexity EnglishComplexi
 	sentences := strings.Split(parsedResponse.Choices[0].Message.Content, "\n")
 
 	for index := 0; index < len(sentences); index++ {
-		rq := regexp.MustCompile(`^\\d.`)
+		rq := regexp.MustCompile(`^\d.`)
 		ss := rq.ReplaceAll([]byte(sentences[index]), []byte{})
-		sentences[index] = strings.TrimSpace(string(ss))
+		sentence := strings.TrimSpace(strings.TrimRight(string(ss), "."))
+		if len(sentence) != 0 {
+			sentences[index] = sentence
+		}
 	}
 	return sentences, nil
 }
