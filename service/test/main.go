@@ -26,12 +26,12 @@ func main() {
 
 	cfg, err := options.FromEnv()
 	if err != nil {
-		log.Fatalf("failed to read envs: %s", err.Error())
+		log.Fatalf("read envs: %s", err.Error())
 	}
 
 	user, err := NewUser(ctx, cfg.ClientConfig, 0)
 	if err != nil {
-		log.Fatalf("failed to read envs: %s", err.Error())
+		log.Fatalf("new user: %s", err.Error())
 	}
 
 	user.InspectCards(ctx, status.Error(codes.NotFound, "no card found"), false, nil)
@@ -74,7 +74,7 @@ func (u *User) InspectCards(ctx context.Context, expErr error, skipComparison bo
 func NewUser(ctx context.Context, cfg client.Config, count int) (User, error) {
 	cli, err := client.NewClient(ctx, cfg)
 	if err != nil {
-		log.Fatalf("failed to create client: %s", err.Error())
+		log.Fatalf("create client: %s", err.Error())
 	}
 
 	return User{

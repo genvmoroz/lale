@@ -99,6 +99,11 @@ func TestAPIWordInformation(t *testing.T) {
 			want: &api.WordInformation{Word: "someWord"},
 		},
 		{
+			name: "with audio",
+			arg:  entity.WordInformation{Audio: []byte("someAudio")},
+			want: &api.WordInformation{Audio: []byte("someAudio")},
+		},
+		{
 			name: "with Translation",
 			arg: entity.WordInformation{
 				Translation: &entity.Translation{
@@ -122,14 +127,14 @@ func TestAPIWordInformation(t *testing.T) {
 			name: "with phonetics",
 			arg: entity.WordInformation{
 				Phonetics: []entity.Phonetic{
-					{Text: "text1", AudioLink: "link1"},
-					{Text: "text2", AudioLink: "link2"},
+					{Text: "text1"},
+					{Text: "text2"},
 				},
 			},
 			want: &api.WordInformation{
 				Phonetics: []*api.Phonetic{
-					{Text: "text1", AudioLink: "link1"},
-					{Text: "text2", AudioLink: "link2"},
+					{Text: "text1"},
+					{Text: "text2"},
 				},
 			},
 		},
@@ -235,8 +240,8 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 					},
 					Origin: "Origin_1",
 					Phonetics: []entity.Phonetic{
-						{Text: "Text_11", AudioLink: "AudioLink_11"},
-						{Text: "Text_12", AudioLink: "AudioLink_12"},
+						{Text: "Text_11"},
+						{Text: "Text_12"},
 					},
 					Meanings: []entity.Meaning{
 						{
@@ -283,8 +288,8 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 					},
 					Origin: "Origin_2",
 					Phonetics: []entity.Phonetic{
-						{Text: "Text_21", AudioLink: "AudioLink_21"},
-						{Text: "Text_22", AudioLink: "AudioLink_22"},
+						{Text: "Text_21"},
+						{Text: "Text_22"},
 					},
 					Meanings: []entity.Meaning{
 						{
@@ -343,8 +348,8 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 					},
 					Origin: "Origin_1",
 					Phonetics: []*api.Phonetic{
-						{Text: "Text_11", AudioLink: "AudioLink_11"},
-						{Text: "Text_12", AudioLink: "AudioLink_12"},
+						{Text: "Text_11"},
+						{Text: "Text_12"},
 					},
 					Meanings: []*api.Meaning{
 						{
@@ -391,8 +396,8 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 					},
 					Origin: "Origin_2",
 					Phonetics: []*api.Phonetic{
-						{Text: "Text_21", AudioLink: "AudioLink_21"},
-						{Text: "Text_22", AudioLink: "AudioLink_22"},
+						{Text: "Text_21"},
+						{Text: "Text_22"},
 					},
 					Meanings: []*api.Meaning{
 						{
@@ -469,8 +474,8 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 							},
 							Origin: "Origin_1",
 							Phonetics: []*api.Phonetic{
-								{Text: "Text_11", AudioLink: "AudioLink_11"},
-								{Text: "Text_12", AudioLink: "AudioLink_12"},
+								{Text: "Text_11"},
+								{Text: "Text_12"},
 							},
 							Meanings: []*api.Meaning{
 								{
@@ -518,8 +523,8 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 							},
 							Origin: "Origin_2",
 							Phonetics: []*api.Phonetic{
-								{Text: "Text_21", AudioLink: "AudioLink_21"},
-								{Text: "Text_22", AudioLink: "AudioLink_22"},
+								{Text: "Text_21"},
+								{Text: "Text_22"},
 							},
 							Meanings: []*api.Meaning{
 								{
@@ -575,8 +580,8 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 							},
 							Origin: "Origin_1",
 							Phonetics: []entity.Phonetic{
-								{Text: "Text_11", AudioLink: "AudioLink_11"},
-								{Text: "Text_12", AudioLink: "AudioLink_12"},
+								{Text: "Text_11"},
+								{Text: "Text_12"},
 							},
 							Meanings: []entity.Meaning{
 								{
@@ -623,8 +628,8 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 							},
 							Origin: "Origin_2",
 							Phonetics: []entity.Phonetic{
-								{Text: "Text_21", AudioLink: "AudioLink_21"},
-								{Text: "Text_22", AudioLink: "AudioLink_22"},
+								{Text: "Text_21"},
+								{Text: "Text_22"},
 							},
 							Meanings: []entity.Meaning{
 								{
@@ -729,8 +734,8 @@ func TestTransformerToAPICreateCardResponse(t *testing.T) {
 					},
 					Origin: "Origin_1",
 					Phonetics: []entity.Phonetic{
-						{Text: "Text_11", AudioLink: "AudioLink_11"},
-						{Text: "Text_12", AudioLink: "AudioLink_12"},
+						{Text: "Text_11"},
+						{Text: "Text_12"},
 					},
 					Meanings: []entity.Meaning{
 						{
@@ -789,8 +794,8 @@ func TestTransformerToAPICreateCardResponse(t *testing.T) {
 					},
 					Origin: "Origin_1",
 					Phonetics: []*api.Phonetic{
-						{Text: "Text_11", AudioLink: "AudioLink_11"},
-						{Text: "Text_12", AudioLink: "AudioLink_12"},
+						{Text: "Text_11"},
+						{Text: "Text_12"},
 					},
 					Meanings: []*api.Meaning{
 						{
@@ -912,8 +917,8 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 									},
 									Origin: "Origin_1",
 									Phonetics: []entity.Phonetic{
-										{Text: "Text_11", AudioLink: "AudioLink_11"},
-										{Text: "Text_12", AudioLink: "AudioLink_12"},
+										{Text: "Text_11"},
+										{Text: "Text_12"},
 									},
 									Meanings: []entity.Meaning{
 										{
@@ -969,8 +974,8 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 									},
 									Origin: "Origin_2",
 									Phonetics: []entity.Phonetic{
-										{Text: "Text_21", AudioLink: "AudioLink_21"},
-										{Text: "Text_22", AudioLink: "AudioLink_22"},
+										{Text: "Text_21"},
+										{Text: "Text_22"},
 									},
 									Meanings: []entity.Meaning{
 										{
@@ -1034,8 +1039,8 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 									},
 									Origin: "Origin_1",
 									Phonetics: []*api.Phonetic{
-										{Text: "Text_11", AudioLink: "AudioLink_11"},
-										{Text: "Text_12", AudioLink: "AudioLink_12"},
+										{Text: "Text_11"},
+										{Text: "Text_12"},
 									},
 									Meanings: []*api.Meaning{
 										{
@@ -1091,8 +1096,8 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 									},
 									Origin: "Origin_2",
 									Phonetics: []*api.Phonetic{
-										{Text: "Text_21", AudioLink: "AudioLink_21"},
-										{Text: "Text_22", AudioLink: "AudioLink_22"},
+										{Text: "Text_21"},
+										{Text: "Text_22"},
 									},
 									Meanings: []*api.Meaning{
 										{
@@ -1355,8 +1360,8 @@ func TestTransformerToAPIDeleteCardResponse(t *testing.T) {
 								},
 								Origin: "Origin_1",
 								Phonetics: []entity.Phonetic{
-									{Text: "Text_11", AudioLink: "AudioLink_11"},
-									{Text: "Text_12", AudioLink: "AudioLink_12"},
+									{Text: "Text_11"},
+									{Text: "Text_12"},
 								},
 								Meanings: []entity.Meaning{
 									{
@@ -1394,6 +1399,7 @@ func TestTransformerToAPIDeleteCardResponse(t *testing.T) {
 										},
 									},
 								},
+								Audio: []byte("Audio_11"),
 							},
 						},
 						CorrectAnswers: 1,
@@ -1416,8 +1422,8 @@ func TestTransformerToAPIDeleteCardResponse(t *testing.T) {
 								},
 								Origin: "Origin_1",
 								Phonetics: []*api.Phonetic{
-									{Text: "Text_11", AudioLink: "AudioLink_11"},
-									{Text: "Text_12", AudioLink: "AudioLink_12"},
+									{Text: "Text_11"},
+									{Text: "Text_12"},
 								},
 								Meanings: []*api.Meaning{
 									{
@@ -1455,6 +1461,7 @@ func TestTransformerToAPIDeleteCardResponse(t *testing.T) {
 										},
 									},
 								},
+								Audio: []byte("Audio_11"),
 							},
 						},
 						CorrectAnswers: 1,

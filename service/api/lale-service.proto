@@ -29,6 +29,7 @@ message WordInformation {
   string origin = 3;
   repeated Phonetic phonetics = 4;
   repeated Meaning meanings = 5;
+  bytes audio = 6;
 }
 
 message Translation {
@@ -38,7 +39,6 @@ message Translation {
 
 message Phonetic {
   string text = 1;
-  string audioLink = 2;
 }
 
 message Meaning {

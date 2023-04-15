@@ -33,7 +33,7 @@ func (s *Service) Run(ctx context.Context) error {
 	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(s.port))
 	lis, err := net.Listen(network, addr)
 	if err != nil {
-		return fmt.Errorf("failed to listen address [%s]: %w", addr, err)
+		return fmt.Errorf("listen address [%s]: %w", addr, err)
 	}
 
 	go func() {

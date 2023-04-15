@@ -71,8 +71,8 @@ func (t *task[R]) Get(timeout time.Duration) (R, error) {
 }
 
 var (
-	ContextClosedErr  = errors.New("context closed before the task is completed")
-	TimeoutExpiredErr = errors.New("timeout expired")
+	ErrContextClosed  = errors.New("context closed before the task is completed")
+	ErrTimeoutExpired = errors.New("timeout expired")
 )
 
 type TaskError struct{ baseErr error }
@@ -87,9 +87,9 @@ func (t *task[R]) wait(ctx context.Context) (R, error) {
 	for {
 		select {
 		case <-t.ctx.Done():
-			return empty, ContextClosedErr
+			return empty, ErrContextClosed
 		case <-ctx.Done():
-			return empty, TimeoutExpiredErr
+			return empty, ErrTimeoutExpired
 		case err := <-t.errChan:
 			return empty, newTaskError(err)
 		case res := <-t.resultChan:

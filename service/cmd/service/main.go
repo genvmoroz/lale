@@ -33,7 +33,7 @@ func run() error {
 
 	cfg, err := options.FromEnv()
 	if err != nil {
-		return fmt.Errorf("failed to read envs: %w", err)
+		return fmt.Errorf("read env config: %w", err)
 	}
 
 	logrus.SetLevel(cfg.LogLevel)
@@ -41,16 +41,16 @@ func run() error {
 	logrus.Info("build deps")
 	deps, err := dependency.NewDependency(ctx, cfg)
 	if err != nil {
-		return fmt.Errorf("creation resolver error: %w", err)
+		return fmt.Errorf("build deps: %w", err)
 	}
 
 	logrus.Info("build service")
 	coreService := deps.BuildService()
 
-	logrus.Info("build gRPC API")
+	logrus.Info("build gRPC service")
 	resolver, err := grpc.NewResolver(coreService, grpc.DefaultTransformer)
 	if err != nil {
-		return fmt.Errorf("failed to create gRPC resolver: %w", err)
+		return fmt.Errorf("create gRPC service: %w", err)
 	}
 
 	grpcService := grpc.NewService(cfg.GRPCPort, resolver)

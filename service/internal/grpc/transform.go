@@ -198,6 +198,7 @@ func (t transformer) toAPIWordInformation(info entity.WordInformation) *api.Word
 		Origin:      info.Origin,
 		Phonetics:   t.toAPIPhonetics(info.Phonetics),
 		Meanings:    t.toAPIMeanings(info.Meanings),
+		Audio:       info.Audio,
 	}
 }
 
@@ -208,6 +209,7 @@ func (t transformer) toCoreWordInformation(info *api.WordInformation) entity.Wor
 		Origin:      info.Origin,
 		Phonetics:   t.toCorePhonetics(info.Phonetics),
 		Meanings:    t.toCoreMeanings(info.Meanings),
+		Audio:       info.GetAudio(),
 	}
 }
 
@@ -313,10 +315,7 @@ func (t transformer) toAPIPhonetics(phonetics []entity.Phonetic) []*api.Phonetic
 }
 
 func (transformer) toAPIPhonetic(p entity.Phonetic) *api.Phonetic {
-	return &api.Phonetic{
-		Text:      p.Text,
-		AudioLink: p.AudioLink,
-	}
+	return &api.Phonetic{Text: p.Text}
 }
 
 func (t transformer) toCorePhonetics(phonetics []*api.Phonetic) []entity.Phonetic {
@@ -335,10 +334,7 @@ func (t transformer) toCorePhonetics(phonetics []*api.Phonetic) []entity.Phoneti
 }
 
 func (transformer) toCorePhonetic(p *api.Phonetic) entity.Phonetic {
-	return entity.Phonetic{
-		Text:      p.Text,
-		AudioLink: p.AudioLink,
-	}
+	return entity.Phonetic{Text: p.Text}
 }
 
 func (transformer) toAPITranslation(p *entity.Translation) *api.Translation {

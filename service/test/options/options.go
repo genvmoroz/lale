@@ -19,7 +19,7 @@ func FromEnv() (Config, error) {
 
 	err := envconfig.Process(defaultAppPrefix, &config)
 	if err != nil {
-		return config, fmt.Errorf("failed to load config: %w", err)
+		return config, fmt.Errorf("load env config: %w", err)
 	}
 
 	return config, nil

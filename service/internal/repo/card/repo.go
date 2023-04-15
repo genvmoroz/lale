@@ -7,14 +7,13 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/genvmoroz/lale/service/pkg/entity"
+	"github.com/genvmoroz/lale/service/test/comparator"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-
-	"github.com/genvmoroz/lale/service/pkg/entity"
-	"github.com/genvmoroz/lale/service/test/comparator"
 )
 
 type (
@@ -50,9 +49,8 @@ func NewRepo(ctx context.Context, cfg Config) (*Repo, error) {
 		collection: cfg.Collection,
 	}
 
-	logrus.Debugf("connecting to mongo [%s]", cfg.Host)
 	if err := repo.Ping(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ping mongo: %w", err)
+		return nil, fmt.Errorf("ping mongo: %w", err)
 	}
 
 	return repo, nil
@@ -94,7 +92,7 @@ func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Car
 
 	client, err := mongo.Connect(ctx, r.opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to mongo: %w", err)
+		return nil, fmt.Errorf("connect: %w", err)
 	}
 
 	defer func() {
@@ -108,12 +106,12 @@ func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Car
 	query := bson.M{"userID": userID}
 	cursor, err := cardsCollection.Find(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find: %w", err)
+		return nil, fmt.Errorf("find: %w", err)
 	}
 
 	var cards []entity.Card
 	if err = cursor.All(ctx, &cards); err != nil {
-		return nil, fmt.Errorf("failed to decode: %w", err)
+		return nil, fmt.Errorf("unmarshal: %w", err)
 	}
 
 	return cards, nil
@@ -135,7 +133,7 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 
 	client, err := mongo.Connect(ctx, r.opts)
 	if err != nil {
-		return fmt.Errorf("failed to connect: %w", err)
+		return fmt.Errorf("connect: %w", err)
 	}
 	defer func() {
 		disconnect(ctx, client)
@@ -162,13 +160,13 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 					_, err = cardsCollection.InsertOne(ctx, doc)
 					if err != nil {
 						abortTransaction(ctx, sessionContext)
-						return fmt.Errorf("failed to innsert card: %w", err)
+						return fmt.Errorf("insert: %w", err)
 					}
 				} else {
 
 					// checking existence failed with unpredictable error
 					abortTransaction(ctx, sessionContext)
-					return fmt.Errorf("failed to check card existence: %w", err)
+					return fmt.Errorf("check card existence: %w", err)
 				}
 			} else {
 
@@ -176,14 +174,14 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 				_, err = cardsCollection.ReplaceOne(ctx, filter, doc)
 				if err != nil {
 					abortTransaction(ctx, sessionContext)
-					return fmt.Errorf("failed to replace card: %w", err)
+					return fmt.Errorf("replace card: %w", err)
 				}
 			}
 		}
 
 		return sessionContext.CommitTransaction(ctx)
 	}); err != nil {
-		return fmt.Errorf("failed to perform transaction: %w", err)
+		return fmt.Errorf("perform transaction: %w", err)
 	}
 
 	return nil
@@ -195,7 +193,7 @@ func (r *Repo) DeleteCard(ctx context.Context, cardID string) error {
 
 	client, err := mongo.Connect(ctx, r.opts)
 	if err != nil {
-		return fmt.Errorf("failed to connect to mongo: %w", err)
+		return fmt.Errorf("connect: %w", err)
 	}
 
 	defer func() {
@@ -209,7 +207,7 @@ func (r *Repo) DeleteCard(ctx context.Context, cardID string) error {
 	query := bson.M{"id": cardID}
 	_, err = cardsCollection.DeleteOne(ctx, query)
 	if err != nil {
-		return fmt.Errorf("failed to delete: %w", err)
+		return fmt.Errorf("delete: %w", err)
 	}
 
 	return nil
@@ -218,7 +216,7 @@ func (r *Repo) DeleteCard(ctx context.Context, cardID string) error {
 func (r *Repo) Ping(ctx context.Context) error {
 	client, err := mongo.Connect(ctx, r.opts)
 	if err != nil {
-		return fmt.Errorf("failed to connect to mongo: %w", err)
+		return fmt.Errorf("connect: %w", err)
 	}
 
 	defer func() {
@@ -226,7 +224,7 @@ func (r *Repo) Ping(ctx context.Context) error {
 	}()
 
 	if err = client.Ping(ctx, readpref.Primary()); err != nil {
-		return fmt.Errorf("failed to ping mongo: %w", err)
+		return fmt.Errorf("ping: %w", err)
 	}
 
 	return nil
@@ -234,12 +232,12 @@ func (r *Repo) Ping(ctx context.Context) error {
 
 func disconnect(ctx context.Context, client *mongo.Client) {
 	if err := client.Disconnect(ctx); err != nil {
-		logrus.Errorf("failed to disconnect: %s", err.Error())
+		logrus.Errorf("disconnect: %s", err.Error())
 	}
 }
 
 func abortTransaction(ctx context.Context, sessionContext mongo.SessionContext) {
 	if err := sessionContext.AbortTransaction(ctx); err != nil {
-		logrus.Errorf("failed to abort transaction: %s", err.Error())
+		logrus.Errorf("abort transaction: %s", err.Error())
 	}
 }

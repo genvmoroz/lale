@@ -390,14 +390,14 @@ func TestCompareWord(t *testing.T) {
 			args: args{
 				word: &entity.WordInformation{
 					Phonetics: []entity.Phonetic{
-						{Text: "text0", AudioLink: "link0"},
-						{Text: "text1", AudioLink: "link1"},
+						{Text: "text0"},
+						{Text: "text1"},
 					},
 				},
 				target: &api.WordInformation{
 					Phonetics: []*api.Phonetic{
-						{Text: "text0", AudioLink: "link0"},
-						{Text: "text1", AudioLink: "link1"},
+						{Text: "text0"},
+						{Text: "text1"},
 					},
 				},
 			},
@@ -408,13 +408,13 @@ func TestCompareWord(t *testing.T) {
 			args: args{
 				word: &entity.WordInformation{
 					Phonetics: []entity.Phonetic{
-						{Text: "text0", AudioLink: "link0"},
+						{Text: "text0"},
 					},
 				},
 				target: &api.WordInformation{
 					Phonetics: []*api.Phonetic{
-						{Text: "text0", AudioLink: "link0"},
-						{Text: "text1", AudioLink: "link1"},
+						{Text: "text0"},
+						{Text: "text1"},
 					},
 				},
 			},
@@ -627,22 +627,6 @@ func TestComparePhonetic(t *testing.T) {
 			args: args{
 				phonetic: &entity.Phonetic{Text: "text"},
 				target:   &api.Phonetic{Text: "anotherText"},
-			},
-			want: false,
-		},
-		{
-			name: "equal audio link",
-			args: args{
-				phonetic: &entity.Phonetic{AudioLink: "link"},
-				target:   &api.Phonetic{AudioLink: "link"},
-			},
-			want: true,
-		},
-		{
-			name: "not equal audio link",
-			args: args{
-				phonetic: &entity.Phonetic{AudioLink: "link"},
-				target:   &api.Phonetic{AudioLink: "anotherLink"},
 			},
 			want: false,
 		},

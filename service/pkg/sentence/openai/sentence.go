@@ -34,7 +34,7 @@ type (
 func NewSentenceScraper(cfg Config) (*Scraper, error) {
 	_, err := url.ParseRequestURI(cfg.Addr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse addr [%s]: %w", cfg.Addr, err)
+		return nil, fmt.Errorf("parse addr [%s]: %w", cfg.Addr, err)
 	}
 	if cfg.Timeout < 0 {
 		return nil, fmt.Errorf("timeout shouldn't be negative [%d]: %w", cfg.Timeout, err)
@@ -42,7 +42,7 @@ func NewSentenceScraper(cfg Config) (*Scraper, error) {
 
 	client, err := http.NewClient(http.WithRetry(cfg.Retries, cfg.Timeout))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create http client: %w", err)
+		return nil, fmt.Errorf("create http client: %w", err)
 	}
 
 	scr := &Scraper{
@@ -51,7 +51,7 @@ func NewSentenceScraper(cfg Config) (*Scraper, error) {
 		token:  cfg.Token,
 	}
 	if err = scr.ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping the service: %w", err)
+		return nil, fmt.Errorf("ping the service: %w", err)
 	}
 
 	return scr, nil
@@ -68,27 +68,11 @@ const (
 
 func (s *Scraper) ScrapeSentences(word string, size uint32) ([]string, error) {
 	var result []string
-	//sent, err := s.sentences(word, size, Beginner)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//result = append(result, sent...)
-
 	sent, err := s.sentences(word, size, Intermediate)
 	if err != nil {
 		return nil, err
 	}
-	result = append(result, sent...)
-
-	//sent, err = s.sentences(word, size, Advanced)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//result = append(result, sent...)
-
-	return result, nil
+	return append(result, sent...), nil
 }
 
 func (s *Scraper) sentences(word string, size uint32, complexity EnglishComplexity) ([]string, error) {
@@ -116,7 +100,7 @@ func (s *Scraper) sentences(word string, size uint32, complexity EnglishComplexi
 		),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to prepare request body: %w", err)
+		return nil, fmt.Errorf("prepare request body: %w", err)
 	}
 
 	req.AppendBody(body)
@@ -137,21 +121,22 @@ func (s *Scraper) sentences(word string, size uint32, complexity EnglishComplexi
 
 	var parsedResponse response
 	if err = json.Unmarshal(resp.Body(), &parsedResponse); err != nil {
-		return nil, fmt.Errorf("failed to parse response body: %w", err)
+		return nil, fmt.Errorf("parse response body: %w", err)
 	}
 
 	if len(parsedResponse.Choices) == 0 {
 		return nil, errors.New("connection successful but response is empty")
 	}
 
-	sentences := strings.Split(parsedResponse.Choices[0].Message.Content, "\n")
+	content := strings.Split(parsedResponse.Choices[0].Message.Content, "\n")
+	var sentences []string
 
-	for index := 0; index < len(sentences); index++ {
+	for index := 0; index < len(content); index++ {
 		rq := regexp.MustCompile(`^\d.`)
-		ss := rq.ReplaceAll([]byte(sentences[index]), []byte{})
+		ss := rq.ReplaceAll([]byte(content[index]), []byte{})
 		sentence := strings.TrimSpace(strings.TrimRight(string(ss), "."))
 		if len(sentence) != 0 {
-			sentences[index] = sentence
+			sentences = append(sentences, sentence)
 		}
 	}
 	return sentences, nil
@@ -203,7 +188,7 @@ func (s *Scraper) ping() error {
 
 	body, err := s.prepareRequestBody("Ping")
 	if err != nil {
-		return fmt.Errorf("failed to prepare request body: %w", err)
+		return fmt.Errorf("prepare request body: %w", err)
 	}
 
 	req.AppendBody(body)
@@ -215,7 +200,7 @@ func (s *Scraper) ping() error {
 		}
 	}()
 	if err != nil {
-		return fmt.Errorf("executing request error: %w", err)
+		return fmt.Errorf("execute request: %w", err)
 	}
 
 	if resp.StatusCode() != 200 {
@@ -224,7 +209,7 @@ func (s *Scraper) ping() error {
 
 	var parsedResponse response
 	if err = json.Unmarshal(resp.Body(), &parsedResponse); err != nil {
-		return fmt.Errorf("failed to parse response body: %w", err)
+		return fmt.Errorf("unmarshal: %w", err)
 	}
 
 	if len(parsedResponse.Choices) == 0 {

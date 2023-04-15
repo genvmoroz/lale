@@ -48,8 +48,7 @@ func (*GRPCComparator) ComparePhonetic(phonetic *entity.Phonetic, target *api.Ph
 		return target == nil
 	}
 	if target != nil {
-		return phonetic.Text == target.Text &&
-			phonetic.AudioLink == target.AudioLink
+		return phonetic.Text == target.Text
 	}
 
 	return false

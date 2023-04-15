@@ -37,7 +37,7 @@ type (
 func NewSentenceScraper(cfg Config) (*Scraper, error) {
 	parsed, err := url.Parse(cfg.Host)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse host [%s]: %w", cfg.Host, err)
+		return nil, fmt.Errorf("parse host [%s]: %w", cfg.Host, err)
 	}
 	if cfg.Timeout < 0 {
 		return nil, fmt.Errorf("timeout shouldn't be negative [%d]: %w", cfg.Timeout, err)
@@ -45,7 +45,7 @@ func NewSentenceScraper(cfg Config) (*Scraper, error) {
 
 	cli, err := web.NewHTTPClientWithRetry(cfg.Retries, cfg.Timeout)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create http client: %w", err)
+		return nil, fmt.Errorf("create http client: %w", err)
 	}
 
 	return &Scraper{
@@ -66,17 +66,17 @@ func (s *Scraper) ScrapeSentences(word string, size uint32) ([]string, error) {
 	)
 	scr, err := web.New(query, s.cli)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create web sentence: %w", err)
+		return nil, fmt.Errorf("create web sentence: %w", err)
 	}
 
 	sentences, err := scrapeSentences(sentencesXPath, sentenceXPath, scr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to scrape sentences XPath [%s]: %w", sentencesXPath, err)
+		return nil, fmt.Errorf("scrape sentences XPath [%s]: %w", sentencesXPath, err)
 	}
 
 	classicalLiteratureSentences, err := scrapeSentences(classicalLiteratureSentencesXPath, classicalLiteratureSentenceXPath, scr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to scrape classical literarure sentences XPath [%s]: %w", classicalLiteratureSentencesXPath, err)
+		return nil, fmt.Errorf("scrape classical literarure sentences XPath [%s]: %w", classicalLiteratureSentencesXPath, err)
 	}
 
 	res := append(sentences, classicalLiteratureSentences...)
@@ -96,7 +96,7 @@ func scrapeSentences(tableFullXPath, sentenceFullXPath string, scr *web.Scraper)
 		if strings.Contains(err.Error(), "element not found") {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("failed to find Node: %w", err)
+		return nil, fmt.Errorf("find Node: %w", err)
 	}
 
 	count := 0
@@ -115,7 +115,7 @@ func scrapeSentences(tableFullXPath, sentenceFullXPath string, scr *web.Scraper)
 			if strings.Contains(err.Error(), "element not found") {
 				continue
 			}
-			return nil, fmt.Errorf("failed to get childes by xpath [%s]: %w", xPath, err)
+			return nil, fmt.Errorf("get childes by xpath [%s]: %w", xPath, err)
 		}
 
 		b := strings.Builder{}

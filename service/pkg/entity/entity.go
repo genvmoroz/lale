@@ -28,6 +28,7 @@ type (
 		Origin      string       `yaml:"Origin,omitempty"`
 		Phonetics   []Phonetic   `yaml:"Phonetics,omitempty"`
 		Meanings    []Meaning    `yaml:"Meanings,omitempty"`
+		Audio       []byte       `yaml:"Audio,omitempty"`
 	}
 
 	Translation struct {
@@ -36,8 +37,7 @@ type (
 	}
 
 	Phonetic struct {
-		Text      string `yaml:"Text,omitempty"`
-		AudioLink string `yaml:"AudioLink,omitempty"`
+		Text string `yaml:"Text,omitempty"`
 	}
 
 	Meaning struct {

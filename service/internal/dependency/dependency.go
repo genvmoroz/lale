@@ -3,6 +3,8 @@ package dependency
 import (
 	"context"
 	"fmt"
+	"github.com/genvmoroz/lale/service/pkg/speech"
+	"github.com/genvmoroz/lale/service/pkg/speech/google"
 	"time"
 
 	"github.com/genvmoroz/lale/service/internal/algo"
@@ -24,27 +26,27 @@ type Dependency struct {
 func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error) {
 	yourDictionarySentenceScraper, err := yourdictionary.NewSentenceScraper(cfg.YourDictionarySentence)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create yourdictionary sentence scraper: %w", err)
+		return nil, fmt.Errorf("create yourdictionary sentence scraper: %w", err)
 	}
 
 	hippoSentenceScraper, err := hippo.NewSentenceScraper(cfg.HippoSentence)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create hippo sentence scraper: %w", err)
+		return nil, fmt.Errorf("create hippo sentence scraper: %w", err)
 	}
 
 	openaiScraper, err := openai.NewSentenceScraper(cfg.OpenAISentence)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create openai sentence scraper: %w", err)
+		return nil, fmt.Errorf("create openai sentence scraper: %w", err)
 	}
 
 	redisRepo := redis.NewRepo(cfg.Redis)
 	userSessionRepo, err := session.NewRepo(cfg.Session)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user session client: %w", err)
+		return nil, fmt.Errorf("create user session client: %w", err)
 	}
 	cardRepo, err := card.NewRepo(ctx, cfg.CardRepo)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create card repo: %w", err)
+		return nil, fmt.Errorf("create card repo: %w", err)
 	}
 
 	dictionaryRepo, err := dictionary.NewRepo(
@@ -55,7 +57,7 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create dictionary client: %w", err)
+		return nil, fmt.Errorf("create dictionary client: %w", err)
 	}
 	_ = hippoSentenceScraper
 	_ = yourDictionarySentenceScraper
@@ -64,16 +66,24 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 		openaiScraper,
 	}
 
+	googleTextToSpeechClient, err := google.NewTextToSpeechClient(ctx, cfg.Google)
+	if err != nil {
+		return nil, fmt.Errorf("new google text-to-speech client: %w", err)
+	}
+
+	textToSpeechRepo := speech.NewRepo(googleTextToSpeechClient)
+
 	service, err := core.NewService(
 		cardRepo,
 		userSessionRepo,
 		scrapers,
 		algo.NewAnki(time.Now),
 		dictionaryRepo,
+		textToSpeechRepo,
 		core.DefaultValidator,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create core service: %w", err)
+		return nil, fmt.Errorf("create core service: %w", err)
 	}
 
 	// temporary unused clients

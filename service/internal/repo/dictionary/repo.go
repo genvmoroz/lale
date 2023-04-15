@@ -47,7 +47,7 @@ func NewRepo(cfg Config) (*Repo, error) {
 		}
 	}()
 	if err != nil {
-		return nil, fmt.Errorf("failed to reach host [%s]: %w", cfg.Host, err)
+		return nil, fmt.Errorf("reach host [%s]: %w", cfg.Host, err)
 	}
 
 	return &Repo{client: httpClient, host: cfg.Host}, nil
@@ -73,7 +73,7 @@ func (c *Repo) GetWordInformation(language lang.Language, word string) (entity.W
 		}
 	}()
 	if err != nil {
-		return entity.WordInformation{}, fmt.Errorf("failed to GET request: %w", err)
+		return entity.WordInformation{}, fmt.Errorf("execute request: %w", err)
 	}
 
 	if resp.StatusCode() != http.StatusOK {
@@ -82,7 +82,7 @@ func (c *Repo) GetWordInformation(language lang.Language, word string) (entity.W
 
 	var words []entity.WordInformation
 	if err = json.NewDecoder(bytes.NewReader(resp.Body())).Decode(&words); err != nil {
-		return entity.WordInformation{}, fmt.Errorf("failed to decode response body: %w", err)
+		return entity.WordInformation{}, fmt.Errorf("decode response body: %w", err)
 	}
 
 	if len(words) == 0 {

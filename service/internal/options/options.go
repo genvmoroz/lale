@@ -2,11 +2,8 @@ package options
 
 import (
 	"fmt"
+	"github.com/genvmoroz/lale/service/pkg/speech/google"
 	"time"
-
-	"github.com/go-playground/validator/v10"
-	"github.com/kelseyhightower/envconfig"
-	"github.com/sirupsen/logrus"
 
 	"github.com/genvmoroz/lale/service/internal/repo/card"
 	"github.com/genvmoroz/lale/service/internal/repo/redis"
@@ -14,6 +11,9 @@ import (
 	"github.com/genvmoroz/lale/service/pkg/sentence/hippo"
 	"github.com/genvmoroz/lale/service/pkg/sentence/openai"
 	"github.com/genvmoroz/lale/service/pkg/sentence/yourdictionary"
+	"github.com/go-playground/validator/v10"
+	"github.com/kelseyhightower/envconfig"
+	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -28,6 +28,7 @@ type (
 		Session                session.Config
 		CardRepo               card.Config
 		Dictionary             DictionaryConfig
+		Google                 google.Config
 	}
 
 	DictionaryConfig struct {
@@ -44,7 +45,7 @@ func FromEnv() (Config, error) {
 
 	err := envconfig.Process(appPrefix, &config)
 	if err != nil {
-		return config, fmt.Errorf("failed to load config: %w", err)
+		return config, fmt.Errorf("load config: %w", err)
 	}
 
 	return config, nil
