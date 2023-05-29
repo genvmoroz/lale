@@ -3,6 +3,7 @@ package dictionary
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -10,7 +11,7 @@ import (
 
 	clientHTTP "github.com/genvmoroz/client-go/http"
 	"github.com/genvmoroz/lale/service/pkg/entity"
-	"github.com/genvmoroz/lale/service/pkg/lang"
+	"golang.org/x/text/language"
 )
 
 type (
@@ -55,8 +56,10 @@ func NewRepo(cfg Config) (*Repo, error) {
 
 const path = "api/v2/entries"
 
-func (c *Repo) GetWordInformation(language lang.Language, word string) (entity.WordInformation, error) {
-	target := fmt.Sprintf("%s/%s/%s/%s", c.host, path, language, url.PathEscape(word))
+var ErrNotFound = errors.New("not found")
+
+func (c *Repo) GetWordInformation(word string, lang language.Tag) (entity.WordInformation, error) {
+	target := fmt.Sprintf("%s/%s/%s/%s", c.host, path, lang.String(), url.PathEscape(word))
 
 	req := clientHTTP.AcquireRequest()
 	defer clientHTTP.ReleaseRequest(req)
@@ -76,17 +79,24 @@ func (c *Repo) GetWordInformation(language lang.Language, word string) (entity.W
 		return entity.WordInformation{}, fmt.Errorf("execute request: %w", err)
 	}
 
-	if resp.StatusCode() != http.StatusOK {
+	switch resp.StatusCode() {
+	case http.StatusOK:
+		return c.decodeResponseBody(resp.Body())
+	case http.StatusNotFound:
+		return entity.WordInformation{}, ErrNotFound
+	default:
 		return entity.WordInformation{}, fmt.Errorf("status code: %d", resp.StatusCode())
 	}
+}
 
+func (c *Repo) decodeResponseBody(body []byte) (entity.WordInformation, error) {
 	var words []entity.WordInformation
-	if err = json.NewDecoder(bytes.NewReader(resp.Body())).Decode(&words); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(body)).Decode(&words); err != nil {
 		return entity.WordInformation{}, fmt.Errorf("decode response body: %w", err)
 	}
 
 	if len(words) == 0 {
-		return entity.WordInformation{}, fmt.Errorf("word [%s] not found in dictionary", word)
+		return entity.WordInformation{}, ErrNotFound
 	}
 
 	return words[0], nil

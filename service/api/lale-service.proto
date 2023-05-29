@@ -6,6 +6,7 @@ import "google/protobuf/timestamp.proto";
 
 service LaleService {
   rpc InspectCard(InspectCardRequest) returns (InspectCardResponse);
+  rpc PromptCard(PromptCardRequest) returns (PromptCardResponse);
   rpc CreateCard(CreateCardRequest) returns (CreateCardResponse);
   rpc GetAllCards(GetCardsRequest) returns (GetCardsResponse);
   rpc UpdateCardPerformance(UpdateCardPerformanceRequest) returns (UpdateCardPerformanceResponse);
@@ -86,6 +87,16 @@ message InspectCardRequest {
 
 message InspectCardResponse {
   Card card = 1;
+}
+
+message PromptCardRequest {
+  string userID = 1;
+  string language = 2;
+  string word = 3;
+}
+
+message PromptCardResponse {
+  repeated string words = 1;
 }
 
 message GetCardsResponse {

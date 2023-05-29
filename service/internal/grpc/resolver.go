@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/service/internal/core"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Resolver struct {
@@ -42,6 +41,21 @@ func (r *Resolver) InspectCard(ctx context.Context, req *api.InspectCardRequest)
 		r.transformer.ToCoreInspectCardRequest,
 		r.service.InspectCard,
 		r.transformer.ToAPIInspectCardResponse,
+	)
+}
+
+func (r *Resolver) PromptCard(ctx context.Context, req *api.PromptCardRequest) (*api.PromptCardResponse, error) {
+	return genericResolver[
+		api.PromptCardRequest,
+		core.PromptCardRequest,
+		api.PromptCardResponse,
+		core.PromptCardResponse,
+	](
+		ctx,
+		req,
+		r.transformer.ToCorePromptCardRequest,
+		r.service.PromptCard,
+		r.transformer.ToAPIPromptCardResponse,
 	)
 }
 
@@ -85,7 +99,9 @@ func (r *Resolver) UpdateCardPerformance(ctx context.Context, req *api.UpdateCar
 	](
 		ctx,
 		req,
-		r.transformer.ToCoreUpdateCardPerformanceRequest,
+		func(req *api.UpdateCardPerformanceRequest) (core.UpdateCardPerformanceRequest, error) {
+			return r.transformer.ToCoreUpdateCardPerformanceRequest(req), nil
+		},
 		r.service.UpdateCardPerformance,
 		r.transformer.ToAPIUpdateCardPerformanceResponse,
 	)
@@ -115,7 +131,9 @@ func (r *Resolver) GetSentences(ctx context.Context, req *api.GetSentencesReques
 	](
 		ctx,
 		req,
-		r.transformer.ToCoreGetSentencesRequest,
+		func(req *api.GetSentencesRequest) (core.GetSentencesRequest, error) {
+			return r.transformer.ToCoreGetSentencesRequest(req), nil
+		},
 		r.service.GetSentences,
 		r.transformer.ToAPIGetSentencesResponse,
 	)
@@ -130,7 +148,9 @@ func (r *Resolver) DeleteCard(ctx context.Context, req *api.DeleteCardRequest) (
 	](
 		ctx,
 		req,
-		r.transformer.ToCoreDeleteCardRequest,
+		func(req *api.DeleteCardRequest) (core.DeleteCardRequest, error) {
+			return r.transformer.ToCoreDeleteCardRequest(req), nil
+		},
 		r.service.DeleteCard,
 		r.transformer.ToAPIDeleteCardResponse,
 	)
@@ -144,7 +164,7 @@ func genericResolver[
 ](
 	ctx context.Context,
 	req *APIRequest,
-	toCoreReq func(*APIRequest) CoreRequest,
+	toCoreReq func(*APIRequest) (CoreRequest, error),
 	serviceCall func(context.Context, CoreRequest) (CoreResponse, error),
 	toAPIResp func(CoreResponse) *APIResponse) (*APIResponse, error) {
 
@@ -152,7 +172,10 @@ func genericResolver[
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("nullable request (%T)", req))
 	}
 
-	coreReq := toCoreReq(req)
+	coreReq, err := toCoreReq(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to transform request: %w", err)
+	}
 
 	coreResp, err := serviceCall(ctx, coreReq)
 	if err != nil {

@@ -2,7 +2,6 @@ package google
 
 import (
 	"cloud.google.com/go/texttospeech/apiv1/texttospeechpb"
-	"github.com/genvmoroz/lale/service/pkg/lang"
 	"github.com/genvmoroz/lale/service/pkg/speech"
 )
 
@@ -105,21 +104,9 @@ func toVoice(v *texttospeechpb.Voice) *speech.Voice {
 	}
 
 	return &speech.Voice{
-		Languages:              toLanguages(v.GetLanguageCodes()),
+		Languages:              v.GetLanguageCodes(),
 		Name:                   v.GetName(),
 		Gender:                 toDomainGender(v.GetSsmlGender()),
 		NaturalSampleRateHertz: v.GetNaturalSampleRateHertz(),
 	}
-}
-
-func toLanguages(languages []string) []lang.Language {
-	if languages == nil {
-		return nil
-	}
-
-	res := make([]lang.Language, len(languages))
-	for i, l := range languages {
-		res[i] = lang.Language(l)
-	}
-	return res
 }

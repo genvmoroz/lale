@@ -24,6 +24,20 @@ func (Validator) ValidateInspectCardRequest(req InspectCardRequest) error {
 	return nil
 }
 
+func (Validator) ValidatePromptCardRequest(req PromptCardRequest) error {
+	if len(strings.TrimSpace(req.UserID)) == 0 {
+		return errors.New("userID is required")
+	}
+	if len(strings.TrimSpace(req.Language.String())) == 0 {
+		return errors.New("language is required")
+	}
+	if len(strings.TrimSpace(req.Word)) == 0 {
+		return errors.New("word is required")
+	}
+
+	return nil
+}
+
 func (Validator) ValidateCreateCardRequest(req CreateCardRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")

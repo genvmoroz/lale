@@ -8,7 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/genvmoroz/lale/service/pkg/entity"
-	"github.com/genvmoroz/lale/service/test/comparator"
+	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -127,8 +127,14 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 		return nil
 	}
 
-	if comparator.ContainDuplicatesByID(cards) {
-		return errors.New("provided cards contain duplicates")
+	dupls := lo.FindDuplicatesBy[entity.Card, string](
+		cards,
+		func(item entity.Card) string {
+			return item.ID
+		},
+	)
+	if len(dupls) != 0 {
+		return fmt.Errorf("provided cards contain duplicates: %v", dupls)
 	}
 
 	client, err := mongo.Connect(ctx, r.opts)

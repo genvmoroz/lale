@@ -7,10 +7,10 @@ import (
 
 	api "cloud.google.com/go/texttospeech/apiv1"
 	"cloud.google.com/go/texttospeech/apiv1/texttospeechpb"
-	"github.com/genvmoroz/lale/service/pkg/lang"
 	"github.com/genvmoroz/lale/service/pkg/logger"
 	"github.com/genvmoroz/lale/service/pkg/speech"
 	"github.com/googleapis/gax-go/v2"
+	"golang.org/x/text/language"
 	"google.golang.org/api/option"
 )
 
@@ -63,11 +63,11 @@ func (c *TextToSpeechClient) ToSpeech(ctx context.Context, req speech.ToSpeechRe
 	return audio, nil
 }
 
-func (c *TextToSpeechClient) ListVoices(ctx context.Context, language lang.Language) (speech.ListVoicesResponse, error) {
+func (c *TextToSpeechClient) ListVoices(ctx context.Context, lang language.Tag) (speech.ListVoicesResponse, error) {
 	var dResp *speech.ListVoicesResponse
 
 	act := func(ctx context.Context, conn Connection) error {
-		req := &texttospeechpb.ListVoicesRequest{LanguageCode: language.String()}
+		req := &texttospeechpb.ListVoicesRequest{LanguageCode: lang.String()}
 		resp, err := conn.ListVoices(ctx, req)
 		if err != nil {
 			return fmt.Errorf("list voices call: %w", err)

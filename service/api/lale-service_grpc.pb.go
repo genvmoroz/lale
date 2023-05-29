@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	LaleService_InspectCard_FullMethodName           = "/api.LaleService/InspectCard"
+	LaleService_PromptCard_FullMethodName            = "/api.LaleService/PromptCard"
 	LaleService_CreateCard_FullMethodName            = "/api.LaleService/CreateCard"
 	LaleService_GetAllCards_FullMethodName           = "/api.LaleService/GetAllCards"
 	LaleService_UpdateCardPerformance_FullMethodName = "/api.LaleService/UpdateCardPerformance"
@@ -33,6 +34,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LaleServiceClient interface {
 	InspectCard(ctx context.Context, in *InspectCardRequest, opts ...grpc.CallOption) (*InspectCardResponse, error)
+	PromptCard(ctx context.Context, in *PromptCardRequest, opts ...grpc.CallOption) (*PromptCardResponse, error)
 	CreateCard(ctx context.Context, in *CreateCardRequest, opts ...grpc.CallOption) (*CreateCardResponse, error)
 	GetAllCards(ctx context.Context, in *GetCardsRequest, opts ...grpc.CallOption) (*GetCardsResponse, error)
 	UpdateCardPerformance(ctx context.Context, in *UpdateCardPerformanceRequest, opts ...grpc.CallOption) (*UpdateCardPerformanceResponse, error)
@@ -52,6 +54,15 @@ func NewLaleServiceClient(cc grpc.ClientConnInterface) LaleServiceClient {
 func (c *laleServiceClient) InspectCard(ctx context.Context, in *InspectCardRequest, opts ...grpc.CallOption) (*InspectCardResponse, error) {
 	out := new(InspectCardResponse)
 	err := c.cc.Invoke(ctx, LaleService_InspectCard_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *laleServiceClient) PromptCard(ctx context.Context, in *PromptCardRequest, opts ...grpc.CallOption) (*PromptCardResponse, error) {
+	out := new(PromptCardResponse)
+	err := c.cc.Invoke(ctx, LaleService_PromptCard_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +128,7 @@ func (c *laleServiceClient) DeleteCard(ctx context.Context, in *DeleteCardReques
 // for forward compatibility
 type LaleServiceServer interface {
 	InspectCard(context.Context, *InspectCardRequest) (*InspectCardResponse, error)
+	PromptCard(context.Context, *PromptCardRequest) (*PromptCardResponse, error)
 	CreateCard(context.Context, *CreateCardRequest) (*CreateCardResponse, error)
 	GetAllCards(context.Context, *GetCardsRequest) (*GetCardsResponse, error)
 	UpdateCardPerformance(context.Context, *UpdateCardPerformanceRequest) (*UpdateCardPerformanceResponse, error)
@@ -132,6 +144,9 @@ type UnimplementedLaleServiceServer struct {
 
 func (UnimplementedLaleServiceServer) InspectCard(context.Context, *InspectCardRequest) (*InspectCardResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InspectCard not implemented")
+}
+func (UnimplementedLaleServiceServer) PromptCard(context.Context, *PromptCardRequest) (*PromptCardResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PromptCard not implemented")
 }
 func (UnimplementedLaleServiceServer) CreateCard(context.Context, *CreateCardRequest) (*CreateCardResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCard not implemented")
@@ -178,6 +193,24 @@ func _LaleService_InspectCard_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(LaleServiceServer).InspectCard(ctx, req.(*InspectCardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _LaleService_PromptCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PromptCardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LaleServiceServer).PromptCard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LaleService_PromptCard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LaleServiceServer).PromptCard(ctx, req.(*PromptCardRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -300,6 +333,10 @@ var LaleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "InspectCard",
 			Handler:    _LaleService_InspectCard_Handler,
+		},
+		{
+			MethodName: "PromptCard",
+			Handler:    _LaleService_PromptCard_Handler,
 		},
 		{
 			MethodName: "CreateCard",

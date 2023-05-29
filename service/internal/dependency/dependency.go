@@ -3,8 +3,6 @@ package dependency
 import (
 	"context"
 	"fmt"
-	"github.com/genvmoroz/lale/service/pkg/speech"
-	"github.com/genvmoroz/lale/service/pkg/speech/google"
 	"time"
 
 	"github.com/genvmoroz/lale/service/internal/algo"
@@ -14,9 +12,9 @@ import (
 	"github.com/genvmoroz/lale/service/internal/repo/dictionary"
 	"github.com/genvmoroz/lale/service/internal/repo/redis"
 	"github.com/genvmoroz/lale/service/internal/repo/session"
-	"github.com/genvmoroz/lale/service/pkg/sentence/hippo"
-	"github.com/genvmoroz/lale/service/pkg/sentence/openai"
-	"github.com/genvmoroz/lale/service/pkg/sentence/yourdictionary"
+	"github.com/genvmoroz/lale/service/pkg/openai"
+	"github.com/genvmoroz/lale/service/pkg/speech"
+	"github.com/genvmoroz/lale/service/pkg/speech/google"
 )
 
 type Dependency struct {
@@ -24,19 +22,9 @@ type Dependency struct {
 }
 
 func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error) {
-	yourDictionarySentenceScraper, err := yourdictionary.NewSentenceScraper(cfg.YourDictionarySentence)
+	openaiHelper, err := openai.NewHelper(cfg.OpenAI) // TODO: move it to internal/repo package and name it AI
 	if err != nil {
-		return nil, fmt.Errorf("create yourdictionary sentence scraper: %w", err)
-	}
-
-	hippoSentenceScraper, err := hippo.NewSentenceScraper(cfg.HippoSentence)
-	if err != nil {
-		return nil, fmt.Errorf("create hippo sentence scraper: %w", err)
-	}
-
-	openaiScraper, err := openai.NewSentenceScraper(cfg.OpenAISentence)
-	if err != nil {
-		return nil, fmt.Errorf("create openai sentence scraper: %w", err)
+		return nil, fmt.Errorf("create openai helper: %w", err)
 	}
 
 	redisRepo := redis.NewRepo(cfg.Redis)
@@ -59,12 +47,6 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 	if err != nil {
 		return nil, fmt.Errorf("create dictionary client: %w", err)
 	}
-	_ = hippoSentenceScraper
-	_ = yourDictionarySentenceScraper
-
-	scrapers := []core.SentenceScraper{
-		openaiScraper,
-	}
 
 	googleTextToSpeechClient, err := google.NewTextToSpeechClient(ctx, cfg.Google)
 	if err != nil {
@@ -76,7 +58,7 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 	service, err := core.NewService(
 		cardRepo,
 		userSessionRepo,
-		scrapers,
+		openaiHelper,
 		algo.NewAnki(time.Now),
 		dictionaryRepo,
 		textToSpeechRepo,

@@ -2,14 +2,16 @@ package speech
 
 import (
 	"context"
+	"errors"
+	"strings"
 
-	"github.com/genvmoroz/lale/service/pkg/lang"
+	"golang.org/x/text/language"
 )
 
 type (
 	Client interface {
 		ToSpeech(ctx context.Context, req ToSpeechRequest) ([]byte, error)
-		ListVoices(ctx context.Context, language lang.Language) (ListVoicesResponse, error)
+		ListVoices(ctx context.Context, lang language.Tag) (ListVoicesResponse, error)
 	}
 
 	Repo struct {
@@ -22,9 +24,12 @@ func NewRepo(client Client) *Repo {
 }
 
 func (r *Repo) ToSpeech(ctx context.Context, req ToSpeechRequest) ([]byte, error) {
+	if len(strings.TrimSpace(req.Input)) == 0 {
+		return nil, errors.New("input is empty")
+	}
 	return r.client.ToSpeech(ctx, req)
 }
 
-func (r *Repo) ListVoices(ctx context.Context, language lang.Language) (ListVoicesResponse, error) {
-	return r.client.ListVoices(ctx, language)
+func (r *Repo) ListVoices(ctx context.Context, lang language.Tag) (ListVoicesResponse, error) {
+	return r.client.ListVoices(ctx, lang)
 }

@@ -1,6 +1,8 @@
 package speech
 
-import "github.com/genvmoroz/lale/service/pkg/lang"
+import (
+	"golang.org/x/text/language"
+)
 
 type (
 	ToSpeechRequest struct {
@@ -10,7 +12,7 @@ type (
 	}
 
 	VoiceSelectionParams struct {
-		Language             lang.Language
+		Language             language.Tag
 		Name                 string
 		PreferredVoiceGender VoiceGender
 	}
@@ -29,7 +31,7 @@ type (
 	}
 
 	Voice struct {
-		Languages              []lang.Language
+		Languages              []string
 		Name                   string
 		Gender                 VoiceGender
 		NaturalSampleRateHertz int32

@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"google.golang.org/protobuf/types/known/timestamppb"
-
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/service/internal/core"
 	"github.com/genvmoroz/lale/service/pkg/entity"
-	"github.com/genvmoroz/lale/service/pkg/lang"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/text/language"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func TestAPICard(t *testing.T) {
@@ -25,10 +25,12 @@ func TestAPICard(t *testing.T) {
 			name: "with ID",
 			arg: entity.Card{
 				ID:          "someID",
+				Language:    language.English,
 				NextDueDate: time.Date(2022, 2, 24, 0, 0, 0, 0, time.UTC),
 			},
 			want: &api.Card{
 				Id:          "someID",
+				Language:    language.English.String(),
 				NextDueDate: timestamppb.New(time.Date(2022, 2, 24, 0, 0, 0, 0, time.UTC)),
 			},
 		},
@@ -36,17 +38,19 @@ func TestAPICard(t *testing.T) {
 			name: "with UserID",
 			arg: entity.Card{
 				UserID:      "someUserID",
+				Language:    language.English,
 				NextDueDate: time.Date(2022, 2, 24, 1, 0, 0, 0, time.UTC),
 			},
 			want: &api.Card{
 				UserID:      "someUserID",
+				Language:    language.English.String(),
 				NextDueDate: timestamppb.New(time.Date(2022, 2, 24, 1, 0, 0, 0, time.UTC)),
 			},
 		},
 		{
 			name: "with Language",
 			arg: entity.Card{
-				Language:    lang.Language("uk"),
+				Language:    language.Ukrainian,
 				NextDueDate: time.Date(2022, 2, 24, 2, 0, 0, 0, time.UTC),
 			},
 			want: &api.Card{
@@ -57,13 +61,15 @@ func TestAPICard(t *testing.T) {
 		{
 			name: "with Word",
 			arg: entity.Card{
+				Language: language.English,
 				WordInformationList: []entity.WordInformation{
-					{Word: "word1", Translation: &entity.Translation{Language: "en", Translations: []string{"Translation1"}}, Origin: "origin1"},
-					{Word: "word2", Translation: &entity.Translation{Language: "en", Translations: []string{"Translation2"}}, Origin: "origin2"},
+					{Word: "word1", Translation: &entity.Translation{Language: language.English, Translations: []string{"Translation1"}}, Origin: "origin1"},
+					{Word: "word2", Translation: &entity.Translation{Language: language.English, Translations: []string{"Translation2"}}, Origin: "origin2"},
 				},
 				NextDueDate: time.Date(2022, 2, 24, 2, 0, 0, 0, time.UTC),
 			},
 			want: &api.Card{
+				Language: language.English.String(),
 				WordInformationList: []*api.WordInformation{
 					{Word: "word1", Translation: &api.Translation{Language: "en", Translations: []string{"Translation1"}}, Origin: "origin1"},
 					{Word: "word2", Translation: &api.Translation{Language: "en", Translations: []string{"Translation2"}}, Origin: "origin2"},
@@ -107,7 +113,7 @@ func TestAPIWordInformation(t *testing.T) {
 			name: "with Translation",
 			arg: entity.WordInformation{
 				Translation: &entity.Translation{
-					Language:     "en",
+					Language:     language.English,
 					Translations: []string{"Translation1", "Translation2"},
 				},
 			},
@@ -202,22 +208,73 @@ func TestAPIWordInformation(t *testing.T) {
 func TestTransformerToCoreInspectCardRequest(t *testing.T) {
 	t.Parallel()
 
-	inReq := &api.InspectCardRequest{
-		UserID:   "UserID",
-		Language: lang.English.String(),
-		Word:     "Word",
+	type (
+		input struct {
+			req *api.InspectCardRequest
+		}
+		want struct {
+			req         core.InspectCardRequest
+			err         bool
+			errContains string
+		}
+	)
+	testcases := []struct {
+		name  string
+		input input
+		want  want
+	}{
+		{
+			name: "positive case",
+			input: input{
+				req: &api.InspectCardRequest{
+					UserID:   "UserID",
+					Language: language.English.String(),
+					Word:     "Word",
+				},
+			},
+			want: want{
+				req: core.InspectCardRequest{
+					UserID:   "UserID",
+					Language: language.English,
+					Word:     "Word",
+				},
+			},
+		},
+		{
+			name:  "nil req",
+			input: input{req: nil},
+			want:  want{req: core.InspectCardRequest{}},
+		},
+		{
+			name: "invalid language",
+			input: input{
+				req: &api.InspectCardRequest{
+					UserID:   "UserID",
+					Language: "invalid",
+					Word:     "Word",
+				},
+			},
+			want: want{
+				err:         true,
+				errContains: "invalid language (invalid)",
+			},
+		},
 	}
 
-	expReq := core.InspectCardRequest{
-		UserID:   "UserID",
-		Language: lang.English,
-		Word:     "Word",
-	}
+	for _, tt := range testcases {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	tr := DefaultTransformer
+			tr := DefaultTransformer
+			got, err := tr.ToCoreInspectCardRequest(tt.input.req)
 
-	if got := tr.ToCoreInspectCardRequest(inReq); !reflect.DeepEqual(got, expReq) {
-		t.Fatalf("ToCoreInspectCardRequest() = %v, want %v", got, expReq)
+			require.Equal(t, tt.want.err, err != nil)
+			if tt.want.err {
+				require.ErrorContains(t, err, tt.want.errContains)
+			}
+			require.Equal(t, tt.want.req, got)
+		})
 	}
 }
 
@@ -230,12 +287,12 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 		Card: entity.Card{
 			ID:       "ID",
 			UserID:   "UserID",
-			Language: lang.English,
+			Language: language.English,
 			WordInformationList: []entity.WordInformation{
 				{
 					Word: "Word_1",
 					Translation: &entity.Translation{
-						Language:     lang.English,
+						Language:     language.English,
 						Translations: []string{"Translation_1", "Translation_11"},
 					},
 					Origin: "Origin_1",
@@ -283,7 +340,7 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 				{
 					Word: "Word_2",
 					Translation: &entity.Translation{
-						Language:     lang.English,
+						Language:     language.English,
 						Translations: []string{"Translation_2", "Translation_21"},
 					},
 					Origin: "Origin_2",
@@ -338,12 +395,12 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 		Card: &api.Card{
 			Id:       "ID",
 			UserID:   "UserID",
-			Language: lang.English.String(),
+			Language: language.English.String(),
 			WordInformationList: []*api.WordInformation{
 				{
 					Word: "Word_1",
 					Translation: &api.Translation{
-						Language:     lang.English.String(),
+						Language:     language.English.String(),
 						Translations: []string{"Translation_1", "Translation_11"},
 					},
 					Origin: "Origin_1",
@@ -391,7 +448,7 @@ func TestTransformerToAPIInspectCardResponse(t *testing.T) {
 				{
 					Word: "Word_2",
 					Translation: &api.Translation{
-						Language:     lang.English.String(),
+						Language:     language.English.String(),
 						Translations: []string{"Translation_2", "Translation_21"},
 					},
 					Origin: "Origin_2",
@@ -453,8 +510,14 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 	t.Parallel()
 
 	type (
-		input struct{ req *api.CreateCardRequest }
-		want  struct{ req core.CreateCardRequest }
+		input struct {
+			req *api.CreateCardRequest
+		}
+		want struct {
+			req         core.CreateCardRequest
+			err         bool
+			errContains string
+		}
 	)
 	testcases := map[string]struct {
 		input input
@@ -464,12 +527,12 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 			input: input{
 				req: &api.CreateCardRequest{
 					UserID:   "UserID",
-					Language: lang.English.String(),
+					Language: language.English.String(),
 					WordInformationList: []*api.WordInformation{
 						{
 							Word: "Word_1",
 							Translation: &api.Translation{
-								Language:     lang.Ukrainian.String(),
+								Language:     language.Ukrainian.String(),
 								Translations: []string{"Translations_11", "Translations_12"},
 							},
 							Origin: "Origin_1",
@@ -518,7 +581,7 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 						{
 							Word: "Word_2",
 							Translation: &api.Translation{
-								Language:     lang.Ukrainian.String(),
+								Language:     language.Ukrainian.String(),
 								Translations: []string{"Translations_21", "Translations_22"},
 							},
 							Origin: "Origin_2",
@@ -570,12 +633,12 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 			want: want{
 				req: core.CreateCardRequest{
 					UserID:   "UserID",
-					Language: lang.English,
+					Language: language.English,
 					WordInformationList: []entity.WordInformation{
 						{
 							Word: "Word_1",
 							Translation: &entity.Translation{
-								Language:     lang.Ukrainian,
+								Language:     language.Ukrainian,
 								Translations: []string{"Translations_11", "Translations_12"},
 							},
 							Origin: "Origin_1",
@@ -623,7 +686,7 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 						{
 							Word: "Word_2",
 							Translation: &entity.Translation{
-								Language:     lang.Ukrainian,
+								Language:     language.Ukrainian,
 								Translations: []string{"Translations_21", "Translations_22"},
 							},
 							Origin: "Origin_2",
@@ -677,14 +740,14 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 			input: input{
 				req: &api.CreateCardRequest{
 					UserID:   "UserID",
-					Language: lang.English.String(),
+					Language: language.English.String(),
 					Params:   &api.CreateCardParameters{EnrichWordInformationFromDictionary: true},
 				},
 			},
 			want: want{
 				req: core.CreateCardRequest{
 					UserID:   "UserID",
-					Language: lang.English,
+					Language: language.English,
 					Params:   core.CreateCardParameters{EnrichWordInformationFromDictionary: true},
 				},
 			},
@@ -693,26 +756,64 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 			input: input{
 				req: &api.CreateCardRequest{
 					UserID:   "UserID",
-					Language: lang.English.String(),
+					Language: language.English.String(),
 				},
 			},
 			want: want{
 				req: core.CreateCardRequest{
 					UserID:   "UserID",
-					Language: lang.English,
+					Language: language.English,
 					Params:   core.CreateCardParameters{EnrichWordInformationFromDictionary: false},
 				},
 			},
 		},
+		"invalid language": {
+			input: input{
+				req: &api.CreateCardRequest{
+					UserID:   "UserID",
+					Language: "invalid",
+				},
+			},
+			want: want{
+				err:         true,
+				errContains: "invalid language (invalid)",
+			},
+		},
+		"invalid language in word list": {
+			input: input{
+				req: &api.CreateCardRequest{
+					UserID:   "UserID",
+					Language: language.English.String(),
+					WordInformationList: []*api.WordInformation{
+						{
+							Word: "Word",
+							Translation: &api.Translation{
+								Language: "invalid",
+							},
+						},
+					},
+				},
+			},
+			want: want{
+				err:         true,
+				errContains: "invalid language (invalid)",
+			},
+		},
 	}
-	for name, testcase := range testcases {
+	for name, tt := range testcases {
 		name := name
-		testcase := testcase
+		tt := tt
 
 		t.Run(name, func(t *testing.T) {
-			if got := DefaultTransformer.ToCoreCreateCardRequest(testcase.input.req); !reflect.DeepEqual(got, testcase.want.req) {
-				t.Fatalf("ToCoreCreateCardRequest() = %v, want %v", got, testcase.want.req)
+			t.Parallel()
+
+			got, err := DefaultTransformer.ToCoreCreateCardRequest(tt.input.req)
+
+			require.Equal(t, tt.want.err, err != nil)
+			if tt.want.err {
+				require.ErrorContains(t, err, tt.want.errContains)
 			}
+			require.Equal(t, tt.want.req, got)
 		})
 	}
 }
@@ -724,12 +825,12 @@ func TestTransformerToAPICreateCardResponse(t *testing.T) {
 		Card: entity.Card{
 			ID:       "ID_1",
 			UserID:   "UserID_1",
-			Language: lang.English,
+			Language: language.English,
 			WordInformationList: []entity.WordInformation{
 				{
 					Word: "Word_11",
 					Translation: &entity.Translation{
-						Language:     lang.Ukrainian,
+						Language:     language.Ukrainian,
 						Translations: []string{"Translation_11", "Translation_12"},
 					},
 					Origin: "Origin_1",
@@ -784,12 +885,12 @@ func TestTransformerToAPICreateCardResponse(t *testing.T) {
 		Card: &api.Card{
 			Id:       "ID_1",
 			UserID:   "UserID_1",
-			Language: lang.English.String(),
+			Language: language.English.String(),
 			WordInformationList: []*api.WordInformation{
 				{
 					Word: "Word_11",
 					Translation: &api.Translation{
-						Language:     lang.Ukrainian.String(),
+						Language:     language.Ukrainian.String(),
 						Translations: []string{"Translation_11", "Translation_12"},
 					},
 					Origin: "Origin_1",
@@ -849,8 +950,14 @@ func TestTransformerToCoreGetCardsRequest(t *testing.T) {
 	t.Parallel()
 
 	type (
-		input struct{ req *api.GetCardsRequest }
-		want  struct{ req core.GetCardsRequest }
+		input struct {
+			req *api.GetCardsRequest
+		}
+		want struct {
+			req         core.GetCardsRequest
+			err         bool
+			errContains string
+		}
 	)
 	testcases := map[string]struct {
 		input input
@@ -860,13 +967,13 @@ func TestTransformerToCoreGetCardsRequest(t *testing.T) {
 			input: input{
 				req: &api.GetCardsRequest{
 					UserID:   "UserID",
-					Language: lang.English.String(),
+					Language: language.English.String(),
 				},
 			},
 			want: want{
 				req: core.GetCardsRequest{
 					UserID:   "UserID",
-					Language: lang.English,
+					Language: language.English,
 				},
 			},
 		},
@@ -874,15 +981,31 @@ func TestTransformerToCoreGetCardsRequest(t *testing.T) {
 			input: input{req: nil},
 			want:  want{req: core.GetCardsRequest{}},
 		},
+		"invalid language": {
+			input: input{req: &api.GetCardsRequest{
+				UserID:   "UserID",
+				Language: "invalid",
+			}},
+			want: want{
+				err:         true,
+				errContains: "invalid language (invalid)",
+			},
+		},
 	}
-	for name, testcase := range testcases {
+	for name, tt := range testcases {
 		name := name
-		testcase := testcase
+		tt := tt
 
 		t.Run(name, func(t *testing.T) {
-			if got := DefaultTransformer.ToCoreGetCardsRequest(testcase.input.req); !reflect.DeepEqual(got, testcase.want.req) {
-				t.Errorf("ToCoreGetCardsRequest() = %v, want %v", got, testcase.want.req)
+			t.Parallel()
+
+			got, err := DefaultTransformer.ToCoreGetCardsRequest(tt.input.req)
+
+			require.Equal(t, tt.want.err, err != nil)
+			if tt.want.err {
+				require.ErrorContains(t, err, tt.want.errContains)
 			}
+			require.Equal(t, tt.want.req, got)
 		})
 	}
 }
@@ -902,17 +1025,17 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 			input: input{
 				resp: core.GetCardsResponse{
 					UserID:   "UserID",
-					Language: lang.English,
+					Language: language.English,
 					Cards: []entity.Card{
 						{
 							ID:       "ID_1",
 							UserID:   "UserID_1",
-							Language: lang.English,
+							Language: language.English,
 							WordInformationList: []entity.WordInformation{
 								{
 									Word: "Word_11",
 									Translation: &entity.Translation{
-										Language:     lang.Ukrainian,
+										Language:     language.Ukrainian,
 										Translations: []string{"Translation_11", "Translation_12"},
 									},
 									Origin: "Origin_1",
@@ -964,12 +1087,12 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 						{
 							ID:       "ID_2",
 							UserID:   "UserID_2",
-							Language: lang.Ukrainian,
+							Language: language.Ukrainian,
 							WordInformationList: []entity.WordInformation{
 								{
 									Word: "Word_21",
 									Translation: &entity.Translation{
-										Language:     lang.Ukrainian,
+										Language:     language.Ukrainian,
 										Translations: []string{"Translation_21", "Translation_22"},
 									},
 									Origin: "Origin_2",
@@ -1024,17 +1147,17 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 			want: want{
 				resp: &api.GetCardsResponse{
 					UserID:   "UserID",
-					Language: lang.English.String(),
+					Language: language.English.String(),
 					Cards: []*api.Card{
 						{
 							Id:       "ID_1",
 							UserID:   "UserID_1",
-							Language: lang.English.String(),
+							Language: language.English.String(),
 							WordInformationList: []*api.WordInformation{
 								{
 									Word: "Word_11",
 									Translation: &api.Translation{
-										Language:     lang.Ukrainian.String(),
+										Language:     language.Ukrainian.String(),
 										Translations: []string{"Translation_11", "Translation_12"},
 									},
 									Origin: "Origin_1",
@@ -1086,12 +1209,12 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 						{
 							Id:       "ID_2",
 							UserID:   "UserID_2",
-							Language: lang.Ukrainian.String(),
+							Language: language.Ukrainian.String(),
 							WordInformationList: []*api.WordInformation{
 								{
 									Word: "Word_21",
 									Translation: &api.Translation{
-										Language:     lang.Ukrainian.String(),
+										Language:     language.Ukrainian.String(),
 										Translations: []string{"Translation_21", "Translation_22"},
 									},
 									Origin: "Origin_2",
@@ -1148,13 +1271,13 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 			input: input{
 				resp: core.GetCardsResponse{
 					UserID:   "UserID",
-					Language: lang.English,
+					Language: language.English,
 				},
 			},
 			want: want{
 				resp: &api.GetCardsResponse{
 					UserID:   "UserID",
-					Language: lang.English.String(),
+					Language: language.English.String(),
 				},
 			},
 		},
@@ -1263,8 +1386,14 @@ func TestTransformerToCoreGetCardsForReviewRequest(t *testing.T) {
 	t.Parallel()
 
 	type (
-		input struct{ req *api.GetCardsForReviewRequest }
-		want  struct{ req core.GetCardsForReviewRequest }
+		input struct {
+			req *api.GetCardsForReviewRequest
+		}
+		want struct {
+			req         core.GetCardsForReviewRequest
+			err         bool
+			errContains string
+		}
 	)
 	testcases := map[string]struct {
 		input input
@@ -1278,25 +1407,43 @@ func TestTransformerToCoreGetCardsForReviewRequest(t *testing.T) {
 			input: input{
 				req: &api.GetCardsForReviewRequest{
 					UserID:   "UserID",
-					Language: lang.English.String(),
+					Language: language.English.String(),
 				},
 			},
 			want: want{
 				req: core.GetCardsForReviewRequest{
 					UserID:   "UserID",
-					Language: lang.English,
+					Language: language.English,
 				},
 			},
 		},
+		"invalid language": {
+			input: input{
+				req: &api.GetCardsForReviewRequest{
+					UserID:   "UserID",
+					Language: "invalid",
+				},
+			},
+			want: want{
+				err:         true,
+				errContains: "invalid language (invalid)",
+			},
+		},
 	}
-	for name, testcase := range testcases {
+	for name, tt := range testcases {
 		name := name
-		testcase := testcase
+		tt := tt
 
 		t.Run(name, func(t *testing.T) {
-			if got := DefaultTransformer.ToCoreGetCardsForReviewRequest(testcase.input.req); !reflect.DeepEqual(got, testcase.want.req) {
-				t.Fatalf("ToCoreGetCardsForReviewRequest() = %v, want %v", got, testcase.want.req)
+			t.Parallel()
+
+			got, err := DefaultTransformer.ToCoreGetCardsForReviewRequest(tt.input.req)
+
+			require.Equal(t, tt.want.err, err != nil)
+			if tt.want.err {
+				require.ErrorContains(t, err, tt.want.errContains)
 			}
+			require.Equal(t, tt.want.req, got)
 		})
 	}
 }
@@ -1350,12 +1497,12 @@ func TestTransformerToAPIDeleteCardResponse(t *testing.T) {
 					Card: entity.Card{
 						ID:       "ID_1",
 						UserID:   "UserID_1",
-						Language: lang.English,
+						Language: language.English,
 						WordInformationList: []entity.WordInformation{
 							{
 								Word: "Word_11",
 								Translation: &entity.Translation{
-									Language:     lang.Ukrainian,
+									Language:     language.Ukrainian,
 									Translations: []string{"Translation_11", "Translation_12"},
 								},
 								Origin: "Origin_1",
@@ -1412,12 +1559,12 @@ func TestTransformerToAPIDeleteCardResponse(t *testing.T) {
 					Card: &api.Card{
 						Id:       "ID_1",
 						UserID:   "UserID_1",
-						Language: lang.English.String(),
+						Language: language.English.String(),
 						WordInformationList: []*api.WordInformation{
 							{
 								Word: "Word_11",
 								Translation: &api.Translation{
-									Language:     lang.Ukrainian.String(),
+									Language:     language.Ukrainian.String(),
 									Translations: []string{"Translation_11", "Translation_12"},
 								},
 								Origin: "Origin_1",
@@ -1478,6 +1625,54 @@ func TestTransformerToAPIDeleteCardResponse(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			if got := DefaultTransformer.ToAPIDeleteCardResponse(testcase.input.resp); !reflect.DeepEqual(got, testcase.want.resp) {
 				t.Fatalf("ToAPIDeleteCardResponse() = %v, want %v", got, testcase.want.resp)
+			}
+		})
+	}
+}
+
+func Test_transformer_ToCorePromptCardRequest(t *testing.T) {
+	type args struct {
+		req *api.PromptCardRequest
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    core.PromptCardRequest
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tr := transformer{}
+			got, err := tr.ToCorePromptCardRequest(tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ToCorePromptCardRequest() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ToCorePromptCardRequest() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_transformer_ToAPIPromptCardResponse(t *testing.T) {
+	type args struct {
+		resp core.PromptCardResponse
+	}
+	tests := []struct {
+		name string
+		args args
+		want *api.PromptCardResponse
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tr := transformer{}
+			if got := tr.ToAPIPromptCardResponse(tt.args.resp); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ToAPIPromptCardResponse() = %v, want %v", got, tt.want)
 			}
 		})
 	}

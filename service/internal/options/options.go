@@ -2,15 +2,13 @@ package options
 
 import (
 	"fmt"
-	"github.com/genvmoroz/lale/service/pkg/speech/google"
 	"time"
 
 	"github.com/genvmoroz/lale/service/internal/repo/card"
 	"github.com/genvmoroz/lale/service/internal/repo/redis"
 	"github.com/genvmoroz/lale/service/internal/repo/session"
-	"github.com/genvmoroz/lale/service/pkg/sentence/hippo"
-	"github.com/genvmoroz/lale/service/pkg/sentence/openai"
-	"github.com/genvmoroz/lale/service/pkg/sentence/yourdictionary"
+	"github.com/genvmoroz/lale/service/pkg/openai"
+	"github.com/genvmoroz/lale/service/pkg/speech/google"
 	"github.com/go-playground/validator/v10"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
@@ -21,14 +19,12 @@ type (
 		GRPCPort int          `envconfig:"APP_GRPC_PORT" required:"true"`
 		LogLevel logrus.Level `envconfig:"APP_LOG_LEVEL" required:"true"`
 
-		Redis                  redis.Config
-		YourDictionarySentence yourdictionary.Config
-		HippoSentence          hippo.Config
-		OpenAISentence         openai.Config
-		Session                session.Config
-		CardRepo               card.Config
-		Dictionary             DictionaryConfig
-		Google                 google.Config
+		Redis      redis.Config
+		OpenAI     openai.Config
+		Session    session.Config
+		CardRepo   card.Config
+		Dictionary DictionaryConfig
+		Google     google.Config
 	}
 
 	DictionaryConfig struct {

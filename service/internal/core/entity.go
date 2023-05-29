@@ -1,21 +1,31 @@
 package core
 
 import (
+	"golang.org/x/text/language"
 	"time"
 
 	"github.com/genvmoroz/lale/service/pkg/entity"
-	"github.com/genvmoroz/lale/service/pkg/lang"
 )
 
 type (
 	InspectCardRequest struct {
 		UserID   string
-		Language lang.Language
+		Language language.Tag
 		Word     string
 	}
 
 	InspectCardResponse struct {
 		Card entity.Card
+	}
+
+	PromptCardRequest struct {
+		UserID   string
+		Language language.Tag
+		Word     string
+	}
+
+	PromptCardResponse struct {
+		Words []string
 	}
 
 	CreateCardParameters struct {
@@ -24,7 +34,7 @@ type (
 
 	CreateCardRequest struct {
 		UserID              string
-		Language            lang.Language
+		Language            language.Tag
 		WordInformationList []entity.WordInformation
 		Params              CreateCardParameters
 	}
@@ -44,17 +54,17 @@ type (
 
 	GetCardsForReviewRequest struct {
 		UserID   string
-		Language lang.Language
+		Language language.Tag
 	}
 
 	GetCardsRequest struct {
 		UserID   string
-		Language lang.Language
+		Language language.Tag
 	}
 
 	GetCardsResponse struct {
 		UserID   string
-		Language lang.Language
+		Language language.Tag
 		Cards    []entity.Card
 	}
 

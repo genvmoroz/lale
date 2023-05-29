@@ -4,17 +4,16 @@ import (
 	"errors"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/genvmoroz/lale/service/pkg/auxiliary"
-	"github.com/genvmoroz/lale/service/pkg/lang"
+	"github.com/google/uuid"
+	"golang.org/x/text/language"
 )
 
 type (
 	Card struct {
 		ID       string
 		UserID   string
-		Language lang.Language
+		Language language.Tag
 
 		WordInformationList []WordInformation `yaml:"WordInformationList,omitempty"`
 
@@ -32,8 +31,8 @@ type (
 	}
 
 	Translation struct {
-		Language     lang.Language `yaml:"Language,omitempty"`
-		Translations []string      `yaml:"Translations,omitempty"`
+		Language     language.Tag `yaml:"Language,omitempty"`
+		Translations []string     `yaml:"Translations,omitempty"`
 	}
 
 	Phonetic struct {

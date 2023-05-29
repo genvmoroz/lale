@@ -9,15 +9,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/service/pkg/entity"
-	"github.com/genvmoroz/lale/service/pkg/lang"
 	"github.com/genvmoroz/lale/service/test/client"
-	"github.com/genvmoroz/lale/service/test/comparator"
 	"github.com/genvmoroz/lale/service/test/options"
+	"golang.org/x/text/language"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -34,7 +32,7 @@ func main() {
 		log.Fatalf("new user: %s", err.Error())
 	}
 
-	user.InspectCards(ctx, status.Error(codes.NotFound, "no card found"), false, nil)
+	user.InspectCards(ctx, status.Error(codes.NotFound, "no card found"))
 
 	log.Println("testing finished")
 }
@@ -46,26 +44,21 @@ type User struct {
 }
 
 type WordPack struct {
-	words    []entity.WordInformation
-	language lang.Language
+	words []entity.WordInformation
+	lang  language.Tag
 }
 
-func (u *User) InspectCards(ctx context.Context, expErr error, skipComparison bool, expCard *entity.Card) {
+func (u *User) InspectCards(ctx context.Context, expErr error) {
 	for _, pack := range u.words {
 		for _, word := range pack.words {
 			req := &api.InspectCardRequest{
 				UserID:   u.id,
-				Language: string(pack.language),
+				Language: pack.lang.String(),
 				Word:     word.Word,
 			}
-			card, err := u.cli.InspectCard(ctx, req)
+			_, err := u.cli.MustDo().InspectCard(ctx, req)
 			if err != nil && !errors.Is(expErr, err) {
 				log.Fatalf("unexpected error: %s", err.Error())
-			}
-			if !skipComparison {
-				if !comparator.NewGRPCComparator().CompareCard(expCard, card.GetCard()) {
-					log.Fatalf("values are not equal")
-				}
 			}
 		}
 	}
@@ -83,40 +76,40 @@ func NewUser(ctx context.Context, cfg client.Config, count int) (User, error) {
 		words: []WordPack{
 			{
 				words: []entity.WordInformation{
-					{Word: "anticipation", Translation: &entity.Translation{Language: "uk", Translations: []string{"очікування"}}},
-					{Word: "anticipate", Translation: &entity.Translation{Language: "uk", Translations: []string{"передбачити", "очікувати", "передчувати"}}},
-					{Word: "anticipated", Translation: &entity.Translation{Language: "uk", Translations: []string{"очікуваний"}}},
+					{Word: "anticipation", Translation: &entity.Translation{Language: language.Ukrainian, Translations: []string{"очікування"}}},
+					{Word: "anticipate", Translation: &entity.Translation{Language: language.Ukrainian, Translations: []string{"передбачити", "очікувати", "передчувати"}}},
+					{Word: "anticipated", Translation: &entity.Translation{Language: language.Ukrainian, Translations: []string{"очікуваний"}}},
 				},
-				language: "en",
+				lang: language.English,
 			},
 			{
 				words: []entity.WordInformation{
-					{Word: "stir", Translation: &entity.Translation{Language: "uk", Translations: []string{"перемішати", "замішувати", "ворушіння", "метушня", "розмішування"}}},
+					{Word: "stir", Translation: &entity.Translation{Language: language.Ukrainian, Translations: []string{"перемішати", "замішувати", "ворушіння", "метушня", "розмішування"}}},
 				},
-				language: "en",
+				lang: language.English,
 			},
 			{
 				words: []entity.WordInformation{
-					{Word: "spread", Translation: &entity.Translation{Language: "uk", Translations: []string{"поширювати", "поширення", "розкидати", "поширюватися"}}},
+					{Word: "spread", Translation: &entity.Translation{Language: language.Ukrainian, Translations: []string{"поширювати", "поширення", "розкидати", "поширюватися"}}},
 				},
-				language: "en",
+				lang: language.English,
 			},
 			{
 				words: []entity.WordInformation{
-					{Word: "restrict", Translation: &entity.Translation{Language: "uk", Translations: []string{"обмеження", "обмежуватися", "засекречувати", "забороняти", "тримати в певних межах"}}},
-					{Word: "restrictor", Translation: &entity.Translation{Language: "uk", Translations: []string{"обмежувач"}}},
-					{Word: "restricted", Translation: &entity.Translation{Language: "uk", Translations: []string{"обмежений", "для службового користування"}}},
-					{Word: "restrictively", Translation: &entity.Translation{Language: "uk", Translations: []string{"обмежено"}}},
+					{Word: "restrict", Translation: &entity.Translation{Language: language.Ukrainian, Translations: []string{"обмеження", "обмежуватися", "засекречувати", "забороняти", "тримати в певних межах"}}},
+					{Word: "restrictor", Translation: &entity.Translation{Language: language.Ukrainian, Translations: []string{"обмежувач"}}},
+					{Word: "restricted", Translation: &entity.Translation{Language: language.Ukrainian, Translations: []string{"обмежений", "для службового користування"}}},
+					{Word: "restrictively", Translation: &entity.Translation{Language: language.Ukrainian, Translations: []string{"обмежено"}}},
 				},
-				language: "en",
+				lang: language.English,
 			},
 			{
 				words: []entity.WordInformation{
-					{Word: "object", Translation: &entity.Translation{Language: "uk", Translations: []string{"предмет", "об'єкт", "безглузда річ", "висловлювати несхвалення", "заперечувати", "протестувати"}}},
-					{Word: "objective", Translation: &entity.Translation{Language: "uk", Translations: []string{"об'єктивний", "предметний", "дійсний", "мета"}}},
-					{Word: "objectively", Translation: &entity.Translation{Language: "uk", Translations: []string{"об'єктивно", "неупереджено", "реально"}}},
+					{Word: "object", Translation: &entity.Translation{Language: language.Ukrainian, Translations: []string{"предмет", "об'єкт", "безглузда річ", "висловлювати несхвалення", "заперечувати", "протестувати"}}},
+					{Word: "objective", Translation: &entity.Translation{Language: language.Ukrainian, Translations: []string{"об'єктивний", "предметний", "дійсний", "мета"}}},
+					{Word: "objectively", Translation: &entity.Translation{Language: language.Ukrainian, Translations: []string{"об'єктивно", "неупереджено", "реально"}}},
 				},
-				language: "en",
+				lang: language.English,
 			},
 		},
 	}, nil

@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/genvmoroz/lale/service/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/genvmoroz/lale/service/api"
 )
 
 type (
@@ -38,33 +37,13 @@ func NewClient(ctx context.Context, cfg Config) (*Client, error) {
 		return nil, fmt.Errorf("grpc: dial error: %w", err)
 	}
 
-	return &Client{
-		conn: api.NewLaleServiceClient(conn),
-	}, nil
+	return &Client{conn: api.NewLaleServiceClient(conn)}, nil
 }
 
-func (c *Client) InspectCard(ctx context.Context, in *api.InspectCardRequest) (*api.InspectCardResponse, error) {
-	return c.conn.InspectCard(ctx, in)
-}
+func (c *Client) MustDo() api.LaleServiceClient {
+	if c == nil || c.conn == nil {
+		panic("nil grpc client")
+	}
 
-func (c *Client) CreateCard(ctx context.Context, in *api.CreateCardRequest) (*api.CreateCardResponse, error) {
-	return c.conn.CreateCard(ctx, in)
-}
-
-func (c *Client) GetAllCards(ctx context.Context, in *api.GetCardsRequest) (*api.GetCardsResponse, error) {
-	return c.conn.GetAllCards(ctx, in)
-}
-
-func (c *Client) UpdateCardPerformance(ctx context.Context, in *api.UpdateCardPerformanceRequest) (*api.UpdateCardPerformanceResponse, error) {
-	return c.conn.UpdateCardPerformance(ctx, in)
-
-}
-
-func (c *Client) GetCardsToReview(ctx context.Context, in *api.GetCardsForReviewRequest) (*api.GetCardsResponse, error) {
-	return c.conn.GetCardsToReview(ctx, in)
-
-}
-
-func (c *Client) DeleteCard(ctx context.Context, in *api.DeleteCardRequest) (*api.DeleteCardResponse, error) {
-	return c.conn.DeleteCard(ctx, in)
+	return c.conn
 }

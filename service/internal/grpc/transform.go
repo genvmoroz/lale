@@ -1,25 +1,28 @@
 package grpc
 
 import (
-	"google.golang.org/protobuf/types/known/timestamppb"
+	"fmt"
 
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/service/internal/core"
 	"github.com/genvmoroz/lale/service/pkg/entity"
-	"github.com/genvmoroz/lale/service/pkg/lang"
+	"golang.org/x/text/language"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type (
 	Transformer interface {
-		ToCoreInspectCardRequest(req *api.InspectCardRequest) core.InspectCardRequest
+		ToCoreInspectCardRequest(req *api.InspectCardRequest) (core.InspectCardRequest, error)
 		ToAPIInspectCardResponse(resp core.InspectCardResponse) *api.InspectCardResponse
-		ToCoreCreateCardRequest(req *api.CreateCardRequest) core.CreateCardRequest
+		ToCorePromptCardRequest(req *api.PromptCardRequest) (core.PromptCardRequest, error)
+		ToAPIPromptCardResponse(resp core.PromptCardResponse) *api.PromptCardResponse
+		ToCoreCreateCardRequest(req *api.CreateCardRequest) (core.CreateCardRequest, error)
 		ToAPICreateCardResponse(resp core.CreateCardResponse) *api.CreateCardResponse
-		ToCoreGetCardsRequest(req *api.GetCardsRequest) core.GetCardsRequest
+		ToCoreGetCardsRequest(req *api.GetCardsRequest) (core.GetCardsRequest, error)
 		ToAPIGetCardsResponse(resp core.GetCardsResponse) *api.GetCardsResponse
 		ToCoreUpdateCardPerformanceRequest(req *api.UpdateCardPerformanceRequest) core.UpdateCardPerformanceRequest
 		ToAPIUpdateCardPerformanceResponse(resp core.UpdateCardPerformanceResponse) *api.UpdateCardPerformanceResponse
-		ToCoreGetCardsForReviewRequest(req *api.GetCardsForReviewRequest) core.GetCardsForReviewRequest
+		ToCoreGetCardsForReviewRequest(req *api.GetCardsForReviewRequest) (core.GetCardsForReviewRequest, error)
 		ToCoreDeleteCardRequest(req *api.DeleteCardRequest) core.DeleteCardRequest
 		ToAPIDeleteCardResponse(resp core.DeleteCardResponse) *api.DeleteCardResponse
 		ToCoreGetSentencesRequest(req *api.GetSentencesRequest) core.GetSentencesRequest
@@ -31,12 +34,21 @@ type (
 
 var DefaultTransformer Transformer = transformer{}
 
-func (transformer) ToCoreInspectCardRequest(req *api.InspectCardRequest) core.InspectCardRequest {
+func (transformer) ToCoreInspectCardRequest(req *api.InspectCardRequest) (core.InspectCardRequest, error) {
+	if req == nil {
+		return core.InspectCardRequest{}, nil
+	}
+
+	lang, err := language.Parse(req.GetLanguage())
+	if err != nil {
+		return core.InspectCardRequest{}, fmt.Errorf("invalid language (%s): %w", req.GetLanguage(), err)
+	}
+
 	return core.InspectCardRequest{
 		UserID:   req.GetUserID(),
-		Language: lang.Language(req.GetLanguage()),
+		Language: lang,
 		Word:     req.GetWord(),
-	}
+	}, nil
 }
 
 func (t transformer) ToAPIInspectCardResponse(resp core.InspectCardResponse) *api.InspectCardResponse {
@@ -45,13 +57,48 @@ func (t transformer) ToAPIInspectCardResponse(resp core.InspectCardResponse) *ap
 	}
 }
 
-func (t transformer) ToCoreCreateCardRequest(req *api.CreateCardRequest) core.CreateCardRequest {
+func (transformer) ToCorePromptCardRequest(req *api.PromptCardRequest) (core.PromptCardRequest, error) {
+	if req == nil {
+		return core.PromptCardRequest{}, nil
+	}
+
+	lang, err := language.Parse(req.GetLanguage())
+	if err != nil {
+		return core.PromptCardRequest{}, fmt.Errorf("invalid language (%s): %w", req.GetLanguage(), err)
+	}
+
+	return core.PromptCardRequest{
+		UserID:   req.GetUserID(),
+		Language: lang,
+		Word:     req.GetWord(),
+	}, err
+}
+
+func (transformer) ToAPIPromptCardResponse(resp core.PromptCardResponse) *api.PromptCardResponse {
+	return &api.PromptCardResponse{Words: resp.Words}
+}
+
+func (t transformer) ToCoreCreateCardRequest(req *api.CreateCardRequest) (core.CreateCardRequest, error) {
+	if req == nil {
+		return core.CreateCardRequest{}, nil
+	}
+
+	lang, err := language.Parse(req.GetLanguage())
+	if err != nil {
+		return core.CreateCardRequest{}, fmt.Errorf("invalid language (%s): %w", req.GetLanguage(), err)
+	}
+
+	words, err := t.toCoreWordInformationList(req.GetWordInformationList())
+	if err != nil {
+		return core.CreateCardRequest{}, err
+	}
+
 	return core.CreateCardRequest{
 		UserID:              req.GetUserID(),
-		Language:            lang.Language(req.GetLanguage()),
-		WordInformationList: t.toCoreWordInformationList(req.GetWordInformationList()),
+		Language:            lang,
+		WordInformationList: words,
 		Params:              t.toCoreCreateCardParameters(req.GetParams()),
-	}
+	}, nil
 }
 
 func (t transformer) ToAPICreateCardResponse(resp core.CreateCardResponse) *api.CreateCardResponse {
@@ -60,11 +107,19 @@ func (t transformer) ToAPICreateCardResponse(resp core.CreateCardResponse) *api.
 	}
 }
 
-func (transformer) ToCoreGetCardsRequest(req *api.GetCardsRequest) core.GetCardsRequest {
+func (transformer) ToCoreGetCardsRequest(req *api.GetCardsRequest) (core.GetCardsRequest, error) {
+	if req == nil {
+		return core.GetCardsRequest{}, nil
+	}
+
+	lang, err := language.Parse(req.GetLanguage())
+	if err != nil {
+		return core.GetCardsRequest{}, fmt.Errorf("invalid language (%s): %w", req.GetLanguage(), err)
+	}
 	return core.GetCardsRequest{
 		UserID:   req.GetUserID(),
-		Language: lang.Language(req.GetLanguage()),
-	}
+		Language: lang,
+	}, nil
 }
 
 func (t transformer) ToAPIGetCardsResponse(resp core.GetCardsResponse) *api.GetCardsResponse {
@@ -89,11 +144,19 @@ func (transformer) ToAPIUpdateCardPerformanceResponse(resp core.UpdateCardPerfor
 	}
 }
 
-func (transformer) ToCoreGetCardsForReviewRequest(req *api.GetCardsForReviewRequest) core.GetCardsForReviewRequest {
+func (transformer) ToCoreGetCardsForReviewRequest(req *api.GetCardsForReviewRequest) (core.GetCardsForReviewRequest, error) {
+	if req == nil {
+		return core.GetCardsForReviewRequest{}, nil
+	}
+
+	lang, err := language.Parse(req.GetLanguage())
+	if err != nil {
+		return core.GetCardsForReviewRequest{}, fmt.Errorf("invalid language (%s): %w", req.GetLanguage(), err)
+	}
 	return core.GetCardsForReviewRequest{
 		UserID:   req.GetUserID(),
-		Language: lang.Language(req.GetLanguage()),
-	}
+		Language: lang,
+	}, nil
 }
 
 func (transformer) ToCoreDeleteCardRequest(req *api.DeleteCardRequest) core.DeleteCardRequest {
@@ -138,7 +201,7 @@ func (t transformer) toAPICard(card entity.Card) *api.Card {
 	return &api.Card{
 		Id:                  card.ID,
 		UserID:              card.UserID,
-		Language:            string(card.Language),
+		Language:            card.Language.String(),
 		WordInformationList: t.toAPIWordInformationList(card.WordInformationList),
 		CorrectAnswers:      card.CorrectAnswers,
 		NextDueDate:         timestamppb.New(card.NextDueDate),
@@ -164,31 +227,40 @@ func (t transformer) toAPIWordInformationList(list []entity.WordInformation) []*
 	return res
 }
 
-func (t transformer) toCoreWordInformationList(list []*api.WordInformation) []entity.WordInformation {
+func (t transformer) toCoreWordInformationList(list []*api.WordInformation) ([]entity.WordInformation, error) {
 	if len(list) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	res := make([]entity.WordInformation, 0, len(list))
 	for _, w := range list {
 		if w != nil {
-			res = append(res, t.toCoreWordInformation(w))
+			aw, err := t.toCoreWordInformation(w)
+			if err != nil {
+				return nil, fmt.Errorf("transform word (%s): %w", w.Word, err)
+			}
+			res = append(res, aw)
 
 		}
 	}
 
-	return res
+	return res, nil
 }
 
-func (transformer) toCoreTranslation(t *api.Translation) *entity.Translation {
+func (transformer) toCoreTranslation(t *api.Translation) (*entity.Translation, error) {
 	if t == nil {
-		return nil
+		return nil, nil
+	}
+
+	lang, err := language.Parse(t.GetLanguage())
+	if err != nil {
+		return nil, fmt.Errorf("invalid language (%s): %w", t.GetLanguage(), err)
 	}
 
 	return &entity.Translation{
-		Language:     lang.Language(t.Language),
+		Language:     lang,
 		Translations: t.Translations,
-	}
+	}, nil
 }
 
 func (t transformer) toAPIWordInformation(info entity.WordInformation) *api.WordInformation {
@@ -202,15 +274,19 @@ func (t transformer) toAPIWordInformation(info entity.WordInformation) *api.Word
 	}
 }
 
-func (t transformer) toCoreWordInformation(info *api.WordInformation) entity.WordInformation {
+func (t transformer) toCoreWordInformation(info *api.WordInformation) (entity.WordInformation, error) {
+	translation, err := t.toCoreTranslation(info.Translation)
+	if err != nil {
+		return entity.WordInformation{}, fmt.Errorf("translation: %w", err)
+	}
 	return entity.WordInformation{
 		Word:        info.Word,
-		Translation: t.toCoreTranslation(info.Translation),
+		Translation: translation,
 		Origin:      info.Origin,
 		Phonetics:   t.toCorePhonetics(info.Phonetics),
 		Meanings:    t.toCoreMeanings(info.Meanings),
 		Audio:       info.GetAudio(),
-	}
+	}, nil
 }
 
 func (t transformer) toAPIMeanings(meanings []entity.Meaning) []*api.Meaning {
@@ -341,5 +417,8 @@ func (transformer) toAPITranslation(p *entity.Translation) *api.Translation {
 	if p == nil {
 		return nil
 	}
-	return &api.Translation{Language: string(p.Language), Translations: p.Translations}
+	return &api.Translation{
+		Language:     p.Language.String(),
+		Translations: p.Translations,
+	}
 }

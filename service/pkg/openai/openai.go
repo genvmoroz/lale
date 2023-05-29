@@ -11,9 +11,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/valyala/fasthttp"
-
 	"github.com/genvmoroz/client-go/http"
+	"github.com/valyala/fasthttp"
+	"golang.org/x/text/language"
 )
 
 type (
@@ -31,7 +31,7 @@ type (
 	}
 )
 
-func NewSentenceScraper(cfg Config) (*Scraper, error) {
+func NewHelper(cfg Config) (*Scraper, error) {
 	_, err := url.ParseRequestURI(cfg.Addr)
 	if err != nil {
 		return nil, fmt.Errorf("parse addr [%s]: %w", cfg.Addr, err)
@@ -66,16 +66,27 @@ const (
 	Advanced
 )
 
-func (s *Scraper) ScrapeSentences(word string, size uint32) ([]string, error) {
-	var result []string
-	sent, err := s.sentences(word, size, Intermediate)
-	if err != nil {
-		return nil, err
-	}
-	return append(result, sent...), nil
+func (s *Scraper) GenerateSentences(word string, size uint32) ([]string, error) {
+	return s.generateSentencesWithRetry(word, size, Intermediate, 4)
 }
 
-func (s *Scraper) sentences(word string, size uint32, complexity EnglishComplexity) ([]string, error) {
+func (s *Scraper) generateSentencesWithRetry(word string, size uint32, complexity EnglishComplexity, retries uint) ([]string, error) {
+	var (
+		sents []string
+		err   error
+	)
+	for retry := 0; retry <= int(retries); retry++ {
+		sents, err = s.generateSentences(word, size, complexity)
+		if err == nil {
+			return sents, nil
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	return nil, err
+}
+
+func (s *Scraper) generateSentences(word string, size uint32, complexity EnglishComplexity) ([]string, error) {
 	if !utf8.ValidString(word) {
 		return nil, fmt.Errorf("invalid utf8 string: %s", word)
 	}
@@ -140,6 +151,137 @@ func (s *Scraper) sentences(word string, size uint32, complexity EnglishComplexi
 		}
 	}
 	return sentences, nil
+}
+
+func (s *Scraper) GetFamilyWordsWithTranslation(word string, lang language.Tag) (map[string]string, error) {
+	return s.getFamilyWordsWithTranslationWithRetry(word, lang, 4)
+}
+
+func (s *Scraper) getFamilyWordsWithTranslationWithRetry(word string, lang language.Tag, retries uint) (map[string]string, error) {
+	var (
+		words map[string]string
+		err   error
+	)
+	for retry := 0; retry <= int(retries); retry++ {
+		words, err = s.getFamilyWordsWithTranslation(word, lang)
+		if err == nil {
+			return words, nil
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	return nil, err
+}
+
+func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) (map[string]string, error) {
+	if !utf8.ValidString(word) {
+		return nil, fmt.Errorf("invalid utf8 string: %s", word)
+	}
+	if len(strings.TrimSpace(word)) == 0 {
+		return nil, errors.New("word is blank")
+	}
+
+	req := http.AcquireRequest()
+	defer http.ReleaseRequest(req)
+
+	req.Header.SetRequestURI(s.addr)
+	req.Header.SetMethod(basehttp.MethodPost)
+
+	s.authorizeReq(req)
+
+	base, _ := lang.Base()
+
+	body, err := s.prepareRequestBody(
+		fmt.Sprintf(
+			"Write all words which are in the one family with word \"%s\" and in use pretty often. "+
+				"Include \"%s\" into beginning of this list. After each word write \"-\" and translation in %s language. "+
+				"Write only words in your response.",
+			strings.TrimSpace(word),
+			strings.TrimSpace(word),
+			base.ISO3(),
+		),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("prepare request body: %w", err)
+	}
+
+	req.AppendBody(body)
+
+	resp, err := s.client.Do(req)
+	defer func() {
+		if resp != nil {
+			http.ReleaseResponse(resp)
+		}
+	}()
+	if err != nil {
+		return nil, fmt.Errorf("executing request error: %w", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		return nil, fmt.Errorf("status code: %d", resp.StatusCode())
+	}
+
+	var parsedResponse response
+	if err = json.Unmarshal(resp.Body(), &parsedResponse); err != nil {
+		return nil, fmt.Errorf("parse response body: %w", err)
+	}
+
+	if len(parsedResponse.Choices) == 0 {
+		return nil, errors.New("connection successful but response is empty")
+	}
+
+	words := map[string]string{}
+
+	for _, line := range strings.Split(parsedResponse.Choices[0].Message.Content, "\n") {
+		parts := strings.Split(line, "-")
+		if len(parts) != 2 {
+			continue
+		}
+		words[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+	}
+	return words, nil
+}
+
+func (s *Scraper) foo(v string) error {
+	req := http.AcquireRequest()
+	defer http.ReleaseRequest(req)
+
+	req.Header.SetRequestURI(s.addr)
+	req.Header.SetMethod(basehttp.MethodPost)
+
+	s.authorizeReq(req)
+
+	body, err := s.prepareRequestBody(v)
+	if err != nil {
+		return fmt.Errorf("prepare request body: %w", err)
+	}
+
+	req.AppendBody(body)
+
+	resp, err := s.client.Do(req)
+	defer func() {
+		if resp != nil {
+			http.ReleaseResponse(resp)
+		}
+	}()
+	if err != nil {
+		return fmt.Errorf("executing request error: %w", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		return fmt.Errorf("status code: %d", resp.StatusCode())
+	}
+
+	var parsedResponse response
+	if err = json.Unmarshal(resp.Body(), &parsedResponse); err != nil {
+		return fmt.Errorf("parse response body: %w", err)
+	}
+
+	if len(parsedResponse.Choices) == 0 {
+		return errors.New("connection successful but response is empty")
+	}
+
+	return nil
 }
 
 type (
