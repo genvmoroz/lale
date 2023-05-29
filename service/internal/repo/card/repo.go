@@ -108,13 +108,11 @@ func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Car
 	if err != nil {
 		return nil, fmt.Errorf("find: %w", err)
 	}
+	defer func() {
+		_ = cursor.Close(context.Background())
+	}()
 
-	var cards []entity.Card
-	if err = cursor.All(ctx, &cards); err != nil {
-		return nil, fmt.Errorf("unmarshal: %w", err)
-	}
-
-	return cards, nil
+	return unmarshalCursor(ctx, cursor)
 }
 
 // TODO: implement search card by name on Repo side
@@ -155,7 +153,10 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 		}
 
 		for _, card := range cards {
-			doc := cardToDoc(card)
+			doc, err := cardToDoc(card)
+			if err != nil {
+				return fmt.Errorf("marshal: %w", err)
+			}
 
 			// check card existence
 			filter := bson.M{"id": card.ID}
