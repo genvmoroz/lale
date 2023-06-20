@@ -19,9 +19,10 @@ type (
 	}
 
 	PromptCardRequest struct {
-		UserID   string
-		Language language.Tag
-		Word     string
+		UserID              string
+		Word                string
+		WordLanguage        language.Tag
+		TranslationLanguage language.Tag
 	}
 
 	PromptCardResponse struct {

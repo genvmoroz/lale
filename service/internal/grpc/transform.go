@@ -62,15 +62,19 @@ func (transformer) ToCorePromptCardRequest(req *api.PromptCardRequest) (core.Pro
 		return core.PromptCardRequest{}, nil
 	}
 
-	lang, err := language.Parse(req.GetLanguage())
+	wLang, err := language.Parse(req.GetWordLanguage())
 	if err != nil {
-		return core.PromptCardRequest{}, fmt.Errorf("invalid language (%s): %w", req.GetLanguage(), err)
+		return core.PromptCardRequest{}, fmt.Errorf("invalid language (%s): %w", req.GetWordLanguage(), err)
 	}
-
+	tLang, err := language.Parse(req.GetTranslationLanguage())
+	if err != nil {
+		return core.PromptCardRequest{}, fmt.Errorf("invalid language (%s): %w", req.GetTranslationLanguage(), err)
+	}
 	return core.PromptCardRequest{
-		UserID:   req.GetUserID(),
-		Language: lang,
-		Word:     req.GetWord(),
+		UserID:              req.GetUserID(),
+		Word:                req.GetWord(),
+		WordLanguage:        wLang,
+		TranslationLanguage: tLang,
 	}, err
 }
 

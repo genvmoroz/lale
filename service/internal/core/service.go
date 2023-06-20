@@ -185,10 +185,11 @@ func (s *service) PromptCard(ctx context.Context, req PromptCardRequest) (Prompt
 		logger.FromContext(ctx).
 			WithFields(
 				logrus.Fields{
-					"UserID":   req.UserID,
-					"Language": req.Language.String(),
-					"Word":     req.Word,
-					"Request":  "PromptCard",
+					"UserID":              req.UserID,
+					"WordLanguage":        req.WordLanguage.String(),
+					"TranslationLanguage": req.TranslationLanguage.String(),
+					"Word":                req.Word,
+					"Request":             "PromptCard",
 				},
 			),
 	)
@@ -213,14 +214,14 @@ func (s *service) PromptCard(ctx context.Context, req PromptCardRequest) (Prompt
 
 	logger.FromContext(ctx).
 		Debug("request words from the ai helper")
-	wordsWithTranslationMap, err := s.aiHelper.GetFamilyWordsWithTranslation(req.Word, req.Language)
+	wordsWithTranslationMap, err := s.aiHelper.GetFamilyWordsWithTranslation(req.Word, req.TranslationLanguage)
 	if err != nil {
 		return PromptCardResponse{}, fmt.Errorf("get family words with translation for word (%s): %w", req.Word, err)
 	}
 
 	logger.FromContext(ctx).
 		Debug("filter not found words out")
-	maps.DeleteFunc(wordsWithTranslationMap, s.notFoundInDictionary(req.Language))
+	maps.DeleteFunc(wordsWithTranslationMap, s.notFoundInDictionary(req.WordLanguage))
 
 	wordsWithTranslationSlice := lo.MapToSlice[string, string](
 		wordsWithTranslationMap,

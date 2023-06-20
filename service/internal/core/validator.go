@@ -28,8 +28,11 @@ func (Validator) ValidatePromptCardRequest(req PromptCardRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")
 	}
-	if len(strings.TrimSpace(req.Language.String())) == 0 {
-		return errors.New("language is required")
+	if len(strings.TrimSpace(req.WordLanguage.String())) == 0 {
+		return errors.New("word language is required")
+	}
+	if len(strings.TrimSpace(req.TranslationLanguage.String())) == 0 {
+		return errors.New("translation language is required")
 	}
 	if len(strings.TrimSpace(req.Word)) == 0 {
 		return errors.New("word is required")
