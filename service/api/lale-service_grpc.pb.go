@@ -26,6 +26,7 @@ const (
 	LaleService_UpdateCardPerformance_FullMethodName = "/api.LaleService/UpdateCardPerformance"
 	LaleService_GetCardsToReview_FullMethodName      = "/api.LaleService/GetCardsToReview"
 	LaleService_GetSentences_FullMethodName          = "/api.LaleService/GetSentences"
+	LaleService_GenerateStory_FullMethodName         = "/api.LaleService/GenerateStory"
 	LaleService_DeleteCard_FullMethodName            = "/api.LaleService/DeleteCard"
 )
 
@@ -40,6 +41,7 @@ type LaleServiceClient interface {
 	UpdateCardPerformance(ctx context.Context, in *UpdateCardPerformanceRequest, opts ...grpc.CallOption) (*UpdateCardPerformanceResponse, error)
 	GetCardsToReview(ctx context.Context, in *GetCardsForReviewRequest, opts ...grpc.CallOption) (*GetCardsResponse, error)
 	GetSentences(ctx context.Context, in *GetSentencesRequest, opts ...grpc.CallOption) (*GetSentencesResponse, error)
+	GenerateStory(ctx context.Context, in *GenerateStoryRequest, opts ...grpc.CallOption) (*GenerateStoryResponse, error)
 	DeleteCard(ctx context.Context, in *DeleteCardRequest, opts ...grpc.CallOption) (*DeleteCardResponse, error)
 }
 
@@ -114,6 +116,15 @@ func (c *laleServiceClient) GetSentences(ctx context.Context, in *GetSentencesRe
 	return out, nil
 }
 
+func (c *laleServiceClient) GenerateStory(ctx context.Context, in *GenerateStoryRequest, opts ...grpc.CallOption) (*GenerateStoryResponse, error) {
+	out := new(GenerateStoryResponse)
+	err := c.cc.Invoke(ctx, LaleService_GenerateStory_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *laleServiceClient) DeleteCard(ctx context.Context, in *DeleteCardRequest, opts ...grpc.CallOption) (*DeleteCardResponse, error) {
 	out := new(DeleteCardResponse)
 	err := c.cc.Invoke(ctx, LaleService_DeleteCard_FullMethodName, in, out, opts...)
@@ -134,6 +145,7 @@ type LaleServiceServer interface {
 	UpdateCardPerformance(context.Context, *UpdateCardPerformanceRequest) (*UpdateCardPerformanceResponse, error)
 	GetCardsToReview(context.Context, *GetCardsForReviewRequest) (*GetCardsResponse, error)
 	GetSentences(context.Context, *GetSentencesRequest) (*GetSentencesResponse, error)
+	GenerateStory(context.Context, *GenerateStoryRequest) (*GenerateStoryResponse, error)
 	DeleteCard(context.Context, *DeleteCardRequest) (*DeleteCardResponse, error)
 	mustEmbedUnimplementedLaleServiceServer()
 }
@@ -162,6 +174,9 @@ func (UnimplementedLaleServiceServer) GetCardsToReview(context.Context, *GetCard
 }
 func (UnimplementedLaleServiceServer) GetSentences(context.Context, *GetSentencesRequest) (*GetSentencesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSentences not implemented")
+}
+func (UnimplementedLaleServiceServer) GenerateStory(context.Context, *GenerateStoryRequest) (*GenerateStoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateStory not implemented")
 }
 func (UnimplementedLaleServiceServer) DeleteCard(context.Context, *DeleteCardRequest) (*DeleteCardResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteCard not implemented")
@@ -305,6 +320,24 @@ func _LaleService_GetSentences_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _LaleService_GenerateStory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenerateStoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LaleServiceServer).GenerateStory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: LaleService_GenerateStory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LaleServiceServer).GenerateStory(ctx, req.(*GenerateStoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _LaleService_DeleteCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteCardRequest)
 	if err := dec(in); err != nil {
@@ -357,6 +390,10 @@ var LaleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSentences",
 			Handler:    _LaleService_GetSentences_Handler,
+		},
+		{
+			MethodName: "GenerateStory",
+			Handler:    _LaleService_GenerateStory_Handler,
 		},
 		{
 			MethodName: "DeleteCard",

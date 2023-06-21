@@ -37,6 +37,7 @@ type (
 	AIHelper interface {
 		GenerateSentences(word string, size uint32) ([]string, error)
 		GetFamilyWordsWithTranslation(word string, lang language.Tag) (map[string]string, error)
+		GenStory(words []string, lang language.Tag) (string, error)
 	}
 
 	Dictionary interface {
@@ -55,6 +56,7 @@ type (
 		UpdateCardPerformance(ctx context.Context, req UpdateCardPerformanceRequest) (UpdateCardPerformanceResponse, error)
 		GetCardsToReview(ctx context.Context, req GetCardsForReviewRequest) (GetCardsResponse, error)
 		GetSentences(ctx context.Context, req GetSentencesRequest) (GetSentencesResponse, error)
+		GenerateStory(ctx context.Context, req GenerateStoryRequest) (GenerateStoryResponse, error)
 		DeleteCard(ctx context.Context, req DeleteCardRequest) (DeleteCardResponse, error)
 	}
 
@@ -65,7 +67,8 @@ type (
 		ankiAlgo         AnkiAlgo
 		dictionary       Dictionary
 		textToSpeechRepo TextToSpeechRepo
-		validator        Validator
+
+		validator validator
 	}
 )
 
@@ -75,8 +78,7 @@ func NewService(
 	aiHelper AIHelper,
 	anki AnkiAlgo,
 	dictionary Dictionary,
-	textToSpeechRepo TextToSpeechRepo,
-	validator Validator) (Service, error) {
+	textToSpeechRepo TextToSpeechRepo) (Service, error) {
 	if cardRepo == nil {
 		return nil, errors.New("card repo is required")
 	}
@@ -103,7 +105,7 @@ func NewService(
 		ankiAlgo:         anki,
 		dictionary:       dictionary,
 		textToSpeechRepo: textToSpeechRepo,
-		validator:        validator,
+		validator:        validator{},
 	}, nil
 }
 
@@ -631,6 +633,84 @@ func (s *service) GetSentences(ctx context.Context, req GetSentencesRequest) (Ge
 	}
 
 	return GetSentencesResponse{Sentences: sentences}, nil
+}
+
+func (s *service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (GenerateStoryResponse, error) {
+	if err := s.validator.ValidateGenerateStoryRequest(req); err != nil {
+		return GenerateStoryResponse{}, NewRequestValidationError(err)
+	}
+
+	ctx = logger.ContextWithLogger(ctx,
+		logger.FromContext(ctx).
+			WithFields(
+				logrus.Fields{
+					"UserID":   req.UserID,
+					"Language": req.Language.String(),
+					"Request":  "GenerateStory",
+				},
+			),
+	)
+
+	logger.FromContext(ctx).
+		Debug("create user session")
+	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
+		return GenerateStoryResponse{}, logAndReturnError(
+			ctx,
+			fmt.Sprintf("create user session: %s", err.Error()),
+			map[string]interface{}{"UserID": req.UserID},
+		)
+	}
+	defer func() {
+		logger.FromContext(ctx).
+			Debug("close user session")
+		if closeErr := s.sessionRepo.CloseSession(req.UserID); closeErr != nil {
+			logger.FromContext(ctx).
+				Errorf("close user session: %s", closeErr.Error())
+		}
+	}()
+
+	logger.FromContext(ctx).
+		Debug("get all cards for user")
+	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
+	if err != nil {
+		return GenerateStoryResponse{}, logAndReturnError(
+			ctx,
+			fmt.Sprintf("get cards: %s", err.Error()),
+			map[string]interface{}{"UserID": req.UserID},
+		)
+	}
+
+	logger.FromContext(ctx).
+		Debug("filter cards out by next due date")
+	cardsToReview := make([]entity.Card, 0, len(cards))
+	for _, card := range cards {
+		if strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToReview() {
+			cardsToReview = append(cardsToReview, card)
+		}
+	}
+
+	words := mapCardsToWords(cardsToReview)
+
+	story, err := s.aiHelper.GenStory(lo.Shuffle[string](words), req.Language)
+	if err != nil {
+		return GenerateStoryResponse{}, fmt.Errorf("generate story: %w", err)
+	}
+
+	return GenerateStoryResponse{Story: story}, nil
+}
+
+func mapCardsToWords(cards []entity.Card) []string {
+	return lo.FlatMap[entity.Card, string](
+		cards,
+		func(item entity.Card, _ int) []string {
+			return lo.Map[entity.WordInformation, string](
+				item.WordInformationList,
+				func(item entity.WordInformation, _ int) string {
+					return item.Word
+				},
+			)
+		},
+	)
 }
 
 func (s *service) generateSentences(word string, size uint32) ([]string, error) {

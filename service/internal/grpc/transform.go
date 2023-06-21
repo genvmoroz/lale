@@ -23,10 +23,12 @@ type (
 		ToCoreUpdateCardPerformanceRequest(req *api.UpdateCardPerformanceRequest) core.UpdateCardPerformanceRequest
 		ToAPIUpdateCardPerformanceResponse(resp core.UpdateCardPerformanceResponse) *api.UpdateCardPerformanceResponse
 		ToCoreGetCardsForReviewRequest(req *api.GetCardsForReviewRequest) (core.GetCardsForReviewRequest, error)
-		ToCoreDeleteCardRequest(req *api.DeleteCardRequest) core.DeleteCardRequest
-		ToAPIDeleteCardResponse(resp core.DeleteCardResponse) *api.DeleteCardResponse
 		ToCoreGetSentencesRequest(req *api.GetSentencesRequest) core.GetSentencesRequest
 		ToAPIGetSentencesResponse(resp core.GetSentencesResponse) *api.GetSentencesResponse
+		ToCoreGenerateStoryRequest(req *api.GenerateStoryRequest) (core.GenerateStoryRequest, error)
+		ToAPIGenerateStoryResponse(resp core.GenerateStoryResponse) *api.GenerateStoryResponse
+		ToCoreDeleteCardRequest(req *api.DeleteCardRequest) core.DeleteCardRequest
+		ToAPIDeleteCardResponse(resp core.DeleteCardResponse) *api.DeleteCardResponse
 	}
 
 	transformer struct{}
@@ -186,6 +188,25 @@ func (t transformer) ToCoreGetSentencesRequest(req *api.GetSentencesRequest) cor
 
 func (t transformer) ToAPIGetSentencesResponse(resp core.GetSentencesResponse) *api.GetSentencesResponse {
 	return &api.GetSentencesResponse{Sentences: resp.Sentences}
+}
+
+func (t transformer) ToCoreGenerateStoryRequest(req *api.GenerateStoryRequest) (core.GenerateStoryRequest, error) {
+	if req == nil {
+		return core.GenerateStoryRequest{}, nil
+	}
+
+	lang, err := language.Parse(req.GetLanguage())
+	if err != nil {
+		return core.GenerateStoryRequest{}, fmt.Errorf("invalid language (%s): %w", req.GetLanguage(), err)
+	}
+	return core.GenerateStoryRequest{
+		UserID:   req.GetUserID(),
+		Language: lang,
+	}, nil
+}
+
+func (t transformer) ToAPIGenerateStoryResponse(resp core.GenerateStoryResponse) *api.GenerateStoryResponse {
+	return &api.GenerateStoryResponse{Story: resp.Story}
 }
 
 func (t transformer) toAPICards(cards []entity.Card) []*api.Card {

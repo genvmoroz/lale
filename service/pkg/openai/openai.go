@@ -242,7 +242,75 @@ func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) 
 	return words, nil
 }
 
-func (s *Scraper) foo(v string) error {
+func (s *Scraper) GenStory(words []string, lang language.Tag) (string, error) {
+	return s.genStoryWithRetry(words, lang, 5)
+}
+
+func (s *Scraper) genStoryWithRetry(words []string, lang language.Tag, retries uint32) (string, error) {
+	var (
+		story string
+		err   error
+	)
+	for retry := 0; retry <= int(retries); retry++ {
+		story, err = s.genStory(words, lang)
+		if err == nil {
+			return story, nil
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	return story, err
+}
+
+func (s *Scraper) genStory(words []string, lang language.Tag) (string, error) {
+	if len(words) == 0 {
+		return "", fmt.Errorf("words are missing")
+	}
+
+	req := http.AcquireRequest()
+	defer http.ReleaseRequest(req)
+
+	req.Header.SetRequestURI(s.addr)
+	req.Header.SetMethod(basehttp.MethodPost)
+
+	s.authorizeReq(req)
+
+	base, _ := lang.Base()
+
+	body, err := s.prepareRequestBody(fmt.Sprintf("Generate a story using words %v in language %s.", words, base.ISO3()))
+	if err != nil {
+		return "", fmt.Errorf("prepare request body: %w", err)
+	}
+
+	req.AppendBody(body)
+
+	resp, err := s.client.Do(req)
+	defer func() {
+		if resp != nil {
+			http.ReleaseResponse(resp)
+		}
+	}()
+	if err != nil {
+		return "", fmt.Errorf("executing request error: %w", err)
+	}
+
+	if resp.StatusCode() != 200 {
+		return "", fmt.Errorf("status code: %d", resp.StatusCode())
+	}
+
+	var parsedResponse response
+	if err = json.Unmarshal(resp.Body(), &parsedResponse); err != nil {
+		return "", fmt.Errorf("parse response body: %w", err)
+	}
+
+	if len(parsedResponse.Choices) == 0 {
+		return "", errors.New("connection successful but response is empty")
+	}
+
+	return parsedResponse.Choices[0].Message.Content, nil
+}
+
+func (s *Scraper) foo(v string) error { //nolint:unused
 	req := http.AcquireRequest()
 	defer http.ReleaseRequest(req)
 

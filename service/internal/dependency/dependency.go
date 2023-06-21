@@ -62,7 +62,6 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 		algo.NewAnki(time.Now),
 		dictionaryRepo,
 		textToSpeechRepo,
-		core.DefaultValidator,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create core service: %w", err)

@@ -139,6 +139,21 @@ func (r *Resolver) GetSentences(ctx context.Context, req *api.GetSentencesReques
 	)
 }
 
+func (r *Resolver) GenerateStory(ctx context.Context, req *api.GenerateStoryRequest) (*api.GenerateStoryResponse, error) {
+	return genericResolver[
+		api.GenerateStoryRequest,
+		core.GenerateStoryRequest,
+		api.GenerateStoryResponse,
+		core.GenerateStoryResponse,
+	](
+		ctx,
+		req,
+		r.transformer.ToCoreGenerateStoryRequest,
+		r.service.GenerateStory,
+		r.transformer.ToAPIGenerateStoryResponse,
+	)
+}
+
 func (r *Resolver) DeleteCard(ctx context.Context, req *api.DeleteCardRequest) (*api.DeleteCardResponse, error) {
 	return genericResolver[
 		api.DeleteCardRequest,

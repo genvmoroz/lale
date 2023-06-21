@@ -6,11 +6,9 @@ import (
 	"strings"
 )
 
-type Validator struct{}
+type validator struct{}
 
-var DefaultValidator = Validator{}
-
-func (Validator) ValidateInspectCardRequest(req InspectCardRequest) error {
+func (validator) ValidateInspectCardRequest(req InspectCardRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")
 	}
@@ -24,7 +22,7 @@ func (Validator) ValidateInspectCardRequest(req InspectCardRequest) error {
 	return nil
 }
 
-func (Validator) ValidatePromptCardRequest(req PromptCardRequest) error {
+func (validator) ValidatePromptCardRequest(req PromptCardRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")
 	}
@@ -41,7 +39,7 @@ func (Validator) ValidatePromptCardRequest(req PromptCardRequest) error {
 	return nil
 }
 
-func (Validator) ValidateCreateCardRequest(req CreateCardRequest) error {
+func (validator) ValidateCreateCardRequest(req CreateCardRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")
 	}
@@ -55,7 +53,7 @@ func (Validator) ValidateCreateCardRequest(req CreateCardRequest) error {
 	return nil
 }
 
-func (Validator) ValidateDeleteCardRequest(req DeleteCardRequest) error {
+func (validator) ValidateDeleteCardRequest(req DeleteCardRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")
 	}
@@ -66,7 +64,7 @@ func (Validator) ValidateDeleteCardRequest(req DeleteCardRequest) error {
 	return nil
 }
 
-func (Validator) ValidateGetCardsForReviewRequest(req GetCardsForReviewRequest) error {
+func (validator) ValidateGetCardsForReviewRequest(req GetCardsForReviewRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")
 	}
@@ -77,7 +75,7 @@ func (Validator) ValidateGetCardsForReviewRequest(req GetCardsForReviewRequest) 
 	return nil
 }
 
-func (Validator) ValidateUpdateCardPerformanceRequest(req UpdateCardPerformanceRequest) error {
+func (validator) ValidateUpdateCardPerformanceRequest(req UpdateCardPerformanceRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")
 	}
@@ -91,7 +89,7 @@ func (Validator) ValidateUpdateCardPerformanceRequest(req UpdateCardPerformanceR
 	return nil
 }
 
-func (Validator) ValidateGetCardsRequest(req GetCardsRequest) error {
+func (validator) ValidateGetCardsRequest(req GetCardsRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")
 	}
@@ -99,12 +97,23 @@ func (Validator) ValidateGetCardsRequest(req GetCardsRequest) error {
 	return nil
 }
 
-func (Validator) ValidateGetSentencesRequest(req GetSentencesRequest) error {
+func (validator) ValidateGetSentencesRequest(req GetSentencesRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")
 	}
 	if len(strings.TrimSpace(req.Word)) == 0 {
 		return errors.New("word is required")
+	}
+
+	return nil
+}
+
+func (validator) ValidateGenerateStoryRequest(req GenerateStoryRequest) error {
+	if len(strings.TrimSpace(req.UserID)) == 0 {
+		return errors.New("userID is required")
+	}
+	if len(strings.TrimSpace(req.Language.String())) == 0 {
+		return errors.New("language is required")
 	}
 
 	return nil

@@ -12,6 +12,7 @@ service LaleService {
   rpc UpdateCardPerformance(UpdateCardPerformanceRequest) returns (UpdateCardPerformanceResponse);
   rpc GetCardsToReview(GetCardsForReviewRequest) returns (GetCardsResponse);
   rpc GetSentences(GetSentencesRequest) returns (GetSentencesResponse);
+  rpc GenerateStory(GenerateStoryRequest) returns (GenerateStoryResponse);
   rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
 }
 
@@ -124,6 +125,15 @@ message GetSentencesRequest {
 
 message GetSentencesResponse {
   repeated string sentences = 1;
+}
+
+message GenerateStoryRequest {
+  string userID = 1;
+  string language = 2;
+}
+
+message GenerateStoryResponse {
+  string story = 1;
 }
 
 message DeleteCardRequest {

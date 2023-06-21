@@ -1,10 +1,10 @@
 package core
 
 import (
-	"golang.org/x/text/language"
 	"time"
 
 	"github.com/genvmoroz/lale/service/pkg/entity"
+	"golang.org/x/text/language"
 )
 
 type (
@@ -87,5 +87,14 @@ type (
 
 	GetSentencesResponse struct {
 		Sentences []string
+	}
+
+	GenerateStoryRequest struct {
+		UserID   string
+		Language language.Tag
+	}
+
+	GenerateStoryResponse struct {
+		Story string
 	}
 )
