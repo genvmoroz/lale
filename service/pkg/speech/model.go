@@ -1,9 +1,5 @@
 package speech
 
-import (
-	"golang.org/x/text/language"
-)
-
 type (
 	ToSpeechRequest struct {
 		Input       string
@@ -12,7 +8,7 @@ type (
 	}
 
 	VoiceSelectionParams struct {
-		Language             language.Tag
+		Language             string
 		Name                 string
 		PreferredVoiceGender VoiceGender
 	}

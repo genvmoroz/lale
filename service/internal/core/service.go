@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -157,19 +158,23 @@ func (s *service) InspectCard(ctx context.Context, req InspectCardRequest) (Insp
 		)
 	}
 
-	for _, card := range cards {
-		card := card
+	card, cardFound := lo.Find(cards,
+		func(item entity.Card) bool {
+			_, wordFound := lo.Find(item.WordInformationList,
+				func(item entity.WordInformation) bool {
+					return strings.EqualFold(item.Word, req.Word)
+				},
+			)
+			return wordFound
+		},
+	)
 
-		if strings.EqualFold(card.Language.String(), req.Language.String()) {
-			for _, wordInfo := range card.WordInformationList {
-				if strings.EqualFold(wordInfo.Word, req.Word) {
-					logger.FromContext(ctx).
-						Debug("card found")
-					resp.Card = card
-					return resp, nil
-				}
-			}
-		}
+	if cardFound {
+		logger.FromContext(ctx).
+			Debug("card found")
+
+		resp.Card = card
+		return resp, nil
 	}
 
 	logger.FromContext(ctx).
@@ -384,7 +389,7 @@ func (s *service) textToSpeech(ctx context.Context, lang language.Tag, info *ent
 	req := speech.ToSpeechRequest{
 		Input: info.Word,
 		Voice: speech.VoiceSelectionParams{
-			Language:             lang,
+			Language:             "en-US",
 			Name:                 "en-US-Standard-C",
 			PreferredVoiceGender: speech.Female,
 		},
@@ -392,7 +397,7 @@ func (s *service) textToSpeech(ctx context.Context, lang language.Tag, info *ent
 	}
 	audio, err := s.textToSpeechRepo.ToSpeech(ctx, req)
 	if err != nil {
-		return fmt.Errorf("text to speech: %w", err)
+		return fmt.Errorf("text (%s) to speech: %w", info.Word, err)
 	}
 
 	info.Audio = audio
@@ -682,14 +687,14 @@ func (s *service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (
 
 	logger.FromContext(ctx).
 		Debug("filter cards out by next due date")
-	cardsToReview := make([]entity.Card, 0, len(cards))
+	cardsForStory := make([]entity.Card, 0, len(cards))
 	for _, card := range cards {
-		if strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToReview() {
-			cardsToReview = append(cardsToReview, card)
+		if strings.EqualFold(card.Language.String(), req.Language.String()) && !reflect.DeepEqual(card.NextDueDate, time.Time{}) {
+			cardsForStory = append(cardsForStory, card)
 		}
 	}
 
-	words := mapCardsToWords(cardsToReview)
+	words := mapCardsToWords(cardsForStory)
 
 	story, err := s.aiHelper.GenStory(lo.Shuffle[string](words), req.Language)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/samber/lo"
 	"time"
 )
 
@@ -48,13 +49,11 @@ func NewTask[R any](ctx context.Context, run runFunc[R]) Task[R] {
 }
 
 func (t *task[R]) Get(timeout time.Duration) (R, error) {
-	var empty R
-
 	switch {
 	case t.canceled:
-		return empty, errors.New("task is canceled")
+		return lo.Empty[R](), errors.New("task is canceled")
 	case t.closed:
-		return empty, errors.New("task is completed")
+		return lo.Empty[R](), errors.New("task is completed")
 	}
 
 	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), timeout)
@@ -62,7 +61,7 @@ func (t *task[R]) Get(timeout time.Duration) (R, error) {
 
 	res, err := t.wait(ctxWithTimeout)
 	if err != nil && !errors.As(err, &TaskError{}) {
-		return empty, err
+		return lo.Empty[R](), err
 	}
 
 	t.close()

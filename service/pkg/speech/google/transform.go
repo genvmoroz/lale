@@ -23,7 +23,7 @@ func toSynthesisInput(input string) *texttospeechpb.SynthesisInput {
 
 func toVoiceSelectionParams(params speech.VoiceSelectionParams) *texttospeechpb.VoiceSelectionParams {
 	return &texttospeechpb.VoiceSelectionParams{
-		LanguageCode: params.Language.String(),
+		LanguageCode: params.Language,
 		Name:         params.Name,
 		SsmlGender:   toGender(params.PreferredVoiceGender),
 	}

@@ -34,7 +34,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 	var req *api.GetCardsRequest
 
 	for req == nil {
-		if err := client.SendWithParseMode(chatID, "Send the language. Ex. <code>en</code>. Or  <code>all</code> to request cards without filtering by language", "HTML"); err != nil {
+		if err := client.SendWithParseMode(chatID, "Send the ISO 1 Letter Language Code. Ex. <code>en</code>. Or  <code>all</code> to request cards without filtering by language", "HTML"); err != nil {
 			return err
 		}
 
@@ -67,15 +67,15 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		}
 	}
 
-	resp, err := s.laleRepo.GetAllCards(ctx, req)
+	resp, err := s.laleRepo.Client.GetAllCards(ctx, req)
 	if err != nil {
-		if err = client.Send(chatID, fmt.Sprintf("grpc [GetAllCards] err: %s", err.Error())); err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [GetAllCards] err: %s</code>", err.Error()), "HTML"); err != nil {
 			return err
 		}
 	}
 
 	for _, card := range resp.GetCards() {
-		for _, msg := range pretty.Card(card) {
+		for _, msg := range pretty.Card(card, true) {
 			if err = client.SendWithParseMode(chatID, msg, "HTML"); err != nil {
 				return err
 			}
@@ -94,5 +94,5 @@ func (s *State) Command() string {
 }
 
 func (s *State) Description() string {
-	return "Inspect Card"
+	return "Get All Card"
 }

@@ -23,7 +23,7 @@ func RequestInput[T any](
 		userName string
 	)
 
-	if err := client.Send(chatID, message); err != nil {
+	if err := client.SendWithParseMode(chatID, message, "HTML"); err != nil {
 		return val, userName, false, err
 	}
 

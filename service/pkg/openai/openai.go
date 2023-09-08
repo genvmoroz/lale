@@ -104,7 +104,7 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 
 	body, err := s.prepareRequestBody(
 		fmt.Sprintf(
-			"Generate %d random sentences with the word \"%s\" for %s English level with any topics.",
+			"Generate %d random sentences with the word \"%s\" in different meanings of the word for %s English level with any topics.",
 			size,
 			strings.TrimSpace(word),
 			complexity.String(),
@@ -194,7 +194,7 @@ func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) 
 	body, err := s.prepareRequestBody(
 		fmt.Sprintf(
 			"Write all words which are in the one family with word \"%s\" and in use pretty often. "+
-				"Include \"%s\" into beginning of this list. After each word write \"-\" and translation in %s language. "+
+				"Include \"%s\" into beginning of your list. After each word write \"-\" and translation in %s language. "+
 				"Write only words in your response.",
 			strings.TrimSpace(word),
 			strings.TrimSpace(word),
@@ -243,6 +243,10 @@ func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) 
 }
 
 func (s *Scraper) GenStory(words []string, lang language.Tag) (string, error) {
+	if len(words) == 0 {
+		return "", fmt.Errorf("words are missing")
+	}
+
 	return s.genStoryWithRetry(words, lang, 5)
 }
 
@@ -263,10 +267,6 @@ func (s *Scraper) genStoryWithRetry(words []string, lang language.Tag, retries u
 }
 
 func (s *Scraper) genStory(words []string, lang language.Tag) (string, error) {
-	if len(words) == 0 {
-		return "", fmt.Errorf("words are missing")
-	}
-
 	req := http.AcquireRequest()
 	defer http.ReleaseRequest(req)
 
@@ -277,7 +277,7 @@ func (s *Scraper) genStory(words []string, lang language.Tag) (string, error) {
 
 	base, _ := lang.Base()
 
-	body, err := s.prepareRequestBody(fmt.Sprintf("Generate a story using words %v in language %s.", words, base.ISO3()))
+	body, err := s.prepareRequestBody(fmt.Sprintf("Generate a story using words %v in language %s. The story should contain only one word from that list per sentence.", words, base.ISO3()))
 	if err != nil {
 		return "", fmt.Errorf("prepare request body: %w", err)
 	}

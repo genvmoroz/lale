@@ -34,8 +34,10 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, _
 		b.WriteString(fmt.Sprintf("%s\n", state.Description()))
 	}
 
+	b.WriteString(fmt.Sprintf("ChatID: %d", chatID))
+
 	if err := client.Send(chatID, b.String()); err != nil {
-		return fmt.Errorf("failed to send message: %w", err)
+		return fmt.Errorf("send: %w", err)
 	}
 
 	return nil

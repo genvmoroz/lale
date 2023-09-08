@@ -61,3 +61,8 @@ stop-infra:
 .PHONY: run-locally
 run-locally:
 	${ARTIFACT}
+
+.PHONY: vulnerabilities_lookup
+vulnerabilities_lookup:
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	govulncheck -test ./...

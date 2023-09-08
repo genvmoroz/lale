@@ -2,9 +2,9 @@ package entity
 
 import (
 	"errors"
+	"github.com/samber/lo"
 	"time"
 
-	"github.com/genvmoroz/lale/service/pkg/auxiliary"
 	"github.com/google/uuid"
 	"golang.org/x/text/language"
 )
@@ -99,5 +99,5 @@ func (s *UserSession) IsClosed() bool {
 }
 
 func (s *UserSession) Close() {
-	s.Closed = auxiliary.TimePtr(time.Now().UTC())
+	s.Closed = lo.ToPtr(time.Now().UTC())
 }

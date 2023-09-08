@@ -87,3 +87,8 @@ run-locally:
 	APP_DICTIONARY_HOST="https://api.dictionaryapi.dev" \
 	APP_GOOGLE_PROJECT_KEY_FILE=${APP_GOOGLE_PROJECT_KEY_FILE} \
 	${ARTIFACT}
+
+.PHONY: vulnerabilities_lookup
+vulnerabilities_lookup:
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	govulncheck -test ./...

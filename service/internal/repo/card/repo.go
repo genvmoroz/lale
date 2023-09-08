@@ -103,8 +103,12 @@ func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Car
 		Database(r.database).
 		Collection(r.collection)
 
-	query := bson.M{"userID": userID}
-	cursor, err := cardsCollection.Find(ctx, query)
+	query := bson.M{"userid": userID}
+	count, err := cardsCollection.EstimatedDocumentCount(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("estimate document count: %w", err)
+	}
+	cursor, err := cardsCollection.Find(ctx, query, options.Find().SetBatchSize(int32(count)+100))
 	if err != nil {
 		return nil, fmt.Errorf("find: %w", err)
 	}

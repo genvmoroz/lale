@@ -7,9 +7,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/goleak"
 )
 
+// TODO: improve testing, add new testcases
+
 func TestFutureTaskCorrect(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -35,6 +40,8 @@ func TestFutureTaskCorrect(t *testing.T) {
 }
 
 func TestFutureTaskContextCanceled(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -66,6 +73,8 @@ func TestFutureTaskContextCanceled(t *testing.T) {
 }
 
 func TestFutureTaskTimeoutExpired(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -104,6 +113,8 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 }
 
 func TestFutureTaskRunWithTaskError(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -126,6 +137,8 @@ func TestFutureTaskRunWithTaskError(t *testing.T) {
 }
 
 func TestFutureTaskRunTaskCanceled(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
 	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())

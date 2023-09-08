@@ -21,7 +21,7 @@ type (
 	LaleServiceConfig struct {
 		Host    string        `envconfig:"APP_LALE_SERVICE_HOST" required:"true"`
 		Port    uint          `envconfig:"APP_LALE_SERVICE_PORT" required:"true"`
-		Timeout time.Duration `envconfig:"APP_LALE_SERVICE_TIMEOUT" default:"5s"`
+		Timeout time.Duration `envconfig:"APP_LALE_SERVICE_TIMEOUT" default:"30s"`
 	}
 )
 
@@ -32,7 +32,7 @@ func FromEnv() (Config, error) {
 
 	err := envconfig.Process(appPrefix, &config)
 	if err != nil {
-		return config, fmt.Errorf("failed to load config: %w", err)
+		return config, fmt.Errorf("load env config: %w", err)
 	}
 
 	return config, nil
