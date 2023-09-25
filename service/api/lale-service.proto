@@ -10,7 +10,8 @@ service LaleService {
   rpc CreateCard(CreateCardRequest) returns (CreateCardResponse);
   rpc GetAllCards(GetCardsRequest) returns (GetCardsResponse);
   rpc UpdateCardPerformance(UpdateCardPerformanceRequest) returns (UpdateCardPerformanceResponse);
-  rpc GetCardsToReview(GetCardsForReviewRequest) returns (GetCardsResponse);
+  rpc GetCardsToRepeat(GetCardsRequest) returns (GetCardsResponse);
+  rpc GetCardsToLearn(GetCardsRequest) returns (GetCardsResponse);
   rpc GetSentences(GetSentencesRequest) returns (GetSentencesResponse);
   rpc GenerateStory(GenerateStoryRequest) returns (GenerateStoryResponse);
   rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
@@ -56,11 +57,6 @@ message Definition {
 }
 
 message GetCardsRequest {
-  string userID = 1;
-  string language = 2;
-}
-
-message GetCardsForReviewRequest {
   string userID = 1;
   string language = 2;
 }

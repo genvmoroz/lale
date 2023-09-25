@@ -1,13 +1,5 @@
 version: '3.7'
 services:
-  redis:
-    image: redis:latest
-    networks:
-      - default
-    ports:
-      - "6379:6379"
-    command: redis-server --requirepass pass
-
   mongo:
     image: mongo:latest
     networks:

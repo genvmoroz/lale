@@ -72,8 +72,12 @@ func NewUserSession(userID string) UserSession {
 	}
 }
 
-func (c *Card) NeedToReview() bool {
+func (c *Card) NeedToRepeat() bool {
 	return time.Now().UTC().After(c.NextDueDate.UTC())
+}
+
+func (c *Card) NeedToLearn() bool {
+	return c.NextDueDate.IsZero()
 }
 
 func (c *Card) GetAnswer(correct bool) uint32 {

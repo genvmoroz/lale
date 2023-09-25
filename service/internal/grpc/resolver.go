@@ -107,17 +107,32 @@ func (r *Resolver) UpdateCardPerformance(ctx context.Context, req *api.UpdateCar
 	)
 }
 
-func (r *Resolver) GetCardsToReview(ctx context.Context, req *api.GetCardsForReviewRequest) (*api.GetCardsResponse, error) {
+func (r *Resolver) GetCardsToLearn(ctx context.Context, req *api.GetCardsRequest) (*api.GetCardsResponse, error) {
 	return genericResolver[
-		api.GetCardsForReviewRequest,
-		core.GetCardsForReviewRequest,
+		api.GetCardsRequest,
+		core.GetCardsRequest,
 		api.GetCardsResponse,
 		core.GetCardsResponse,
 	](
 		ctx,
 		req,
-		r.transformer.ToCoreGetCardsForReviewRequest,
-		r.service.GetCardsToReview,
+		r.transformer.ToCoreGetCardsRequest,
+		r.service.GetCardsToLearn,
+		r.transformer.ToAPIGetCardsResponse,
+	)
+}
+
+func (r *Resolver) GetCardsToRepeat(ctx context.Context, req *api.GetCardsRequest) (*api.GetCardsResponse, error) {
+	return genericResolver[
+		api.GetCardsRequest,
+		core.GetCardsRequest,
+		api.GetCardsResponse,
+		core.GetCardsResponse,
+	](
+		ctx,
+		req,
+		r.transformer.ToCoreGetCardsRequest,
+		r.service.GetCardsToRepeat,
 		r.transformer.ToAPIGetCardsResponse,
 	)
 }

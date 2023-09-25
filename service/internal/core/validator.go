@@ -64,17 +64,6 @@ func (validator) ValidateDeleteCardRequest(req DeleteCardRequest) error {
 	return nil
 }
 
-func (validator) ValidateGetCardsForReviewRequest(req GetCardsForReviewRequest) error {
-	if len(strings.TrimSpace(req.UserID)) == 0 {
-		return errors.New("userID is required")
-	}
-	if len(strings.TrimSpace(req.Language.String())) == 0 {
-		return errors.New("language is required")
-	}
-
-	return nil
-}
-
 func (validator) ValidateUpdateCardPerformanceRequest(req UpdateCardPerformanceRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")

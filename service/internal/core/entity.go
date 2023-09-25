@@ -53,11 +53,6 @@ type (
 		Card entity.Card
 	}
 
-	GetCardsForReviewRequest struct {
-		UserID   string
-		Language language.Tag
-	}
-
 	GetCardsRequest struct {
 		UserID   string
 		Language language.Tag

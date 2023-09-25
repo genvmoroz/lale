@@ -22,7 +22,6 @@ type (
 		ToAPIGetCardsResponse(resp core.GetCardsResponse) *api.GetCardsResponse
 		ToCoreUpdateCardPerformanceRequest(req *api.UpdateCardPerformanceRequest) core.UpdateCardPerformanceRequest
 		ToAPIUpdateCardPerformanceResponse(resp core.UpdateCardPerformanceResponse) *api.UpdateCardPerformanceResponse
-		ToCoreGetCardsForReviewRequest(req *api.GetCardsForReviewRequest) (core.GetCardsForReviewRequest, error)
 		ToCoreGetSentencesRequest(req *api.GetSentencesRequest) core.GetSentencesRequest
 		ToAPIGetSentencesResponse(resp core.GetSentencesResponse) *api.GetSentencesResponse
 		ToCoreGenerateStoryRequest(req *api.GenerateStoryRequest) (core.GenerateStoryRequest, error)
@@ -148,21 +147,6 @@ func (transformer) ToAPIUpdateCardPerformanceResponse(resp core.UpdateCardPerfor
 	return &api.UpdateCardPerformanceResponse{
 		NextDueDate: timestamppb.New(resp.NextDueDate),
 	}
-}
-
-func (transformer) ToCoreGetCardsForReviewRequest(req *api.GetCardsForReviewRequest) (core.GetCardsForReviewRequest, error) {
-	if req == nil {
-		return core.GetCardsForReviewRequest{}, nil
-	}
-
-	lang, err := language.Parse(req.GetLanguage())
-	if err != nil {
-		return core.GetCardsForReviewRequest{}, fmt.Errorf("invalid language (%s): %w", req.GetLanguage(), err)
-	}
-	return core.GetCardsForReviewRequest{
-		UserID:   req.GetUserID(),
-		Language: lang,
-	}, nil
 }
 
 func (transformer) ToCoreDeleteCardRequest(req *api.DeleteCardRequest) core.DeleteCardRequest {

@@ -55,7 +55,8 @@ type (
 		CreateCard(ctx context.Context, req CreateCardRequest) (CreateCardResponse, error)
 		GetAllCards(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error)
 		UpdateCardPerformance(ctx context.Context, req UpdateCardPerformanceRequest) (UpdateCardPerformanceResponse, error)
-		GetCardsToReview(ctx context.Context, req GetCardsForReviewRequest) (GetCardsResponse, error)
+		GetCardsToLearn(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error)
+		GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error)
 		GetSentences(ctx context.Context, req GetSentencesRequest) (GetSentencesResponse, error)
 		GenerateStory(ctx context.Context, req GenerateStoryRequest) (GenerateStoryResponse, error)
 		DeleteCard(ctx context.Context, req DeleteCardRequest) (DeleteCardResponse, error)
@@ -553,8 +554,35 @@ func (s *service) UpdateCardPerformance(ctx context.Context, req UpdateCardPerfo
 	return resp, nil
 }
 
-func (s *service) GetCardsToReview(ctx context.Context, req GetCardsForReviewRequest) (GetCardsResponse, error) {
-	if err := s.validator.ValidateGetCardsForReviewRequest(req); err != nil {
+func (s *service) GetCardsToLearn(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
+	return s.getCardsByFilter(
+		ctx,
+		req,
+		"GetCardsToLearn",
+		func(card entity.Card) bool {
+			return strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToLearn()
+		},
+	)
+}
+
+func (s *service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
+	return s.getCardsByFilter(
+		ctx,
+		req,
+		"GetCardsToRepeat",
+		func(card entity.Card) bool {
+			return strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToRepeat()
+		},
+	)
+}
+
+func (s *service) getCardsByFilter(
+	ctx context.Context,
+	req GetCardsRequest,
+	requestName string,
+	predicate func(card entity.Card) bool) (GetCardsResponse, error) {
+
+	if err := s.validator.ValidateGetCardsRequest(req); err != nil {
 		return GetCardsResponse{}, NewRequestValidationError(err)
 	}
 
@@ -564,7 +592,7 @@ func (s *service) GetCardsToReview(ctx context.Context, req GetCardsForReviewReq
 				logrus.Fields{
 					"UserID":   req.UserID,
 					"Language": req.Language.String(),
-					"Request":  "GetCardsToReview",
+					"Request":  requestName,
 				},
 			),
 	)
@@ -599,18 +627,13 @@ func (s *service) GetCardsToReview(ctx context.Context, req GetCardsForReviewReq
 	}
 
 	logger.FromContext(ctx).
-		Debug("filter cards out by next due date")
-	cardsToReview := make([]entity.Card, 0, len(cards))
-	for _, card := range cards {
-		if strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToReview() {
-			cardsToReview = append(cardsToReview, card)
-		}
-	}
+		Debug("filter cards out")
+	filtered := lo.Filter[entity.Card](cards, func(item entity.Card, _ int) bool { return predicate(item) })
 
 	return GetCardsResponse{
 		UserID:   req.UserID,
 		Language: req.Language,
-		Cards:    cardsToReview,
+		Cards:    filtered,
 	}, nil
 }
 

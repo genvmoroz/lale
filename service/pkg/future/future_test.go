@@ -15,8 +15,6 @@ import (
 func TestFutureTaskCorrect(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	t.Parallel()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -41,8 +39,6 @@ func TestFutureTaskCorrect(t *testing.T) {
 
 func TestFutureTaskContextCanceled(t *testing.T) {
 	defer goleak.VerifyNone(t)
-
-	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -75,8 +71,6 @@ func TestFutureTaskContextCanceled(t *testing.T) {
 func TestFutureTaskTimeoutExpired(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	t.Parallel()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -103,7 +97,11 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 	require.Equal(t, "", res)
 	require.False(t, task.IsCompleted())
 
-	time.Sleep(2 * time.Second)
+	select {
+	case <-ctx.Done():
+		t.Fatalf("context is closed, context error: %s", ctx.Err())
+	case <-time.After(2 * time.Second):
+	}
 
 	res, err = task.Get(time.Second)
 	require.NoError(t, err)
@@ -114,8 +112,6 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 
 func TestFutureTaskRunWithTaskError(t *testing.T) {
 	defer goleak.VerifyNone(t)
-
-	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -138,8 +134,6 @@ func TestFutureTaskRunWithTaskError(t *testing.T) {
 
 func TestFutureTaskRunTaskCanceled(t *testing.T) {
 	defer goleak.VerifyNone(t)
-
-	t.Parallel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
