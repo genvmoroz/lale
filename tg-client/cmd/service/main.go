@@ -13,6 +13,7 @@ import (
 	getallstate "github.com/genvmoroz/lale/tg-client/internal/state/getall"
 	helpstate "github.com/genvmoroz/lale/tg-client/internal/state/help"
 	inspectstate "github.com/genvmoroz/lale/tg-client/internal/state/inspect"
+	"github.com/genvmoroz/lale/tg-client/internal/state/learn"
 	"github.com/genvmoroz/lale/tg-client/internal/state/repeat"
 	"github.com/genvmoroz/lale/tg-client/internal/state/story"
 	"github.com/sirupsen/logrus"
@@ -72,6 +73,7 @@ func launch() error {
 		deletestate.Command:  deletestate.NewState(laleRepo),
 		repeat.Command:       repeat.NewState(laleRepo),
 		story.Command:        story.NewState(laleRepo),
+		learn.Command:        learn.NewState(laleRepo),
 		helpstate.Command: helpstate.NewState([]processor.StateProcessor{
 			&createstate.State{},
 			&inspectstate.State{},
@@ -80,6 +82,7 @@ func launch() error {
 			&helpstate.State{},
 			&repeat.State{},
 			&story.State{},
+			&learn.State{},
 		}),
 	}
 

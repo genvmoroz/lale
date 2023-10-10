@@ -22,7 +22,7 @@ func NewState(laleRepo *repository.LaleRepo) *State {
 }
 
 const initialMessage = `
-Let the service to generate story with words you have learnt.
+Let the service generate a story with words you have learnt.
 `
 
 func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) error {

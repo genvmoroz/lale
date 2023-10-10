@@ -3,6 +3,7 @@ package create
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/genvmoroz/bot-engine/bot"
@@ -110,7 +111,11 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		chatID,
 		createExample,
 		func(input string, chatID int64, client *bot.Client) ([][2]string, error) {
-			lines := strings.Split(input, "\n")
+			lines := slices.DeleteFunc(strings.Split(input, "\n"),
+				func(s string) bool {
+					return len(strings.TrimSpace(s)) == 0
+				},
+			)
 			if len(lines) == 0 {
 				return nil, client.Send(chatID, "Send at least one word with translation")
 			}

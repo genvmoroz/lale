@@ -1,4 +1,4 @@
-package repeat
+package learn
 
 import (
 	"context"
@@ -22,19 +22,19 @@ type State struct {
 	laleRepo *repository.LaleRepo
 }
 
-const Command = "/repeat"
+const Command = "/learn"
 
 func NewState(laleRepo *repository.LaleRepo) *State {
 	return &State{laleRepo: laleRepo}
 }
 
 const initialMessage = `
-Repeat Words State
-Send the ISO 1 Letter Language Code to repeat the Words with that language
+Learn Words State
+Send the ISO 1 Letter Language Code to learn the Words with that language
 `
 
 type (
-	repeatCards struct {
+	learnCards struct {
 		index uint32
 		cards []card
 
@@ -50,7 +50,7 @@ type (
 	}
 )
 
-func newRepeatCards(ctx context.Context, laleRepo *repository.LaleRepo, resp *api.GetCardsResponse) repeatCards {
+func newLearnCards(ctx context.Context, laleRepo *repository.LaleRepo, resp *api.GetCardsResponse) learnCards {
 	cards := make([]card, 0, len(resp.GetCards()))
 	for _, c := range resp.GetCards() {
 		if c == nil {
@@ -64,19 +64,19 @@ func newRepeatCards(ctx context.Context, laleRepo *repository.LaleRepo, resp *ap
 			},
 		)
 	}
-	repeatCards := repeatCards{
+	learnCards := learnCards{
 		index: 0,
 		cards: cards,
 		cardsNumberToBeEnrichedWithSentencesInAdvance: 1,
 		laleRepo: laleRepo,
 	}
 
-	repeatCards.enrichCardsWithSentences(ctx)
+	learnCards.enrichCardsWithSentences(ctx)
 
-	return repeatCards
+	return learnCards
 }
 
-func (r *repeatCards) next(ctx context.Context) card {
+func (r *learnCards) next(ctx context.Context) card {
 	if r.index >= uint32(len(r.cards)) {
 		return card{}
 	}
@@ -89,17 +89,17 @@ func (r *repeatCards) next(ctx context.Context) card {
 	return next
 }
 
-func (r *repeatCards) hasNext() bool {
+func (r *learnCards) hasNext() bool {
 	return r.index < uint32(len(r.cards))
 }
 
-func (r *repeatCards) enrichCardsWithSentences(ctx context.Context) {
+func (r *learnCards) enrichCardsWithSentences(ctx context.Context) {
 	for i := 0; i < int(r.cardsNumberToBeEnrichedWithSentencesInAdvance); i++ {
 		r.enrichCardWithSentences(ctx, r.index+uint32(i))
 	}
 }
 
-func (r *repeatCards) enrichCardWithSentences(ctx context.Context, i uint32) {
+func (r *learnCards) enrichCardWithSentences(ctx context.Context, i uint32) {
 	if i >= uint32(len(r.cards)) || len(r.cards[i].Sentences) != 0 {
 		return
 	}
@@ -167,9 +167,9 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		Language: language,
 	}
 
-	resp, err := s.laleRepo.Client.GetCardsToRepeat(ctx, req)
+	resp, err := s.laleRepo.Client.GetCardsToLearn(ctx, req)
 	if err != nil {
-		if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [GetCardsToRepeat] err: %s</code>", err.Error()), "HTML"); sendErr != nil {
+		if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [GetCardsToLearn] err: %s</code>", err.Error()), "HTML"); sendErr != nil {
 			logrus.
 				WithField("grpc error", err.Error()).
 				WithField("tg-bot error", sendErr.Error()).
@@ -179,17 +179,17 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		return err
 	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Found <code>%d</code> Cards to repeat", len(resp.GetCards())), "HTML"); err != nil {
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Found <code>%d</code> Cards to learn", len(resp.GetCards())), "HTML"); err != nil {
 		return err
 	}
 
-	cards := newRepeatCards(ctx, s.laleRepo, resp)
+	cards := newLearnCards(ctx, s.laleRepo, resp)
 
 	for cards.hasNext() {
 		card := cards.next(ctx)
 
 		if card.Card.GetNextDueDate().AsTime().Equal(time.Time{}) {
-			if back, err = s.processFirstRepeat(ctx, client, chatID, updateChan, card); err != nil {
+			if back, err = s.processFirstReview(ctx, client, chatID, updateChan, card); err != nil {
 				return err
 			}
 			if back {
@@ -332,7 +332,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 						return s != nil
 					},
 					chatID,
-					"Write <code>next</code> to Learn next word",
+					"Write <code>next</code> to learn next word",
 					func(input string, chatID int64, client *bot.Client) (*bool, error) {
 						text := strings.ToLower(strings.TrimSpace(input))
 						switch text {
@@ -364,7 +364,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		}
 		avg := (float64(sum)) / (float64(len(easiness)))
 
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card repeated, easiness level is <code>%d</code>", uint32(avg)), "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card learnt, easiness level is <code>%d</code>", uint32(avg)), "HTML"); err != nil {
 			return err
 		}
 
@@ -381,7 +381,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			}
 		}
 
-		if err = client.Send(chatID, fmt.Sprintf("Repeat in %s", resp.GetNextDueDate().AsTime().Sub(time.Now().UTC()))); err != nil {
+		if err = client.Send(chatID, fmt.Sprintf("Learn in %s", resp.GetNextDueDate().AsTime().Sub(time.Now().UTC()))); err != nil {
 			return err
 		}
 		if err = client.Send(chatID, fmt.Sprintf("At %s", resp.GetNextDueDate().AsTime())); err != nil {
@@ -394,7 +394,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 				return s != nil
 			},
 			chatID,
-			"Write <code>next</code> to repeat next Card",
+			"Write <code>next</code> to Learn next Card",
 			func(input string, chatID int64, client *bot.Client) (*bool, error) {
 				text := strings.ToLower(strings.TrimSpace(input))
 				switch text {
@@ -418,14 +418,14 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		}
 	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Repeat finished, repeated <code>%d</code> cards", len(resp.GetCards())), "HTML"); err != nil {
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Learn finished, leanrt <code>%d</code> cards", len(resp.GetCards())), "HTML"); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *State) processFirstRepeat(
+func (s *State) processFirstReview(
 	ctx context.Context,
 	client *bot.Client,
 	chatID int64,
@@ -483,7 +483,7 @@ func (s *State) processFirstRepeat(
 					return s != nil
 				},
 				chatID,
-				"Write <code>next</code> to repeat next word",
+				"Write <code>next</code> to learn next word",
 				func(input string, chatID int64, client *bot.Client) (*bool, error) {
 					text := strings.ToLower(strings.TrimSpace(input))
 					switch text {
@@ -508,7 +508,7 @@ func (s *State) processFirstRepeat(
 		}
 	}
 
-	if err := client.SendWithParseMode(chatID, "Card repeated", "HTML"); err != nil {
+	if err := client.SendWithParseMode(chatID, "Card Learnt", "HTML"); err != nil {
 		return false, err
 	}
 
@@ -525,7 +525,7 @@ func (s *State) processFirstRepeat(
 		}
 	}
 
-	if err = client.Send(chatID, fmt.Sprintf("Repeat in %s", resp.GetNextDueDate().AsTime().Sub(time.Now().UTC()))); err != nil {
+	if err = client.Send(chatID, fmt.Sprintf("Learn in %s", resp.GetNextDueDate().AsTime().Sub(time.Now().UTC()))); err != nil {
 		return false, err
 	}
 	if err = client.Send(chatID, fmt.Sprintf("At %s", resp.GetNextDueDate().AsTime())); err != nil {
@@ -538,7 +538,7 @@ func (s *State) processFirstRepeat(
 			return s != nil
 		},
 		chatID,
-		"Write <code>next</code> to repeat next Card",
+		"Write <code>next</code> to learn next Card",
 		func(input string, chatID int64, client *bot.Client) (*bool, error) {
 			text := strings.ToLower(strings.TrimSpace(input))
 			switch text {
@@ -572,5 +572,5 @@ func (s *State) Command() string {
 }
 
 func (s *State) Description() string {
-	return "Repeat Card"
+	return "Learn Card"
 }
