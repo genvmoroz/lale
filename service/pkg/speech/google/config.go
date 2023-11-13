@@ -1,5 +1,5 @@
 package google
 
 type Config struct {
-	ProjectKeyFile string `envconfig:"APP_GOOGLE_PROJECT_KEY_FILE" required:"true" json:"ProjectKeyFile,omitempty"`
+	ProjectKeyJSON string `envconfig:"APP_GOOGLE_PROJECT_KEY_JSON" required:"true" json:"ProjectKeyJSON,omitempty"`
 }

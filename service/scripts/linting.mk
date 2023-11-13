@@ -1,6 +1,6 @@
 TMP_DIR = /tmp
 
-LINT_VERSION = 1.54.2
+LINT_VERSION = 1.55.2
 
 LINT_DIR = $(TMP_DIR)/golangci-lint/$(LINT_VERSION)
 LINT_BIN = $(LINT_DIR)/golangci-lint

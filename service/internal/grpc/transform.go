@@ -12,14 +12,14 @@ import (
 
 type (
 	Transformer interface {
+		ToAPICard(card entity.Card) *api.Card
 		ToCoreInspectCardRequest(req *api.InspectCardRequest) (core.InspectCardRequest, error)
-		ToAPIInspectCardResponse(resp core.InspectCardResponse) *api.InspectCardResponse
 		ToCorePromptCardRequest(req *api.PromptCardRequest) (core.PromptCardRequest, error)
 		ToAPIPromptCardResponse(resp core.PromptCardResponse) *api.PromptCardResponse
 		ToCoreCreateCardRequest(req *api.CreateCardRequest) (core.CreateCardRequest, error)
-		ToAPICreateCardResponse(resp core.CreateCardResponse) *api.CreateCardResponse
 		ToCoreGetCardsRequest(req *api.GetCardsRequest) (core.GetCardsRequest, error)
 		ToAPIGetCardsResponse(resp core.GetCardsResponse) *api.GetCardsResponse
+		ToCoreUpdateCardRequest(req *api.UpdateCardRequest) (core.UpdateCardRequest, error)
 		ToCoreUpdateCardPerformanceRequest(req *api.UpdateCardPerformanceRequest) core.UpdateCardPerformanceRequest
 		ToAPIUpdateCardPerformanceResponse(resp core.UpdateCardPerformanceResponse) *api.UpdateCardPerformanceResponse
 		ToCoreGetSentencesRequest(req *api.GetSentencesRequest) core.GetSentencesRequest
@@ -27,7 +27,6 @@ type (
 		ToCoreGenerateStoryRequest(req *api.GenerateStoryRequest) (core.GenerateStoryRequest, error)
 		ToAPIGenerateStoryResponse(resp core.GenerateStoryResponse) *api.GenerateStoryResponse
 		ToCoreDeleteCardRequest(req *api.DeleteCardRequest) core.DeleteCardRequest
-		ToAPIDeleteCardResponse(resp core.DeleteCardResponse) *api.DeleteCardResponse
 	}
 
 	transformer struct{}
@@ -50,12 +49,6 @@ func (transformer) ToCoreInspectCardRequest(req *api.InspectCardRequest) (core.I
 		Language: lang,
 		Word:     req.GetWord(),
 	}, nil
-}
-
-func (t transformer) ToAPIInspectCardResponse(resp core.InspectCardResponse) *api.InspectCardResponse {
-	return &api.InspectCardResponse{
-		Card: t.toAPICard(resp.Card),
-	}
 }
 
 func (transformer) ToCorePromptCardRequest(req *api.PromptCardRequest) (core.PromptCardRequest, error) {
@@ -106,12 +99,6 @@ func (t transformer) ToCoreCreateCardRequest(req *api.CreateCardRequest) (core.C
 	}, nil
 }
 
-func (t transformer) ToAPICreateCardResponse(resp core.CreateCardResponse) *api.CreateCardResponse {
-	return &api.CreateCardResponse{
-		Card: t.toAPICard(resp.Card),
-	}
-}
-
 func (transformer) ToCoreGetCardsRequest(req *api.GetCardsRequest) (core.GetCardsRequest, error) {
 	if req == nil {
 		return core.GetCardsRequest{}, nil
@@ -156,12 +143,6 @@ func (transformer) ToCoreDeleteCardRequest(req *api.DeleteCardRequest) core.Dele
 	}
 }
 
-func (t transformer) ToAPIDeleteCardResponse(resp core.DeleteCardResponse) *api.DeleteCardResponse {
-	return &api.DeleteCardResponse{
-		Card: t.toAPICard(resp.Card),
-	}
-}
-
 func (t transformer) ToCoreGetSentencesRequest(req *api.GetSentencesRequest) core.GetSentencesRequest {
 	return core.GetSentencesRequest{
 		UserID:         req.GetUserID(),
@@ -193,6 +174,19 @@ func (t transformer) ToAPIGenerateStoryResponse(resp core.GenerateStoryResponse)
 	return &api.GenerateStoryResponse{Story: resp.Story}
 }
 
+func (t transformer) ToCoreUpdateCardRequest(req *api.UpdateCardRequest) (core.UpdateCardRequest, error) {
+	words, err := t.toCoreWordInformationList(req.GetWordInformationList())
+	if err != nil {
+		return core.UpdateCardRequest{}, err
+	}
+	return core.UpdateCardRequest{
+		UserID:              req.GetUserID(),
+		CardID:              req.GetCardID(),
+		WordInformationList: words,
+		Params:              t.toCoreCreateCardParameters(req.GetParams()),
+	}, nil
+}
+
 func (t transformer) toAPICards(cards []entity.Card) []*api.Card {
 	if len(cards) == 0 {
 		return nil
@@ -200,13 +194,13 @@ func (t transformer) toAPICards(cards []entity.Card) []*api.Card {
 
 	res := make([]*api.Card, len(cards))
 	for i, c := range cards {
-		res[i] = t.toAPICard(c)
+		res[i] = t.ToAPICard(c)
 	}
 
 	return res
 }
 
-func (t transformer) toAPICard(card entity.Card) *api.Card {
+func (t transformer) ToAPICard(card entity.Card) *api.Card {
 	return &api.Card{
 		Id:                  card.ID,
 		UserID:              card.UserID,
@@ -217,8 +211,8 @@ func (t transformer) toAPICard(card entity.Card) *api.Card {
 	}
 }
 
-func (t transformer) toCoreCreateCardParameters(p *api.CreateCardParameters) core.CreateCardParameters {
-	return core.CreateCardParameters{
+func (t transformer) toCoreCreateCardParameters(p *api.Parameters) core.Parameters {
+	return core.Parameters{
 		EnrichWordInformationFromDictionary: p.GetEnrichWordInformationFromDictionary(),
 	}
 }

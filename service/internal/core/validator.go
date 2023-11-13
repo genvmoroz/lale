@@ -53,6 +53,20 @@ func (validator) ValidateCreateCardRequest(req CreateCardRequest) error {
 	return nil
 }
 
+func (validator) ValidateUpdateCardRequest(req UpdateCardRequest) error {
+	if len(strings.TrimSpace(req.UserID)) == 0 {
+		return errors.New("userID is required")
+	}
+	if len(strings.TrimSpace(req.CardID)) == 0 {
+		return errors.New("cardID is required")
+	}
+	if len(req.WordInformationList) == 0 {
+		return errors.New("wordInformationList are required, specify one at least")
+	}
+
+	return nil
+}
+
 func (validator) ValidateDeleteCardRequest(req DeleteCardRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")

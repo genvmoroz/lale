@@ -7,6 +7,7 @@ import (
 
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/service/internal/core"
+	"github.com/genvmoroz/lale/service/pkg/entity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -29,18 +30,18 @@ func NewResolver(service core.Service, transformer Transformer) (*Resolver, erro
 	}, nil
 }
 
-func (r *Resolver) InspectCard(ctx context.Context, req *api.InspectCardRequest) (*api.InspectCardResponse, error) {
+func (r *Resolver) InspectCard(ctx context.Context, req *api.InspectCardRequest) (*api.Card, error) {
 	return genericResolver[
 		api.InspectCardRequest,
 		core.InspectCardRequest,
-		api.InspectCardResponse,
-		core.InspectCardResponse,
+		api.Card,
+		entity.Card,
 	](
 		ctx,
 		req,
 		r.transformer.ToCoreInspectCardRequest,
 		r.service.InspectCard,
-		r.transformer.ToAPIInspectCardResponse,
+		r.transformer.ToAPICard,
 	)
 }
 
@@ -59,18 +60,18 @@ func (r *Resolver) PromptCard(ctx context.Context, req *api.PromptCardRequest) (
 	)
 }
 
-func (r *Resolver) CreateCard(ctx context.Context, req *api.CreateCardRequest) (*api.CreateCardResponse, error) {
+func (r *Resolver) CreateCard(ctx context.Context, req *api.CreateCardRequest) (*api.Card, error) {
 	return genericResolver[
 		api.CreateCardRequest,
 		core.CreateCardRequest,
-		api.CreateCardResponse,
-		core.CreateCardResponse,
+		api.Card,
+		entity.Card,
 	](
 		ctx,
 		req,
 		r.transformer.ToCoreCreateCardRequest,
 		r.service.CreateCard,
-		r.transformer.ToAPICreateCardResponse,
+		r.transformer.ToAPICard,
 	)
 }
 
@@ -104,6 +105,21 @@ func (r *Resolver) UpdateCardPerformance(ctx context.Context, req *api.UpdateCar
 		},
 		r.service.UpdateCardPerformance,
 		r.transformer.ToAPIUpdateCardPerformanceResponse,
+	)
+}
+
+func (r *Resolver) UpdateCard(ctx context.Context, req *api.UpdateCardRequest) (*api.Card, error) {
+	return genericResolver[
+		api.UpdateCardRequest,
+		core.UpdateCardRequest,
+		api.Card,
+		entity.Card,
+	](
+		ctx,
+		req,
+		r.transformer.ToCoreUpdateCardRequest,
+		r.service.UpdateCard,
+		r.transformer.ToAPICard,
 	)
 }
 
@@ -169,12 +185,12 @@ func (r *Resolver) GenerateStory(ctx context.Context, req *api.GenerateStoryRequ
 	)
 }
 
-func (r *Resolver) DeleteCard(ctx context.Context, req *api.DeleteCardRequest) (*api.DeleteCardResponse, error) {
+func (r *Resolver) DeleteCard(ctx context.Context, req *api.DeleteCardRequest) (*api.Card, error) {
 	return genericResolver[
 		api.DeleteCardRequest,
 		core.DeleteCardRequest,
-		api.DeleteCardResponse,
-		core.DeleteCardResponse,
+		api.Card,
+		entity.Card,
 	](
 		ctx,
 		req,
@@ -182,7 +198,7 @@ func (r *Resolver) DeleteCard(ctx context.Context, req *api.DeleteCardRequest) (
 			return r.transformer.ToCoreDeleteCardRequest(req), nil
 		},
 		r.service.DeleteCard,
-		r.transformer.ToAPIDeleteCardResponse,
+		r.transformer.ToAPICard,
 	)
 }
 
