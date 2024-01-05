@@ -95,7 +95,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		}
 	}
 
-	for _, msg := range pretty.Card(resp.GetCard(), true) {
+	for _, msg := range pretty.Card(resp, true) {
 		if err = client.SendWithParseMode(chatID, msg, "HTML"); err != nil {
 			return err
 		}

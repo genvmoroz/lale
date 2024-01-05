@@ -3,6 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"math/rand"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
+
 	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/bot-engine/dispatcher"
 	"github.com/genvmoroz/bot-engine/processor"
@@ -16,14 +24,8 @@ import (
 	"github.com/genvmoroz/lale/tg-client/internal/state/learn"
 	"github.com/genvmoroz/lale/tg-client/internal/state/repeat"
 	"github.com/genvmoroz/lale/tg-client/internal/state/story"
+	"github.com/genvmoroz/lale/tg-client/internal/state/update"
 	"github.com/sirupsen/logrus"
-	"log"
-	"math/rand"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
 )
 
 func main() {
@@ -74,6 +76,7 @@ func launch() error {
 		repeat.Command:       repeat.NewState(laleRepo),
 		story.Command:        story.NewState(laleRepo),
 		learn.Command:        learn.NewState(laleRepo),
+		update.Command:       update.NewState(laleRepo),
 		helpstate.Command: helpstate.NewState([]processor.StateProcessor{
 			&createstate.State{},
 			&inspectstate.State{},
@@ -83,6 +86,7 @@ func launch() error {
 			&repeat.State{},
 			&story.State{},
 			&learn.State{},
+			&update.State{},
 		}),
 	}
 

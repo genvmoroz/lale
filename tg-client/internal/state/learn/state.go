@@ -3,14 +3,13 @@ package learn
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"github.com/genvmoroz/lale/tg-client/internal/state/cardseq"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale/service/api"
-	"github.com/genvmoroz/lale/service/pkg/future"
 	"github.com/genvmoroz/lale/tg-client/internal/auxl"
 	"github.com/genvmoroz/lale/tg-client/internal/pretty"
 	"github.com/genvmoroz/lale/tg-client/internal/repository"
@@ -32,111 +31,6 @@ const initialMessage = `
 Learn Words State
 Send the ISO 1 Letter Language Code to learn the Words with that language
 `
-
-type (
-	learnCards struct {
-		index uint32
-		cards []card
-
-		cardsNumberToBeEnrichedWithSentencesInAdvance uint32
-
-		laleRepo *repository.LaleRepo
-	}
-
-	card struct {
-		Card      *api.Card
-		Words     []*api.WordInformation
-		Sentences map[string]future.Task[[]string]
-	}
-)
-
-func newLearnCards(ctx context.Context, laleRepo *repository.LaleRepo, resp *api.GetCardsResponse) learnCards {
-	cards := make([]card, 0, len(resp.GetCards()))
-	for _, c := range resp.GetCards() {
-		if c == nil {
-			continue
-		}
-		cards = append(cards,
-			card{
-				Card:      c,
-				Words:     c.GetWordInformationList(),
-				Sentences: make(map[string]future.Task[[]string]),
-			},
-		)
-	}
-	learnCards := learnCards{
-		index: 0,
-		cards: cards,
-		cardsNumberToBeEnrichedWithSentencesInAdvance: 1,
-		laleRepo: laleRepo,
-	}
-
-	learnCards.enrichCardsWithSentences(ctx)
-
-	return learnCards
-}
-
-func (r *learnCards) next(ctx context.Context) card {
-	if r.index >= uint32(len(r.cards)) {
-		return card{}
-	}
-
-	next := r.cards[r.index]
-	r.index++
-
-	r.enrichCardsWithSentences(ctx)
-
-	return next
-}
-
-func (r *learnCards) hasNext() bool {
-	return r.index < uint32(len(r.cards))
-}
-
-func (r *learnCards) enrichCardsWithSentences(ctx context.Context) {
-	for i := 0; i < int(r.cardsNumberToBeEnrichedWithSentencesInAdvance); i++ {
-		r.enrichCardWithSentences(ctx, r.index+uint32(i))
-	}
-}
-
-func (r *learnCards) enrichCardWithSentences(ctx context.Context, i uint32) {
-	if i >= uint32(len(r.cards)) || len(r.cards[i].Sentences) != 0 {
-		return
-	}
-	if r.cards[i].Sentences == nil {
-		r.cards[i].Sentences = make(map[string]future.Task[[]string])
-	}
-	for y, word := range r.cards[i].Words {
-		y := y
-		word := word
-
-		run := func(innerCtx context.Context) ([]string, error) {
-			time.Sleep(time.Duration(y*20) * time.Second)
-			req := &api.GetSentencesRequest{
-				UserID:         r.cards[i].Card.GetUserID(),
-				Word:           word.GetWord(),
-				SentencesCount: 1,
-			}
-
-			var (
-				resp *api.GetSentencesResponse
-				err  error
-			)
-			for index := 1; index <= 10; index++ {
-				resp, err = r.laleRepo.Client.GetSentences(innerCtx, req)
-				if err == nil {
-					return resp.GetSentences(), nil
-				}
-
-				time.Sleep(time.Duration(rand.Intn(10)+5) * time.Second)
-			}
-
-			return nil, err
-		}
-
-		r.cards[i].Sentences[word.GetWord()] = future.NewTask[[]string](ctx, run)
-	}
-}
 
 func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) error {
 	if err := client.Send(chatID, initialMessage); err != nil {
@@ -183,10 +77,10 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		return err
 	}
 
-	cards := newLearnCards(ctx, s.laleRepo, resp)
+	cards := cardseq.NewCards(ctx, s.laleRepo, resp, 1, 5)
 
-	for cards.hasNext() {
-		card := cards.next(ctx)
+	for cards.HasNext() {
+		card := cards.Next(ctx)
 
 		if card.Card.GetNextDueDate().AsTime().Equal(time.Time{}) {
 			if back, err = s.processFirstReview(ctx, client, chatID, updateChan, card); err != nil {
@@ -231,7 +125,10 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 				Bytes: word.GetAudio(),
 			}))
 			if err != nil {
-				return fmt.Errorf("upload audio file: %w", err)
+				if err = client.Send(chatID, fmt.Sprintf("sending audio error: %v", err.Error())); err != nil {
+					return err
+				}
+				//return fmt.Errorf("upload audio file: %w", err)
 			}
 
 			correct, _, back, err := auxl.RequestInput[*bool](
@@ -388,6 +285,10 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			return err
 		}
 
+		if err = client.Send(chatID, fmt.Sprintf("Remaining %d cards to repeat", cards.Remaining())); err != nil {
+			return err
+		}
+
 		_, _, back, err := auxl.RequestInput[*bool](
 			ctx,
 			func(s *bool) bool {
@@ -430,7 +331,7 @@ func (s *State) processFirstReview(
 	client *bot.Client,
 	chatID int64,
 	updateChan bot.UpdatesChannel,
-	card card,
+	card cardseq.Card,
 ) (bool, error) {
 	if len(card.Words) == 0 {
 		return false, client.SendWithParseMode(chatID, fmt.Sprintf("No words for Card <code>%s</code>. Inspect the Card and delete if empty", card.Card.GetId()), "HTML")
@@ -460,7 +361,10 @@ func (s *State) processFirstReview(
 			Bytes: word.GetAudio(),
 		}))
 		if err != nil {
-			return false, fmt.Errorf("upload audio file: %w", err)
+			if err = client.Send(chatID, fmt.Sprintf("sending audio error: %v", err.Error())); err != nil {
+				return false, err
+			}
+			//return false, fmt.Errorf("upload audio file: %w", err)
 		}
 
 		task := card.Sentences[word.GetWord()]

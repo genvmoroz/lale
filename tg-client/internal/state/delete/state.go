@@ -68,7 +68,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		}
 	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card with ID <code>%s</code> deleted", resp.GetCard().GetId()), "HTML"); err != nil {
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card with ID <code>%s</code> deleted", resp.GetId()), "HTML"); err != nil {
 		return err
 	}
 

@@ -97,6 +97,9 @@ func (r *Repo) generateSentences(ctx context.Context, word string, size uint32, 
 			sentences = append(sentences, sentence)
 		}
 	}
+	if len(sentences) > int(size) {
+		return sentences[:size], nil
+	}
 	return sentences, nil
 }
 

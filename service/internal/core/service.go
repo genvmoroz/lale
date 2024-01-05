@@ -458,6 +458,11 @@ func (s *service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity
 		}
 	}
 
+	err = s.enrichCardWithAudio(ctx, &card)
+	if err != nil {
+		return entity.Card{}, fmt.Errorf("enrich card with audio: %w", err)
+	}
+
 	logger.FromContext(ctx).
 		Debug("save card")
 	if err = s.cardRepo.SaveCards(ctx, []entity.Card{card}); err != nil {
@@ -768,6 +773,19 @@ func (s *service) enrichWordInformationListFromDictionary(language language.Tag,
 	}
 
 	return enrichedWords, nil
+}
+
+func (s *service) enrichCardWithAudio(ctx context.Context, card *entity.Card) (err error) {
+	if card == nil {
+		return fmt.Errorf("card is nil")
+	}
+
+	err = s.enrichWordInformationListWithAudio(ctx, card.Language, card.WordInformationList)
+	if err != nil {
+		return fmt.Errorf("enrich words with audio: %w", err)
+	}
+
+	return nil
 }
 
 func (s *service) enrichWordInformationListWithAudio(ctx context.Context, _ language.Tag, infoList []entity.WordInformation) error {

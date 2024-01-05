@@ -1,7 +1,8 @@
-package create
+package update
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -9,37 +10,65 @@ import (
 	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/tg-client/internal/auxl"
-	"github.com/genvmoroz/lale/tg-client/internal/pretty"
 	"github.com/genvmoroz/lale/tg-client/internal/repository"
-	"github.com/samber/lo"
 )
 
 type State struct {
 	laleRepo *repository.LaleRepo
 }
 
-const Command = "/create"
+const Command = "/update"
+
+const createExample = `
+Send the Card you want to create. Examples:
+<code>word - translate 1, translate 2</code>
+`
 
 func NewState(laleRepo *repository.LaleRepo) *State {
 	return &State{laleRepo: laleRepo}
 }
 
 const initialMessage = `
-Create New Card State.
-`
-const createExample = `
-Send the Card you want to create. Examples:
-<code>word - translate 1, translate 2</code>
+Update Card State
 `
 
 func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) error {
-	if err := client.SendWithParseMode(chatID, initialMessage, "HTML"); err != nil {
+	if err := client.Send(chatID, initialMessage); err != nil {
 		return err
 	}
 
-	req := &api.CreateCardRequest{}
+	var req *api.UpdateCardRequest
 
-	language, userName, back, err := auxl.RequestInput[string](
+	for req == nil {
+		if err := client.Send(chatID, "Send the ID of the Card you want to update"); err != nil {
+			return err
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case update, ok := <-updateChan:
+			if !ok {
+				return errors.New("updateChan is closed")
+			}
+			text := strings.ToLower(strings.TrimSpace(update.Message.Text))
+			switch text {
+			case "/back":
+				return client.Send(chatID, "Back to previous state")
+			case "":
+				if err := client.Send(chatID, "Empty value is not allowed"); err != nil {
+					return err
+				}
+			default:
+				req = &api.UpdateCardRequest{
+					UserID: strings.TrimSpace(update.Message.From.UserName),
+					CardID: text,
+				}
+			}
+		}
+	}
+
+	language, _, back, err := auxl.RequestInput[string](
 		ctx,
 		func(s string) bool {
 			return len(strings.TrimSpace(s)) != 0
@@ -57,50 +86,6 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 	}
 	if back {
 		return nil
-	}
-
-	prompt, _, back, err := auxl.RequestInput[*bool](
-		ctx,
-		func(s *bool) bool {
-			return s != nil
-		},
-		chatID,
-		"Would you like me to prompt you possible complete card? [<code>yes</code>|<code>no</code>]",
-		func(input string, chatID int64, client *bot.Client) (*bool, error) {
-			text := strings.ToLower(strings.TrimSpace(input))
-			switch text {
-			case "/back":
-				return nil, client.Send(chatID, "Back to previous state")
-			case "":
-				return nil, client.Send(chatID, "Empty value is not allowed")
-			case "yes":
-				t := true
-				return &t, nil
-			case "no":
-				t := false
-				return &t, nil
-			default:
-				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter [<code>yes</code>|<code>no</code>] or <code>/back</code> to go to the previous state", text), "HTML")
-			}
-		},
-		client,
-		updateChan,
-	)
-	if err != nil {
-		return fmt.Errorf("prompt card to the user: %w", err)
-	}
-	if back {
-		return nil
-	}
-
-	if lo.FromPtr(prompt) {
-		back, err = s.requestCardPrompt(ctx, language, client, chatID, updateChan)
-		if err != nil {
-			return fmt.Errorf("request card prompt: %w", err)
-		}
-		if back {
-			return nil
-		}
 	}
 
 	wordsList, _, back, err := auxl.RequestInput[[][2]string](
@@ -184,86 +169,32 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		return nil
 	}
 
-	req.UserID = userName
-	req.Language = strings.ToLower(language)
 	if enrichWithAdditionalInformation != nil {
 		req.Params = &api.Parameters{
 			EnrichWordInformationFromDictionary: *enrichWithAdditionalInformation,
 		}
 	}
 
-	resp, err := s.laleRepo.Client.CreateCard(ctx, req)
+	resp, err := s.laleRepo.Client.UpdateCard(ctx, req)
 	if err != nil {
-		if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [CreateCard] err: %s</code>", err.Error()), "HTML"); sendErr != nil {
-			return fmt.Errorf("send error [%s] message: %w", err.Error(), sendErr)
-		}
-		return err
-	}
-
-	if err = client.Send(chatID, "Card created"); err != nil {
-		return err
-	}
-
-	for _, msg := range pretty.Card(resp, true) {
-		if err = client.SendWithParseMode(chatID, msg, "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [UpdateCard] err: %s</code>", err.Error()), "HTML"); err != nil {
 			return err
 		}
+	}
+
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card with ID <code>%s</code> updated", resp.GetId()), "HTML"); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (s *State) requestCardPrompt(ctx context.Context, language string, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) (bool, error) {
-	word, userName, back, err := auxl.RequestInput[*string](
-		ctx,
-		func(s *string) bool {
-			return len(strings.TrimSpace(lo.FromPtr(s))) != 0
-		},
-		chatID,
-		"Send the word? ex: <code>suspicion</code>",
-		func(input string, chatID int64, client *bot.Client) (*string, error) {
-			text := strings.ToLower(strings.TrimSpace(input))
-			switch text {
-			case "/back":
-				return nil, client.Send(chatID, "Back to previous state")
-			case "":
-				return nil, client.Send(chatID, "Empty value is not allowed")
-			default:
-				return lo.ToPtr(text), nil
-			}
-		},
-		client,
-		updateChan,
-	)
-	if err != nil {
-		return false, fmt.Errorf("request word: %w", err)
-	}
-	if back {
-		return true, nil
-	}
+func (s *State) Command() string {
+	return Command
+}
 
-	req := &api.PromptCardRequest{
-		UserID:              userName,
-		Word:                *word,
-		WordLanguage:        language,
-		TranslationLanguage: "ukr",
-	}
-
-	resp, err := s.laleRepo.Client.PromptCard(ctx, req)
-	if err != nil {
-		return false, fmt.Errorf("invoke grpc PromptCard: %w ", err)
-	}
-
-	if len(resp.GetWords()) == 0 {
-		return false, client.Send(chatID, fmt.Sprintf("card is not prompted with word %s", *word))
-	}
-
-	msg := ""
-	for _, line := range resp.GetWords() {
-		msg += line + "\n"
-	}
-
-	return false, client.Send(chatID, fmt.Sprintf("\n%s", msg))
+func (s *State) Description() string {
+	return "Delete Card"
 }
 
 func (s *State) parseTranslations(raw string) []string {
@@ -278,12 +209,4 @@ func (s *State) parseTranslations(raw string) []string {
 	}
 
 	return Translations
-}
-
-func (s *State) Command() string {
-	return Command
-}
-
-func (s *State) Description() string {
-	return "Create new Card"
 }
