@@ -17,7 +17,7 @@ type (
 		AudioEncoding     AudioEncoding
 		SpeakingRate      float64
 		Pitch             float64
-		VolumeGainDb      float64
+		VolumeGainDB      float64
 		SampleRateHertz   int32
 		EffectsProfileIDs []string
 	}

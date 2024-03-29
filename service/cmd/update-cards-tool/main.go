@@ -33,7 +33,7 @@ func main() {
 		exitWithError("fetch cards", err, 2)
 	}
 
-	if err = updateCardsTask(ctx, lo.SliceToChannel(0, cards), conn); err != nil {
+	if err = updateCardsTask(ctx, lo.SliceToChannel(len(cards), cards), conn); err != nil {
 		exitWithError("rewrite cards", err, 3)
 	}
 

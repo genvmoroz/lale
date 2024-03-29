@@ -48,21 +48,7 @@ type (
 		ToSpeech(ctx context.Context, req speech.ToSpeechRequest) ([]byte, error)
 	}
 
-	Service interface {
-		InspectCard(ctx context.Context, req InspectCardRequest) (entity.Card, error)
-		PromptCard(ctx context.Context, req PromptCardRequest) (PromptCardResponse, error)
-		CreateCard(ctx context.Context, req CreateCardRequest) (entity.Card, error)
-		GetAllCards(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error)
-		UpdateCard(ctx context.Context, req UpdateCardRequest) (entity.Card, error)
-		UpdateCardPerformance(ctx context.Context, req UpdateCardPerformanceRequest) (UpdateCardPerformanceResponse, error)
-		GetCardsToLearn(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error)
-		GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error)
-		GetSentences(ctx context.Context, req GetSentencesRequest) (GetSentencesResponse, error)
-		GenerateStory(ctx context.Context, req GenerateStoryRequest) (GenerateStoryResponse, error)
-		DeleteCard(ctx context.Context, req DeleteCardRequest) (entity.Card, error)
-	}
-
-	service struct {
+	Service struct {
 		cardRepo         CardRepo
 		sessionRepo      SessionRepo
 		aiHelper         AIHelper
@@ -80,27 +66,27 @@ func NewService(
 	aiHelper AIHelper,
 	anki AnkiAlgo,
 	dictionary Dictionary,
-	textToSpeechRepo TextToSpeechRepo) (Service, error) {
-	if cardRepo == nil {
+	textToSpeechRepo TextToSpeechRepo) (*Service, error) {
+	if lo.IsNil(cardRepo) {
 		return nil, errors.New("card repo is required")
 	}
-	if sessionRepo == nil {
+	if lo.IsNil(sessionRepo) {
 		return nil, errors.New("session repo is required")
 	}
-	if aiHelper == nil {
+	if lo.IsNil(aiHelper) {
 		return nil, errors.New("aiHelper is required")
 	}
-	if anki == nil {
+	if lo.IsNil(anki) {
 		return nil, errors.New("anki algo is required")
 	}
-	if dictionary == nil {
+	if lo.IsNil(dictionary) {
 		return nil, errors.New("dictionary is required")
 	}
-	if textToSpeechRepo == nil {
+	if lo.IsNil(textToSpeechRepo) {
 		return nil, errors.New("textToSpeechRepo is required")
 	}
 
-	return &service{
+	return &Service{
 		cardRepo:         cardRepo,
 		sessionRepo:      sessionRepo,
 		aiHelper:         aiHelper,
@@ -111,7 +97,7 @@ func NewService(
 	}, nil
 }
 
-func (s *service) InspectCard(ctx context.Context, req InspectCardRequest) (entity.Card, error) {
+func (s *Service) InspectCard(ctx context.Context, req InspectCardRequest) (entity.Card, error) {
 	if err := s.validator.ValidateInspectCardRequest(req); err != nil {
 		return entity.Card{}, NewRequestValidationError(err)
 	}
@@ -163,7 +149,7 @@ func (s *service) InspectCard(ctx context.Context, req InspectCardRequest) (enti
 	return entity.Card{}, NewCardNotFoundError().WithWord(req.Word)
 }
 
-func (s *service) PromptCard(ctx context.Context, req PromptCardRequest) (PromptCardResponse, error) {
+func (s *Service) PromptCard(ctx context.Context, req PromptCardRequest) (PromptCardResponse, error) {
 	if err := s.validator.ValidatePromptCardRequest(req); err != nil {
 		return PromptCardResponse{}, NewRequestValidationError(err)
 	}
@@ -188,7 +174,10 @@ func (s *service) PromptCard(ctx context.Context, req PromptCardRequest) (Prompt
 		Debug("request words from the AI helper")
 	wordsWithTranslationMap, err := s.aiHelper.GetFamilyWordsWithTranslation(req.Word, req.TranslationLanguage)
 	if err != nil {
-		return PromptCardResponse{}, fmt.Errorf("get family words with translation for word (%s): %w", req.Word, err)
+		return PromptCardResponse{}, fmt.Errorf(
+			"get family words with translation for word (%s): %w",
+			req.Word, err,
+		)
 	}
 
 	logger.FromContext(ctx).
@@ -207,7 +196,7 @@ func (s *service) PromptCard(ctx context.Context, req PromptCardRequest) (Prompt
 	}, nil
 }
 
-func (s *service) CreateCard(ctx context.Context, req CreateCardRequest) (entity.Card, error) {
+func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity.Card, error) { //nolint:gocognit,lll // it's ok
 	if err := s.validator.ValidateCreateCardRequest(req); err != nil {
 		return entity.Card{}, NewRequestValidationError(err)
 	}
@@ -262,7 +251,8 @@ func (s *service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 	if req.Params.EnrichWordInformationFromDictionary {
 		logger.FromContext(ctx).
 			Debug("enrich card with info from dictionary")
-		enrichedWordInformationList, err := s.enrichWordInformationListFromDictionary(card.Language, card.WordInformationList)
+		var enriched []entity.WordInformation
+		enriched, err = s.enrichWordInformationListFromDictionary(card.Language, card.WordInformationList)
 		if err != nil {
 			return entity.Card{}, logAndReturnError(
 				ctx,
@@ -270,7 +260,7 @@ func (s *service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 				map[string]interface{}{"UserID": req.UserID},
 			)
 		}
-		card.WordInformationList = enrichedWordInformationList
+		card.WordInformationList = enriched
 	}
 
 	logger.FromContext(ctx).
@@ -293,7 +283,7 @@ func (s *service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 	return card, nil
 }
 
-func (s *service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
+func (s *Service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
 	if err := s.validator.ValidateGetCardsRequest(req); err != nil {
 		return GetCardsResponse{}, NewRequestValidationError(err)
 	}
@@ -328,7 +318,8 @@ func (s *service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCard
 	logger.FromContext(ctx).
 		Debug("filter cards out by language")
 	for _, card := range cards {
-		if len(strings.TrimSpace(req.Language.String())) == 0 || strings.EqualFold(card.Language.String(), req.Language.String()) {
+		if len(strings.TrimSpace(req.Language.String())) == 0 ||
+			strings.EqualFold(card.Language.String(), req.Language.String()) {
 			apiCards = append(apiCards, card)
 		}
 	}
@@ -340,7 +331,10 @@ func (s *service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCard
 	}, nil
 }
 
-func (s *service) UpdateCardPerformance(ctx context.Context, req UpdateCardPerformanceRequest) (UpdateCardPerformanceResponse, error) {
+func (s *Service) UpdateCardPerformance(
+	ctx context.Context,
+	req UpdateCardPerformanceRequest,
+) (UpdateCardPerformanceResponse, error) {
 	if err := s.validator.ValidateUpdateCardPerformanceRequest(req); err != nil {
 		return UpdateCardPerformanceResponse{}, NewRequestValidationError(err)
 	}
@@ -390,7 +384,10 @@ func (s *service) UpdateCardPerformance(ctx context.Context, req UpdateCardPerfo
 
 	logger.FromContext(ctx).
 		Debug("calculate next due date")
-	nextDueDate := s.ankiAlgo.CalculateNextDueDate(req.PerformanceRating, card.GetAnswer(req.PerformanceRating > 2))
+	nextDueDate := s.ankiAlgo.CalculateNextDueDate(
+		req.PerformanceRating,
+		card.GetAnswer(req.PerformanceRating > 2), //nolint:gomnd // 2 is a magic number
+	)
 	card.NextDueDate = nextDueDate
 
 	logger.FromContext(ctx).
@@ -408,7 +405,7 @@ func (s *service) UpdateCardPerformance(ctx context.Context, req UpdateCardPerfo
 	}, nil
 }
 
-func (s *service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity.Card, error) {
+func (s *Service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity.Card, error) {
 	if err := s.validator.ValidateUpdateCardRequest(req); err != nil {
 		return entity.Card{}, NewRequestValidationError(err)
 	}
@@ -476,7 +473,7 @@ func (s *service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity
 	return card, nil
 }
 
-func (s *service) GetCardsToLearn(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
+func (s *Service) GetCardsToLearn(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
 	return s.getCardsByFilter(
 		ctx,
 		req,
@@ -487,7 +484,7 @@ func (s *service) GetCardsToLearn(ctx context.Context, req GetCardsRequest) (Get
 	)
 }
 
-func (s *service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
+func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
 	return s.getCardsByFilter(
 		ctx,
 		req,
@@ -498,7 +495,7 @@ func (s *service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (Ge
 	)
 }
 
-func (s *service) getCardsByFilter(
+func (s *Service) getCardsByFilter(
 	ctx context.Context,
 	req GetCardsRequest,
 	requestName string,
@@ -548,7 +545,7 @@ func (s *service) getCardsByFilter(
 	}, nil
 }
 
-func (s *service) GetSentences(ctx context.Context, req GetSentencesRequest) (GetSentencesResponse, error) {
+func (s *Service) GetSentences(ctx context.Context, req GetSentencesRequest) (GetSentencesResponse, error) {
 	if err := s.validator.ValidateGetSentencesRequest(req); err != nil {
 		return GetSentencesResponse{}, NewRequestValidationError(err)
 	}
@@ -574,7 +571,7 @@ func (s *service) GetSentences(ctx context.Context, req GetSentencesRequest) (Ge
 	}, nil
 }
 
-func (s *service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (GenerateStoryResponse, error) {
+func (s *Service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (GenerateStoryResponse, error) {
 	if err := s.validator.ValidateGenerateStoryRequest(req); err != nil {
 		return GenerateStoryResponse{}, NewRequestValidationError(err)
 	}
@@ -608,7 +605,8 @@ func (s *service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (
 		Debug("filter cards out by next due date")
 	cardsForStory := make([]entity.Card, 0, len(cards))
 	for _, card := range cards {
-		if strings.EqualFold(card.Language.String(), req.Language.String()) && !reflect.DeepEqual(card.NextDueDate, time.Time{}) {
+		if strings.EqualFold(card.Language.String(), req.Language.String()) &&
+			!reflect.DeepEqual(card.NextDueDate, time.Time{}) {
 			cardsForStory = append(cardsForStory, card)
 		}
 	}
@@ -623,7 +621,7 @@ func (s *service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (
 	return GenerateStoryResponse{Story: story}, nil
 }
 
-func (s *service) DeleteCard(ctx context.Context, req DeleteCardRequest) (entity.Card, error) {
+func (s *Service) DeleteCard(ctx context.Context, req DeleteCardRequest) (entity.Card, error) {
 	if err := s.validator.ValidateDeleteCardRequest(req); err != nil {
 		return entity.Card{}, NewRequestValidationError(err)
 	}
@@ -694,7 +692,7 @@ func mapCardsToWords(cards []entity.Card) []string {
 	)
 }
 
-func (s *service) generateSentences(word string, size uint32) ([]string, error) {
+func (s *Service) generateSentences(word string, size uint32) ([]string, error) {
 	if len(strings.TrimSpace(word)) == 0 {
 		return nil, nil
 	}
@@ -725,7 +723,7 @@ func extractWords(list []entity.WordInformation) []string {
 	return words
 }
 
-func (s *service) createUserSession(ctx context.Context, userID string) (func(), error) {
+func (s *Service) createUserSession(ctx context.Context, userID string) (func(), error) {
 	logger.FromContext(ctx).
 		Debug("create user session")
 	if err := s.sessionRepo.CreateSession(userID); err != nil {
@@ -745,20 +743,25 @@ func (s *service) createUserSession(ctx context.Context, userID string) (func(),
 	}, nil
 }
 
-func (s *service) enrichCardFromDictionary(card *entity.Card) (err error) {
+func (s *Service) enrichCardFromDictionary(card *entity.Card) error {
 	if card == nil {
 		return fmt.Errorf("card is nil")
 	}
 
-	card.WordInformationList, err = s.enrichWordInformationListFromDictionary(card.Language, card.WordInformationList)
+	enriched, err := s.enrichWordInformationListFromDictionary(card.Language, card.WordInformationList)
 	if err != nil {
 		return fmt.Errorf("enrich word information list from dictionary: %w", err)
 	}
 
+	card.WordInformationList = enriched
+
 	return nil
 }
 
-func (s *service) enrichWordInformationListFromDictionary(language language.Tag, wordInformationLists []entity.WordInformation) ([]entity.WordInformation, error) {
+func (s *Service) enrichWordInformationListFromDictionary(
+	language language.Tag,
+	wordInformationLists []entity.WordInformation,
+) ([]entity.WordInformation, error) {
 	var enrichedWords []entity.WordInformation
 	for _, wordInfo := range wordInformationLists {
 		enrichedWordInfo, err := s.dictionary.GetWordInformation(wordInfo.Word, language)
@@ -775,12 +778,12 @@ func (s *service) enrichWordInformationListFromDictionary(language language.Tag,
 	return enrichedWords, nil
 }
 
-func (s *service) enrichCardWithAudio(ctx context.Context, card *entity.Card) (err error) {
+func (s *Service) enrichCardWithAudio(ctx context.Context, card *entity.Card) error {
 	if card == nil {
 		return fmt.Errorf("card is nil")
 	}
 
-	err = s.enrichWordInformationListWithAudio(ctx, card.Language, card.WordInformationList)
+	err := s.enrichWordInformationListWithAudio(ctx, card.Language, card.WordInformationList)
 	if err != nil {
 		return fmt.Errorf("enrich words with audio: %w", err)
 	}
@@ -788,7 +791,11 @@ func (s *service) enrichCardWithAudio(ctx context.Context, card *entity.Card) (e
 	return nil
 }
 
-func (s *service) enrichWordInformationListWithAudio(ctx context.Context, _ language.Tag, infoList []entity.WordInformation) error {
+func (s *Service) enrichWordInformationListWithAudio(
+	ctx context.Context,
+	_ language.Tag,
+	infoList []entity.WordInformation,
+) error {
 	for i := 0; i < len(infoList); i++ {
 		audio, err := s.textToAudio(ctx, infoList[i].Word)
 		if err != nil {
@@ -800,7 +807,7 @@ func (s *service) enrichWordInformationListWithAudio(ctx context.Context, _ lang
 	return nil
 }
 
-func (s *service) textToAudio(ctx context.Context, text string) ([]byte, error) {
+func (s *Service) textToAudio(ctx context.Context, text string) ([]byte, error) {
 	req := speech.ToSpeechRequest{
 		Input: text,
 		Voice: speech.VoiceSelectionParams{
@@ -813,7 +820,7 @@ func (s *service) textToAudio(ctx context.Context, text string) ([]byte, error) 
 	return s.textToSpeechRepo.ToSpeech(ctx, req)
 }
 
-func (s *service) notFoundInDictionary(lang language.Tag) func(word, _ string) bool {
+func (s *Service) notFoundInDictionary(lang language.Tag) func(word, _ string) bool {
 	return func(word, _ string) bool {
 		_, err := s.dictionary.GetWordInformation(word, lang)
 		return err != nil && errors.Is(err, dictionary.ErrNotFound)

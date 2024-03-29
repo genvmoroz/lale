@@ -12,14 +12,28 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type Service interface {
+	InspectCard(ctx context.Context, req core.InspectCardRequest) (entity.Card, error)
+	PromptCard(ctx context.Context, req core.PromptCardRequest) (core.PromptCardResponse, error)
+	CreateCard(ctx context.Context, req core.CreateCardRequest) (entity.Card, error)
+	GetAllCards(ctx context.Context, req core.GetCardsRequest) (core.GetCardsResponse, error)
+	UpdateCard(ctx context.Context, req core.UpdateCardRequest) (entity.Card, error)
+	UpdateCardPerformance(ctx context.Context, req core.UpdateCardPerformanceRequest) (core.UpdateCardPerformanceResponse, error) //nolint:lll // long line
+	GetCardsToLearn(ctx context.Context, req core.GetCardsRequest) (core.GetCardsResponse, error)
+	GetCardsToRepeat(ctx context.Context, req core.GetCardsRequest) (core.GetCardsResponse, error)
+	GetSentences(ctx context.Context, req core.GetSentencesRequest) (core.GetSentencesResponse, error)
+	GenerateStory(ctx context.Context, req core.GenerateStoryRequest) (core.GenerateStoryResponse, error)
+	DeleteCard(ctx context.Context, req core.DeleteCardRequest) (entity.Card, error)
+}
+
 type Resolver struct {
-	service core.Service
+	service Service
 	api.LaleServiceServer
 
 	transformer Transformer
 }
 
-func NewResolver(service core.Service, transformer Transformer) (*Resolver, error) {
+func NewResolver(service Service, transformer Transformer) (*Resolver, error) {
 	if service == nil {
 		return nil, errors.New("service is required")
 	}
@@ -88,10 +102,12 @@ func (r *Resolver) GetAllCards(ctx context.Context, req *api.GetCardsRequest) (*
 		r.service.GetAllCards,
 		r.transformer.ToAPIGetCardsResponse,
 	)
-
 }
 
-func (r *Resolver) UpdateCardPerformance(ctx context.Context, req *api.UpdateCardPerformanceRequest) (*api.UpdateCardPerformanceResponse, error) {
+func (r *Resolver) UpdateCardPerformance(
+	ctx context.Context,
+	req *api.UpdateCardPerformanceRequest,
+) (*api.UpdateCardPerformanceResponse, error) {
 	return genericResolver[
 		api.UpdateCardPerformanceRequest,
 		core.UpdateCardPerformanceRequest,
@@ -170,7 +186,10 @@ func (r *Resolver) GetSentences(ctx context.Context, req *api.GetSentencesReques
 	)
 }
 
-func (r *Resolver) GenerateStory(ctx context.Context, req *api.GenerateStoryRequest) (*api.GenerateStoryResponse, error) {
+func (r *Resolver) GenerateStory(
+	ctx context.Context,
+	req *api.GenerateStoryRequest,
+) (*api.GenerateStoryResponse, error) {
 	return genericResolver[
 		api.GenerateStoryRequest,
 		core.GenerateStoryRequest,
@@ -213,14 +232,16 @@ func genericResolver[
 	toCoreReq func(*APIRequest) (CoreRequest, error),
 	serviceCall func(context.Context, CoreRequest) (CoreResponse, error),
 	toAPIResp func(CoreResponse) *APIResponse) (*APIResponse, error) {
-
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("nullable request (%T)", req))
 	}
 
 	coreReq, err := toCoreReq(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to transform request: %w", err)
+		return nil, status.Error(
+			codes.InvalidArgument,
+			fmt.Sprintf("failed to transform request: %s", err.Error()),
+		)
 	}
 
 	coreResp, err := serviceCall(ctx, coreReq)

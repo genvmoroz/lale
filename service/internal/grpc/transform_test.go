@@ -1,4 +1,4 @@
-package grpc
+package grpc_test
 
 import (
 	"reflect"
@@ -7,125 +7,12 @@ import (
 
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/service/internal/core"
+	"github.com/genvmoroz/lale/service/internal/grpc"
 	"github.com/genvmoroz/lale/service/pkg/entity"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/text/language"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
-
-func TestAPIWordInformation(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		arg  entity.WordInformation
-		want *api.WordInformation
-	}{
-		{
-			name: "with word",
-			arg:  entity.WordInformation{Word: "someWord"},
-			want: &api.WordInformation{Word: "someWord"},
-		},
-		{
-			name: "with audio",
-			arg:  entity.WordInformation{Audio: []byte("someAudio")},
-			want: &api.WordInformation{Audio: []byte("someAudio")},
-		},
-		{
-			name: "with Translation",
-			arg: entity.WordInformation{
-				Translation: &entity.Translation{
-					Language:     language.English,
-					Translations: []string{"Translation1", "Translation2"},
-				},
-			},
-			want: &api.WordInformation{
-				Translation: &api.Translation{
-					Language:     "en",
-					Translations: []string{"Translation1", "Translation2"},
-				},
-			},
-		},
-		{
-			name: "with origin",
-			arg:  entity.WordInformation{Origin: "origin1"},
-			want: &api.WordInformation{Origin: "origin1"},
-		},
-		{
-			name: "with phonetics",
-			arg: entity.WordInformation{
-				Phonetics: []entity.Phonetic{
-					{Text: "text1"},
-					{Text: "text2"},
-				},
-			},
-			want: &api.WordInformation{
-				Phonetics: []*api.Phonetic{
-					{Text: "text1"},
-					{Text: "text2"},
-				},
-			},
-		},
-		{
-			name: "with meanings",
-			arg: entity.WordInformation{
-				Meanings: []entity.Meaning{
-					{
-						PartOfSpeech: "part1",
-						Definitions: []entity.Definition{{
-							Definition: "definition1",
-							Example:    "example1",
-							Synonyms:   []string{"synonym1"},
-							Antonyms:   []string{"antonym1"},
-						}},
-					},
-					{
-						PartOfSpeech: "part2",
-						Definitions: []entity.Definition{{
-							Definition: "definition2",
-							Example:    "example2",
-							Synonyms:   []string{"synonym2"},
-							Antonyms:   []string{"antonym2"},
-						}},
-					},
-				},
-			},
-			want: &api.WordInformation{
-				Meanings: []*api.Meaning{
-					{
-						PartOfSpeech: "part1",
-						Definitions: []*api.Definition{{
-							Definition: "definition1",
-							Example:    "example1",
-							Synonyms:   []string{"synonym1"},
-							Antonyms:   []string{"antonym1"},
-						}},
-					},
-					{
-						PartOfSpeech: "part2",
-						Definitions: []*api.Definition{{
-							Definition: "definition2",
-							Example:    "example2",
-							Synonyms:   []string{"synonym2"},
-							Antonyms:   []string{"antonym2"},
-						}},
-					},
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
-
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			if got := (transformer{}).toAPIWordInformation(tt.arg); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("apiWord() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestTransformerToCoreInspectCardRequest(t *testing.T) {
 	t.Parallel()
@@ -188,7 +75,7 @@ func TestTransformerToCoreInspectCardRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			tr := DefaultTransformer
+			tr := grpc.DefaultTransformer()
 			got, err := tr.ToCoreInspectCardRequest(tt.input.req)
 
 			require.Equal(t, tt.want.err, err != nil)
@@ -417,8 +304,7 @@ func TestTransformerToAPICard(t *testing.T) {
 		NextDueDate:    timestamppb.New(nextDueDate),
 	}
 
-	tr := DefaultTransformer
-
+	tr := grpc.DefaultTransformer()
 	if got := tr.ToAPICard(card); !reflect.DeepEqual(got, expCard) {
 		t.Fatalf("ToAPIInspectCardResponse() = %v, want %v", got, expCard)
 	}
@@ -725,7 +611,8 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := DefaultTransformer.ToCoreCreateCardRequest(tt.input.req)
+			tr := grpc.DefaultTransformer()
+			got, err := tr.ToCoreCreateCardRequest(tt.input.req)
 
 			require.Equal(t, tt.want.err, err != nil)
 			if tt.want.err {
@@ -789,7 +676,8 @@ func TestTransformerToCoreGetCardsRequest(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := DefaultTransformer.ToCoreGetCardsRequest(tt.input.req)
+			tr := grpc.DefaultTransformer()
+			got, err := tr.ToCoreGetCardsRequest(tt.input.req)
 
 			require.Equal(t, tt.want.err, err != nil)
 			if tt.want.err {
@@ -1077,7 +965,10 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 		testcase := testcase
 
 		t.Run(name, func(t *testing.T) {
-			if got := DefaultTransformer.ToAPIGetCardsResponse(testcase.input.resp); !reflect.DeepEqual(got, testcase.want.resp) {
+			t.Parallel()
+
+			tr := grpc.DefaultTransformer()
+			if got := tr.ToAPIGetCardsResponse(testcase.input.resp); !reflect.DeepEqual(got, testcase.want.resp) {
 				t.Fatalf("ToAPIGetCardsResponse() = %v, want %v", got, testcase.want.resp)
 			}
 		})
@@ -1125,7 +1016,10 @@ func TestTransformerToCoreUpdateCardPerformanceRequest(t *testing.T) {
 		testcase := testcase
 
 		t.Run(name, func(t *testing.T) {
-			if got := DefaultTransformer.ToCoreUpdateCardPerformanceRequest(testcase.input.req); !reflect.DeepEqual(got, testcase.want.req) {
+			t.Parallel()
+
+			tr := grpc.DefaultTransformer()
+			if got := tr.ToCoreUpdateCardPerformanceRequest(testcase.input.req); !reflect.DeepEqual(got, testcase.want.req) {
 				t.Fatalf("ToCoreUpdateCardPerformanceRequest() = %v, want %v", got, testcase.want.req)
 			}
 		})
@@ -1165,7 +1059,10 @@ func TestTransformerToAPIUpdateCardPerformanceResponse(t *testing.T) {
 		testcase := testcase
 
 		t.Run(name, func(t *testing.T) {
-			if got := DefaultTransformer.ToAPIUpdateCardPerformanceResponse(testcase.input.resp); !reflect.DeepEqual(got, testcase.want.resp) {
+			t.Parallel()
+
+			tr := grpc.DefaultTransformer()
+			if got := tr.ToAPIUpdateCardPerformanceResponse(testcase.input.resp); !reflect.DeepEqual(got, testcase.want.resp) {
 				t.Fatalf("ToAPIUpdateCardPerformanceResponse() = %v, want %v", got, testcase.want.resp)
 			}
 		})
@@ -1197,7 +1094,10 @@ func TestTransformerToCoreDeleteCardRequest(t *testing.T) {
 		testcase := testcase
 
 		t.Run(name, func(t *testing.T) {
-			if got := DefaultTransformer.ToCoreDeleteCardRequest(testcase.input.req); !reflect.DeepEqual(got, testcase.want.req) {
+			t.Parallel()
+
+			tr := grpc.DefaultTransformer()
+			if got := tr.ToCoreDeleteCardRequest(testcase.input.req); !reflect.DeepEqual(got, testcase.want.req) {
 				t.Fatalf("ToCoreDeleteCardRequest() = %v, want %v", got, testcase.want.req)
 			}
 		})
@@ -1218,7 +1118,7 @@ func Test_transformer_ToCorePromptCardRequest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tr := transformer{}
+			tr := grpc.DefaultTransformer()
 			got, err := tr.ToCorePromptCardRequest(tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ToCorePromptCardRequest() error = %v, wantErr %v", err, tt.wantErr)
@@ -1244,7 +1144,7 @@ func Test_transformer_ToAPIPromptCardResponse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tr := transformer{}
+			tr := grpc.DefaultTransformer()
 			if got := tr.ToAPIPromptCardResponse(tt.args.resp); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ToAPIPromptCardResponse() = %v, want %v", got, tt.want)
 			}
@@ -1268,7 +1168,10 @@ func TestTransformerToCoreUpdateCardRequest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			got, err := transformer{}.ToCoreUpdateCardRequest(tt.args.req)
+			t.Parallel()
+
+			tr := grpc.DefaultTransformer()
+			got, err := tr.ToCoreUpdateCardRequest(tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t1.Errorf("ToCoreUpdateCardRequest() error = %v, wantErr %v", err, tt.wantErr)
 				return

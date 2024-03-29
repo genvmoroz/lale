@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/tg-client/internal/auxl"
 	"github.com/genvmoroz/lale/tg-client/internal/repository"
+	"slices"
 )
 
 type State struct {
@@ -74,7 +74,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			return len(strings.TrimSpace(s)) != 0
 		},
 		chatID,
-		"Send the ISO 1 Letter Language Code of Translations, ex: <code>en</code>",
+		"Send the ISO 1 Letter Language Code, ex: <code>en</code>",
 		func(input string, _ int64, _ *bot.Client) (string, error) {
 			return strings.TrimSpace(input), nil
 		},

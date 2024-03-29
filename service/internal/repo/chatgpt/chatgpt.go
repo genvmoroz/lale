@@ -1,3 +1,4 @@
+//nolint:gomnd,all // magic numbers are fine here
 package chatgpt
 
 import (

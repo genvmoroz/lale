@@ -85,8 +85,8 @@ func (validator) ValidateUpdateCardPerformanceRequest(req UpdateCardPerformanceR
 	if len(strings.TrimSpace(req.CardID)) == 0 {
 		return errors.New("cardID is required")
 	}
-	if req.PerformanceRating > 5 {
-		return fmt.Errorf("performance rating %d is out of range [0:5]", req.PerformanceRating)
+	if req.PerformanceRating > MaxPerformanceRating {
+		return fmt.Errorf("performance rating %d is out of range [0:%d]", req.PerformanceRating, MaxPerformanceRating)
 	}
 
 	return nil

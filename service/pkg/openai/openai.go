@@ -1,3 +1,4 @@
+//nolint:gomnd,lll,all // magic numbers are fine here
 package openai
 
 import (
@@ -93,6 +94,9 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 	if len(strings.TrimSpace(word)) == 0 {
 		return nil, errors.New("word is blank")
 	}
+	if !complexity.IsValid() {
+		return nil, fmt.Errorf("invalid complexity: %d", int32(complexity))
+	}
 
 	req := http.AcquireRequest()
 	defer http.ReleaseRequest(req)
@@ -126,7 +130,7 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 		return nil, fmt.Errorf("executing request error: %w", err)
 	}
 
-	if resp.StatusCode() != 200 {
+	if resp.StatusCode() != basehttp.StatusOK {
 		return nil, fmt.Errorf("status code: %d", resp.StatusCode())
 	}
 
@@ -217,7 +221,7 @@ func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) 
 		return nil, fmt.Errorf("executing request error: %w", err)
 	}
 
-	if resp.StatusCode() != 200 {
+	if resp.StatusCode() != basehttp.StatusOK {
 		return nil, fmt.Errorf("status code: %d", resp.StatusCode())
 	}
 
@@ -294,7 +298,7 @@ func (s *Scraper) genStory(words []string, lang language.Tag) (string, error) {
 		return "", fmt.Errorf("executing request error: %w", err)
 	}
 
-	if resp.StatusCode() != 200 {
+	if resp.StatusCode() != basehttp.StatusOK {
 		return "", fmt.Errorf("status code: %d", resp.StatusCode())
 	}
 
@@ -308,48 +312,6 @@ func (s *Scraper) genStory(words []string, lang language.Tag) (string, error) {
 	}
 
 	return parsedResponse.Choices[0].Message.Content, nil
-}
-
-func (s *Scraper) foo(v string) error { //nolint:unused
-	req := http.AcquireRequest()
-	defer http.ReleaseRequest(req)
-
-	req.Header.SetRequestURI(s.addr)
-	req.Header.SetMethod(basehttp.MethodPost)
-
-	s.authorizeReq(req)
-
-	body, err := s.prepareRequestBody(v)
-	if err != nil {
-		return fmt.Errorf("prepare request body: %w", err)
-	}
-
-	req.AppendBody(body)
-
-	resp, err := s.client.Do(req)
-	defer func() {
-		if resp != nil {
-			http.ReleaseResponse(resp)
-		}
-	}()
-	if err != nil {
-		return fmt.Errorf("executing request error: %w", err)
-	}
-
-	if resp.StatusCode() != 200 {
-		return fmt.Errorf("status code: %d", resp.StatusCode())
-	}
-
-	var parsedResponse response
-	if err = json.Unmarshal(resp.Body(), &parsedResponse); err != nil {
-		return fmt.Errorf("parse response body: %w", err)
-	}
-
-	if len(parsedResponse.Choices) == 0 {
-		return errors.New("connection successful but response is empty")
-	}
-
-	return nil
 }
 
 type (
@@ -413,7 +375,7 @@ func (s *Scraper) ping() error {
 		return fmt.Errorf("execute request: %w", err)
 	}
 
-	if resp.StatusCode() != 200 {
+	if resp.StatusCode() != basehttp.StatusOK {
 		return fmt.Errorf("status code: %d", resp.StatusCode())
 	}
 
@@ -464,7 +426,7 @@ func (c EnglishComplexity) IsValid() bool {
 	return ok
 }
 
-var complexities = map[EnglishComplexity]string{
+var complexities = map[EnglishComplexity]string{ //nolint:gochecknoglobals // it's a map of constants
 	Beginner:     "Beginner",
 	Intermediate: "Intermediate",
 	Advanced:     "Advanced",

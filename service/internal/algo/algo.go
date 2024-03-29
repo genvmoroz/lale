@@ -13,6 +13,8 @@ func NewAnki(now func() time.Time) *Anki {
 	return &Anki{now: now}
 }
 
+const day = 24 * time.Hour
+
 func (a Anki) CalculateNextDueDate(performance uint32, correctAnswers uint32) time.Time {
 	next := a.now().
 		UTC().
@@ -21,27 +23,27 @@ func (a Anki) CalculateNextDueDate(performance uint32, correctAnswers uint32) ti
 				float64(performance),
 				float64(correctAnswers),
 			),
-		).Truncate(24 * time.Hour)
+		).Truncate(day)
 
 	if next.Before(a.now()) {
 		return a.now().
-			Add(24 * time.Hour).
-			Truncate(24 * time.Hour)
-	} else {
-		return next
+			Add(day).
+			Truncate(day)
 	}
+	return next
 }
 
+//nolint:gomnd // magic numbers are used for calculations
 func (Anki) calculateShift(performance float64, correctAnswers float64) time.Duration {
 	if correctAnswers == 0 {
 		return durationFromDays(1)
 	}
 
-	difficulty := -0.8 + 0.28*float64(performance) + 0.02*math.Pow(performance, 2)
+	difficulty := -0.8 + 0.28*performance + 0.02*math.Pow(performance, 2)
 
 	return durationFromDays(6 * math.Pow(difficulty, correctAnswers-1))
 }
 
 func durationFromDays(days float64) time.Duration {
-	return time.Duration(days) * 24 * time.Hour
+	return time.Duration(days) * day
 }

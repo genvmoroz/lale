@@ -2,10 +2,10 @@ package entity
 
 import (
 	"errors"
-	"github.com/samber/lo"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 	"golang.org/x/text/language"
 )
 
@@ -51,10 +51,12 @@ type (
 		Antonyms   []string `yaml:"Antonyms,omitempty"`
 	}
 
-	User struct {
-		id      string    // nolint: unused
-		created time.Time // nolint: unused
-	}
+	/*	temporary unused, but may be useful in the future
+		User struct {
+				id      string
+				created time.Time
+			}
+	*/
 
 	UserSession struct {
 		ID      string     `json:"id"`
@@ -82,7 +84,7 @@ func (c *Card) NeedToLearn() bool {
 
 func (c *Card) GetAnswer(correct bool) uint32 {
 	if correct {
-		c.CorrectAnswers += 1
+		c.CorrectAnswers++
 	} else {
 		c.CorrectAnswers = 0
 	}

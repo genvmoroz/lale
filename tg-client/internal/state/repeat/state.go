@@ -43,7 +43,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		isStringNotBlank,
 		chatID,
 
-		"Send the language of translation, ex: <code>en</code>",
+		"Send the language, ex: <code>en</code>",
 		func(input string, _ int64, _ *bot.Client) (string, error) {
 			return strings.TrimSpace(input), nil
 		},

@@ -5,10 +5,9 @@ import (
 	"log"
 	"time"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/tg-client/internal/transform"
+	"gopkg.in/yaml.v3"
 )
 
 func Card(card *api.Card, withWords bool) []string {

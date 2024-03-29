@@ -3,7 +3,6 @@ package learn
 import (
 	"context"
 	"fmt"
-	"github.com/genvmoroz/lale/tg-client/internal/state/cardseq"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/genvmoroz/lale/tg-client/internal/auxl"
 	"github.com/genvmoroz/lale/tg-client/internal/pretty"
 	"github.com/genvmoroz/lale/tg-client/internal/repository"
+	"github.com/genvmoroz/lale/tg-client/internal/state/cardseq"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/sirupsen/logrus"
 )
@@ -42,7 +42,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		isStringNotBlank,
 		chatID,
 
-		"Send the language of translation, ex: <code>en</code>",
+		"Send the language, ex: <code>en</code>",
 		func(input string, _ int64, _ *bot.Client) (string, error) {
 			return strings.TrimSpace(input), nil
 		},

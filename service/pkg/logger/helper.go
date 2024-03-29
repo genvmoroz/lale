@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var key = struct {
+var key = struct { //nolint:gochecknoglobals // it's a context key
 	val string
 }{
 	val: "3ef61cf6-ffe1-4ac3-87f2-da400fc71e6f",

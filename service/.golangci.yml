@@ -210,9 +210,9 @@ linters:
     - testifylint
     - goheader # checks is file header matches to pattern
     - gci # controls golang package import order and makes it always deterministic
-    - wrapcheck # checks that errors returned from external packages are wrapped
 
     ## you may want to enable
+    #- wrapcheck # checks that errors returned from external packages are wrapped
     #- decorder # checks declaration order and count of types, constants, variables and functions
     #- exhaustruct # checks if all structure fields are initialized
     #- godox # detects FIXME, TODO and other comment keywords

@@ -3,7 +3,6 @@ package create
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/genvmoroz/bot-engine/bot"
@@ -12,6 +11,7 @@ import (
 	"github.com/genvmoroz/lale/tg-client/internal/pretty"
 	"github.com/genvmoroz/lale/tg-client/internal/repository"
 	"github.com/samber/lo"
+	"slices"
 )
 
 type State struct {
@@ -45,7 +45,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			return len(strings.TrimSpace(s)) != 0
 		},
 		chatID,
-		"Send the ISO 1 Letter Language Code of Translations, ex: <code>en</code>",
+		"Send the ISO 1 Letter Language Code, ex: <code>en</code>",
 		func(input string, _ int64, _ *bot.Client) (string, error) {
 			return strings.TrimSpace(input), nil
 		},

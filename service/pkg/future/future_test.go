@@ -1,10 +1,11 @@
-package future
+package future_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
+	"github.com/genvmoroz/lale/service/pkg/future"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
@@ -18,9 +19,9 @@ func TestFutureTaskCorrect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	run := func(ctx context.Context) (string, error) { return "done", nil }
+	run := func(_ context.Context) (string, error) { return "done", nil }
 
-	task := NewTask[string](ctx, run)
+	task := future.NewTask[string](ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
@@ -54,7 +55,7 @@ func TestFutureTaskContextCanceled(t *testing.T) {
 		}
 	}
 
-	task := NewTask[string](ctx, run)
+	task := future.NewTask[string](ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
@@ -86,7 +87,7 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 		}
 	}
 
-	task := NewTask[string](ctx, run)
+	task := future.NewTask[string](ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
@@ -116,16 +117,16 @@ func TestFutureTaskRunWithTaskError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	run := func(ctx context.Context) (string, error) { return "", assert.AnError }
+	run := func(_ context.Context) (string, error) { return "", assert.AnError }
 
-	task := NewTask[string](ctx, run)
+	task := future.NewTask[string](ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
 	require.False(t, task.IsCompleted())
 
 	res, err := task.Get(time.Second)
-	require.ErrorAs(t, err, &TaskError{})
+	require.ErrorAs(t, err, &future.TaskError{})
 	require.ErrorIs(t, err, assert.AnError)
 	require.Equal(t, "", res)
 	require.False(t, task.IsCancelled())
@@ -138,12 +139,12 @@ func TestFutureTaskRunTaskCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	run := func(ctx context.Context) (string, error) {
+	run := func(_ context.Context) (string, error) {
 		time.Sleep(time.Second)
 		return "done", nil
 	}
 
-	task := NewTask[string](ctx, run)
+	task := future.NewTask[string](ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())

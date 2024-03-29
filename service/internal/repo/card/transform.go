@@ -59,7 +59,7 @@ func unmarshalCursor(ctx context.Context, cursor *mongo.Cursor) ([]entity.Card, 
 	return cards, nil
 }
 
-var defaultCustomRegistry = createCustomRegistry()
+var defaultCustomRegistry = createCustomRegistry() //nolint:gochecknoglobals // it's fine to have here
 
 func createCustomRegistry() *bsoncodec.Registry {
 	registry := bson.DefaultRegistry

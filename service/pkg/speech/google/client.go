@@ -16,8 +16,18 @@ import (
 
 type (
 	Connection interface {
-		SynthesizeSpeech(ctx context.Context, req *texttospeechpb.SynthesizeSpeechRequest, opts ...gax.CallOption) (*texttospeechpb.SynthesizeSpeechResponse, error)
-		ListVoices(ctx context.Context, req *texttospeechpb.ListVoicesRequest, opts ...gax.CallOption) (*texttospeechpb.ListVoicesResponse, error)
+		SynthesizeSpeech(
+			ctx context.Context,
+			req *texttospeechpb.SynthesizeSpeechRequest,
+			opts ...gax.CallOption,
+		) (*texttospeechpb.SynthesizeSpeechResponse, error)
+
+		ListVoices(
+			ctx context.Context,
+			req *texttospeechpb.ListVoicesRequest,
+			opts ...gax.CallOption,
+		) (*texttospeechpb.ListVoicesResponse, error)
+
 		Close() error
 	}
 

@@ -32,7 +32,9 @@ type (
 	transformer struct{}
 )
 
-var DefaultTransformer Transformer = transformer{}
+func DefaultTransformer() Transformer {
+	return transformer{}
+}
 
 func (transformer) ToCoreInspectCardRequest(req *api.InspectCardRequest) (core.InspectCardRequest, error) {
 	if req == nil {
@@ -69,7 +71,7 @@ func (transformer) ToCorePromptCardRequest(req *api.PromptCardRequest) (core.Pro
 		Word:                req.GetWord(),
 		WordLanguage:        wLang,
 		TranslationLanguage: tLang,
-	}, err
+	}, nil
 }
 
 func (transformer) ToAPIPromptCardResponse(resp core.PromptCardResponse) *api.PromptCardResponse {
@@ -122,7 +124,9 @@ func (t transformer) ToAPIGetCardsResponse(resp core.GetCardsResponse) *api.GetC
 	}
 }
 
-func (transformer) ToCoreUpdateCardPerformanceRequest(req *api.UpdateCardPerformanceRequest) core.UpdateCardPerformanceRequest {
+func (transformer) ToCoreUpdateCardPerformanceRequest(
+	req *api.UpdateCardPerformanceRequest,
+) core.UpdateCardPerformanceRequest {
 	return core.UpdateCardPerformanceRequest{
 		UserID:            req.GetUserID(),
 		CardID:            req.GetCardID(),
@@ -130,7 +134,9 @@ func (transformer) ToCoreUpdateCardPerformanceRequest(req *api.UpdateCardPerform
 	}
 }
 
-func (transformer) ToAPIUpdateCardPerformanceResponse(resp core.UpdateCardPerformanceResponse) *api.UpdateCardPerformanceResponse {
+func (transformer) ToAPIUpdateCardPerformanceResponse(
+	resp core.UpdateCardPerformanceResponse,
+) *api.UpdateCardPerformanceResponse {
 	return &api.UpdateCardPerformanceResponse{
 		NextDueDate: timestamppb.New(resp.NextDueDate),
 	}
@@ -243,7 +249,6 @@ func (t transformer) toCoreWordInformationList(list []*api.WordInformation) ([]e
 				return nil, fmt.Errorf("transform word (%s): %w", w.Word, err)
 			}
 			res = append(res, aw)
-
 		}
 	}
 
@@ -252,7 +257,7 @@ func (t transformer) toCoreWordInformationList(list []*api.WordInformation) ([]e
 
 func (transformer) toCoreTranslation(t *api.Translation) (*entity.Translation, error) {
 	if t == nil {
-		return nil, nil
+		return nil, fmt.Errorf("empty translation")
 	}
 
 	lang, err := language.Parse(t.GetLanguage())
@@ -278,18 +283,23 @@ func (t transformer) toAPIWordInformation(info entity.WordInformation) *api.Word
 }
 
 func (t transformer) toCoreWordInformation(info *api.WordInformation) (entity.WordInformation, error) {
-	translation, err := t.toCoreTranslation(info.Translation)
-	if err != nil {
-		return entity.WordInformation{}, fmt.Errorf("translation: %w", err)
+	out := entity.WordInformation{
+		Word:      info.Word,
+		Origin:    info.Origin,
+		Phonetics: t.toCorePhonetics(info.Phonetics),
+		Meanings:  t.toCoreMeanings(info.Meanings),
+		Audio:     info.GetAudio(),
 	}
-	return entity.WordInformation{
-		Word:        info.Word,
-		Translation: translation,
-		Origin:      info.Origin,
-		Phonetics:   t.toCorePhonetics(info.Phonetics),
-		Meanings:    t.toCoreMeanings(info.Meanings),
-		Audio:       info.GetAudio(),
-	}, nil
+
+	if info.Translation != nil {
+		translation, err := t.toCoreTranslation(info.Translation)
+		if err != nil {
+			return entity.WordInformation{}, fmt.Errorf("translation: %w", err)
+		}
+		out.Translation = translation
+	}
+
+	return out, nil
 }
 
 func (t transformer) toAPIMeanings(meanings []entity.Meaning) []*api.Meaning {

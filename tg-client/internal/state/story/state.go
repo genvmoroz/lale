@@ -3,12 +3,13 @@ package story
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/tg-client/internal/auxl"
 	"github.com/genvmoroz/lale/tg-client/internal/repository"
 	"github.com/sirupsen/logrus"
-	"strings"
 )
 
 type State struct {
