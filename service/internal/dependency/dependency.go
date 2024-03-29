@@ -26,7 +26,7 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 		return nil, fmt.Errorf("create openai helper: %w", err)
 	}
 
-	userSessionRepo, err := session.NewRepo(cfg.Session)
+	userSessionRepo, err := session.NewRepo()
 	if err != nil {
 		return nil, fmt.Errorf("create user session client: %w", err)
 	}

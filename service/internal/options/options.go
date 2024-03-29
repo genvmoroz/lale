@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/genvmoroz/lale/service/internal/repo/card"
-	"github.com/genvmoroz/lale/service/internal/repo/session"
 	"github.com/genvmoroz/lale/service/pkg/openai"
 	"github.com/genvmoroz/lale/service/pkg/speech/google"
 	"github.com/go-playground/validator/v10"
@@ -19,7 +18,6 @@ type (
 		LogLevel logrus.Level `envconfig:"APP_LOG_LEVEL" required:"true"`
 
 		OpenAI     openai.Config
-		Session    session.Config
 		CardRepo   card.Config
 		Dictionary DictionaryConfig
 		Google     google.Config
