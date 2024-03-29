@@ -1,0 +1,25 @@
+build:
+  docker:
+    service: service/Dockerfile
+    tg-client: tg-client/Dockerfile
+
+setup:
+  config:
+    APP_LOG_LEVEL: info
+    APP_GRPC_PORT: 8080
+    APP_MONGO_CARD_PROTOCOL: mongodb+srv
+    APP_MONGO_CARD_HOST: "dictionary.zxrao.mongodb.net"
+    APP_MONGO_CARD_URI_PARAMS: "retryWrites:true,w:majority"
+    APP_MONGO_USER: "genvmoroz"
+    APP_MONGO_PASS: ${MONGO_PASS}
+    APP_MONGO_CARD_DATABASE: "dictionary"
+    APP_MONGO_CARD_COLLECTION: "cards"
+    APP_USER_SESSION_EXPIRATION: 1h
+    APP_USER_SESSION_KEY_PREFIX: "user-session"
+    APP_DICTIONARY_HOST: "https://api.dictionaryapi.dev"
+    APP_OPENAI_TOKEN: ${OPENAI_TOKEN}
+    APP_GOOGLE_PROJECT_KEY_JSON: ${GOOGLE_PROJECT_KEY_JSON}
+    APP_LALE_SERVICE_HOST: service
+    APP_LALE_SERVICE_PORT: 8080
+    APP_LALE_SERVICE_TIMEOUT: 1m
+    APP_TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
