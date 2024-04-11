@@ -254,11 +254,11 @@ func genericResolver[
 
 func resolveCoreError(err error) error {
 	switch {
-	case errors.As(err, &core.RequestValidationError{}):
+	case core.IsValidationError(err):
 		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.As(err, &core.CardNotFoundError{}):
+	case core.IsNotFoundError(err):
 		return status.Error(codes.NotFound, err.Error())
-	case errors.As(err, &core.CardAlreadyExistsError{}):
+	case core.IsAlreadyExistsError(err):
 		return status.Error(codes.AlreadyExists, err.Error())
 	default:
 		return status.Error(codes.Internal, err.Error())

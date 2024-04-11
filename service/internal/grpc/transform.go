@@ -128,9 +128,9 @@ func (transformer) ToCoreUpdateCardPerformanceRequest(
 	req *api.UpdateCardPerformanceRequest,
 ) core.UpdateCardPerformanceRequest {
 	return core.UpdateCardPerformanceRequest{
-		UserID:            req.GetUserID(),
-		CardID:            req.GetCardID(),
-		PerformanceRating: req.GetPerformanceRating(),
+		UserID:         req.GetUserID(),
+		CardID:         req.GetCardID(),
+		IsInputCorrect: req.GetIsInputCorrect(),
 	}
 }
 
@@ -208,12 +208,12 @@ func (t transformer) toAPICards(cards []entity.Card) []*api.Card {
 
 func (t transformer) ToAPICard(card entity.Card) *api.Card {
 	return &api.Card{
-		Id:                  card.ID,
-		UserID:              card.UserID,
-		Language:            card.Language.String(),
-		WordInformationList: t.toAPIWordInformationList(card.WordInformationList),
-		CorrectAnswers:      card.CorrectAnswers,
-		NextDueDate:         timestamppb.New(card.NextDueDate),
+		Id:                              card.ID,
+		UserID:                          card.UserID,
+		Language:                        card.Language.String(),
+		WordInformationList:             t.toAPIWordInformationList(card.WordInformationList),
+		ConsecutiveCorrectAnswersNumber: card.ConsecutiveCorrectAnswersNumber,
+		NextDueDate:                     timestamppb.New(card.NextDueDate),
 	}
 }
 

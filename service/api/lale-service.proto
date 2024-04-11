@@ -23,7 +23,7 @@ message Card {
   string userID = 2;
   string language = 3;
   repeated WordInformation wordInformationList = 4;
-  uint32 correctAnswers = 5;
+  uint32 consecutiveCorrectAnswersNumber = 5;
   google.protobuf.Timestamp nextDueDate = 6;
 }
 
@@ -106,7 +106,7 @@ message GetCardsResponse {
 message UpdateCardPerformanceRequest {
   string userID = 1;
   string cardID = 2;
-  uint32 performanceRating = 3;
+  bool is_input_correct = 3;
 }
 
 message UpdateCardPerformanceResponse {

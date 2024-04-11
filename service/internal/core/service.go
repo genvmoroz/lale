@@ -31,7 +31,7 @@ type (
 	}
 
 	AnkiAlgo interface {
-		CalculateNextDueDate(uint32, uint32) time.Time
+		CalculateNextDueDate(performance uint32, consecutiveCorrectAnswersNumber uint32) time.Time
 	}
 
 	AIHelper interface {
@@ -99,7 +99,7 @@ func NewService(
 
 func (s *Service) InspectCard(ctx context.Context, req InspectCardRequest) (entity.Card, error) {
 	if err := s.validator.ValidateInspectCardRequest(req); err != nil {
-		return entity.Card{}, NewRequestValidationError(err)
+		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
 	ctx = createContextWithCorrelationLogger(ctx,
@@ -146,12 +146,12 @@ func (s *Service) InspectCard(ctx context.Context, req InspectCardRequest) (enti
 
 	logger.FromContext(ctx).
 		Debug("card not found")
-	return entity.Card{}, NewCardNotFoundError().WithWord(req.Word)
+	return entity.Card{}, fmt.Errorf("%w: word %s", NewNotFoundError(), req.Word)
 }
 
 func (s *Service) PromptCard(ctx context.Context, req PromptCardRequest) (PromptCardResponse, error) {
 	if err := s.validator.ValidatePromptCardRequest(req); err != nil {
-		return PromptCardResponse{}, NewRequestValidationError(err)
+		return PromptCardResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
 	ctx = createContextWithCorrelationLogger(ctx,
@@ -198,7 +198,7 @@ func (s *Service) PromptCard(ctx context.Context, req PromptCardRequest) (Prompt
 
 func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity.Card, error) { //nolint:gocognit,lll // it's ok
 	if err := s.validator.ValidateCreateCardRequest(req); err != nil {
-		return entity.Card{}, NewRequestValidationError(err)
+		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
 	ctx = createContextWithCorrelationLogger(ctx,
@@ -234,7 +234,7 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 					if strings.EqualFold(val.Word, wordInfo.Word) {
 						logger.FromContext(ctx).
 							Debug("card already exists")
-						return entity.Card{}, NewCardAlreadyExistsError(wordInfo.Word)
+						return entity.Card{}, fmt.Errorf("%w: word %s", NewAlreadyExistsError(), wordInfo.Word)
 					}
 				}
 			}
@@ -285,7 +285,7 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 
 func (s *Service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
 	if err := s.validator.ValidateGetCardsRequest(req); err != nil {
-		return GetCardsResponse{}, NewRequestValidationError(err)
+		return GetCardsResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
 	ctx = createContextWithCorrelationLogger(ctx,
@@ -336,15 +336,15 @@ func (s *Service) UpdateCardPerformance(
 	req UpdateCardPerformanceRequest,
 ) (UpdateCardPerformanceResponse, error) {
 	if err := s.validator.ValidateUpdateCardPerformanceRequest(req); err != nil {
-		return UpdateCardPerformanceResponse{}, NewRequestValidationError(err)
+		return UpdateCardPerformanceResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":            req.UserID,
-			"CardID":            req.CardID,
-			"PerformanceRating": req.PerformanceRating,
-			"Request":           "UpdateCardPerformance",
+			"UserID":         req.UserID,
+			"CardID":         req.CardID,
+			"IsInputCorrect": req.IsInputCorrect,
+			"Request":        "UpdateCardPerformance",
 		},
 	)
 
@@ -379,15 +379,20 @@ func (s *Service) UpdateCardPerformance(
 	if card == nil {
 		logger.FromContext(ctx).
 			Debug("card not found")
-		return UpdateCardPerformanceResponse{}, NewCardNotFoundError().WithID(req.CardID)
+		return UpdateCardPerformanceResponse{}, fmt.Errorf("%w: card ID %s", NewNotFoundError(), req.CardID)
 	}
 
 	logger.FromContext(ctx).
 		Debug("calculate next due date")
-	nextDueDate := s.ankiAlgo.CalculateNextDueDate(
-		req.PerformanceRating,
-		card.GetAnswer(req.PerformanceRating > 2), //nolint:gomnd // 2 is a magic number
-	)
+
+	card.AddAnswer(req.IsInputCorrect)
+	consecutiveCorrectAnswersNumber := card.GetConsecutiveCorrectAnswersNumber()
+
+	performance := consecutiveCorrectAnswersNumber
+	if performance > MaxAllowedPerformanceRating {
+		performance = MaxAllowedPerformanceRating
+	}
+	nextDueDate := s.ankiAlgo.CalculateNextDueDate(performance, consecutiveCorrectAnswersNumber)
 	card.NextDueDate = nextDueDate
 
 	logger.FromContext(ctx).
@@ -407,7 +412,7 @@ func (s *Service) UpdateCardPerformance(
 
 func (s *Service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity.Card, error) {
 	if err := s.validator.ValidateUpdateCardRequest(req); err != nil {
-		return entity.Card{}, NewRequestValidationError(err)
+		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
 	ctx = createContextWithCorrelationLogger(ctx,
@@ -444,7 +449,7 @@ func (s *Service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity
 	if !found {
 		logger.FromContext(ctx).
 			Debug("card not found")
-		return entity.Card{}, NewCardNotFoundError().WithID(req.CardID)
+		return entity.Card{}, fmt.Errorf("%w: card ID %s", NewNotFoundError(), req.CardID)
 	}
 
 	card.WordInformationList = req.WordInformationList
@@ -502,7 +507,7 @@ func (s *Service) getCardsByFilter(
 	predicate func(card entity.Card) bool,
 ) (GetCardsResponse, error) {
 	if err := s.validator.ValidateGetCardsRequest(req); err != nil {
-		return GetCardsResponse{}, NewRequestValidationError(err)
+		return GetCardsResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
 	ctx = createContextWithCorrelationLogger(ctx,
@@ -547,7 +552,7 @@ func (s *Service) getCardsByFilter(
 
 func (s *Service) GetSentences(ctx context.Context, req GetSentencesRequest) (GetSentencesResponse, error) {
 	if err := s.validator.ValidateGetSentencesRequest(req); err != nil {
-		return GetSentencesResponse{}, NewRequestValidationError(err)
+		return GetSentencesResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
 	ctx = createContextWithCorrelationLogger(ctx,
@@ -573,7 +578,7 @@ func (s *Service) GetSentences(ctx context.Context, req GetSentencesRequest) (Ge
 
 func (s *Service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (GenerateStoryResponse, error) {
 	if err := s.validator.ValidateGenerateStoryRequest(req); err != nil {
-		return GenerateStoryResponse{}, NewRequestValidationError(err)
+		return GenerateStoryResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
 	ctx = createContextWithCorrelationLogger(ctx,
@@ -623,7 +628,7 @@ func (s *Service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (
 
 func (s *Service) DeleteCard(ctx context.Context, req DeleteCardRequest) (entity.Card, error) {
 	if err := s.validator.ValidateDeleteCardRequest(req); err != nil {
-		return entity.Card{}, NewRequestValidationError(err)
+		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
 	ctx = createContextWithCorrelationLogger(ctx,
@@ -659,7 +664,7 @@ func (s *Service) DeleteCard(ctx context.Context, req DeleteCardRequest) (entity
 	if !found {
 		logger.FromContext(ctx).
 			Debug("card not found")
-		return entity.Card{}, NewCardNotFoundError().WithID(req.CardID)
+		return entity.Card{}, fmt.Errorf("%w: card ID %s", NewNotFoundError(), req.CardID)
 	}
 
 	logger.FromContext(ctx).

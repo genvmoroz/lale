@@ -1,59 +1,36 @@
 package core
 
-import "fmt"
-
-type (
-	RequestValidationError struct {
-		baseErr error
-	}
-
-	CardNotFoundError struct {
-		id   string
-		word string
-	}
-
-	CardAlreadyExistsError struct {
-		word string
-	}
+import (
+	"errors"
+	"fmt"
 )
 
-func NewRequestValidationError(err error) RequestValidationError {
-	return RequestValidationError{baseErr: err}
+var errValidation = fmt.Errorf("validation failed")
+
+func NewValidationError() error {
+	return errValidation
 }
 
-func NewCardNotFoundError() CardNotFoundError {
-	return CardNotFoundError{}
+func IsValidationError(err error) bool {
+	return errors.Is(err, errValidation)
 }
 
-func NewCardAlreadyExistsError(word string) CardAlreadyExistsError {
-	return CardAlreadyExistsError{word: word}
+var errNotFound = fmt.Errorf("not found")
+
+func NewNotFoundError() error {
+	return errNotFound
 }
 
-func (e RequestValidationError) Error() string {
-	return fmt.Sprintf("validation failed: %s", e.baseErr.Error())
+func IsNotFoundError(err error) bool {
+	return errors.Is(err, errNotFound)
 }
 
-func (e CardNotFoundError) Error() string {
-	switch {
-	case e.id != "":
-		return fmt.Sprintf("card with id %s not found", e.id)
-	case e.word != "":
-		return fmt.Sprintf("card with word %s not found", e.word)
-	default:
-		return "card not found"
-	}
+var errAlreadyExists = fmt.Errorf("already exists")
+
+func NewAlreadyExistsError() error {
+	return errAlreadyExists
 }
 
-func (e CardAlreadyExistsError) Error() string {
-	return fmt.Sprintf("card with word %s already exists", e.word)
-}
-
-func (e CardNotFoundError) WithID(id string) CardNotFoundError {
-	e.id = id
-	return e
-}
-
-func (e CardNotFoundError) WithWord(word string) CardNotFoundError {
-	e.word = word
-	return e
+func IsAlreadyExistsError(err error) bool {
+	return errors.Is(err, errAlreadyExists)
 }

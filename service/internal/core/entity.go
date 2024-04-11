@@ -60,9 +60,9 @@ type (
 	}
 
 	UpdateCardPerformanceRequest struct {
-		UserID            string
-		CardID            string
-		PerformanceRating uint32
+		UserID         string
+		CardID         string
+		IsInputCorrect bool
 	}
 
 	UpdateCardPerformanceResponse struct {

@@ -194,8 +194,8 @@ func TestTransformerToAPICard(t *testing.T) {
 				},
 			},
 		},
-		CorrectAnswers: 1,
-		NextDueDate:    nextDueDate,
+		ConsecutiveCorrectAnswersNumber: 1,
+		NextDueDate:                     nextDueDate,
 	}
 
 	expCard := &api.Card{
@@ -300,8 +300,8 @@ func TestTransformerToAPICard(t *testing.T) {
 				},
 			},
 		},
-		CorrectAnswers: 1,
-		NextDueDate:    timestamppb.New(nextDueDate),
+		ConsecutiveCorrectAnswersNumber: 1,
+		NextDueDate:                     timestamppb.New(nextDueDate),
 	}
 
 	tr := grpc.DefaultTransformer()
@@ -759,8 +759,8 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 									},
 								},
 							},
-							CorrectAnswers: 1,
-							NextDueDate:    time.Date(2022, 01, 01, 01, 00, 00, 00, time.UTC),
+							ConsecutiveCorrectAnswersNumber: 1,
+							NextDueDate:                     time.Date(2022, 01, 01, 01, 00, 00, 00, time.UTC),
 						},
 						{
 							ID:       "ID_2",
@@ -816,8 +816,8 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 									},
 								},
 							},
-							CorrectAnswers: 1,
-							NextDueDate:    time.Date(2022, 01, 02, 01, 00, 00, 00, time.UTC),
+							ConsecutiveCorrectAnswersNumber: 1,
+							NextDueDate:                     time.Date(2022, 01, 02, 01, 00, 00, 00, time.UTC),
 						},
 					},
 				},
@@ -881,8 +881,8 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 									},
 								},
 							},
-							CorrectAnswers: 1,
-							NextDueDate:    timestamppb.New(time.Date(2022, 01, 01, 01, 00, 00, 00, time.UTC)),
+							ConsecutiveCorrectAnswersNumber: 1,
+							NextDueDate:                     timestamppb.New(time.Date(2022, 01, 01, 01, 00, 00, 00, time.UTC)),
 						},
 						{
 							Id:       "ID_2",
@@ -938,8 +938,8 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 									},
 								},
 							},
-							CorrectAnswers: 1,
-							NextDueDate:    timestamppb.New(time.Date(2022, 01, 02, 01, 00, 00, 00, time.UTC)),
+							ConsecutiveCorrectAnswersNumber: 1,
+							NextDueDate:                     timestamppb.New(time.Date(2022, 01, 02, 01, 00, 00, 00, time.UTC)),
 						},
 					},
 				},
@@ -997,16 +997,16 @@ func TestTransformerToCoreUpdateCardPerformanceRequest(t *testing.T) {
 		"positive case": {
 			input: input{
 				req: &api.UpdateCardPerformanceRequest{
-					UserID:            "UserID",
-					CardID:            "CardID",
-					PerformanceRating: 1,
+					UserID:         "UserID",
+					CardID:         "CardID",
+					IsInputCorrect: true,
 				},
 			},
 			want: want{
 				req: core.UpdateCardPerformanceRequest{
-					UserID:            "UserID",
-					CardID:            "CardID",
-					PerformanceRating: 1,
+					UserID:         "UserID",
+					CardID:         "CardID",
+					IsInputCorrect: true,
 				},
 			},
 		},

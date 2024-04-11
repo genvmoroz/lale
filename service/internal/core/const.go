@@ -1,5 +1,5 @@
 package core
 
 const (
-	MaxPerformanceRating = 5
+	MaxAllowedPerformanceRating = 5
 )

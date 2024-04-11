@@ -17,8 +17,8 @@ type (
 
 		WordInformationList []WordInformation `yaml:"WordInformationList,omitempty"`
 
-		CorrectAnswers uint32
-		NextDueDate    time.Time
+		ConsecutiveCorrectAnswersNumber uint32
+		NextDueDate                     time.Time
 	}
 
 	WordInformation struct {
@@ -82,14 +82,16 @@ func (c *Card) NeedToLearn() bool {
 	return c.NextDueDate.IsZero()
 }
 
-func (c *Card) GetAnswer(correct bool) uint32 {
+func (c *Card) AddAnswer(correct bool) {
 	if correct {
-		c.CorrectAnswers++
+		c.ConsecutiveCorrectAnswersNumber++
 	} else {
-		c.CorrectAnswers = 0
+		c.ConsecutiveCorrectAnswersNumber = 0
 	}
+}
 
-	return c.CorrectAnswers
+func (c *Card) GetConsecutiveCorrectAnswersNumber() uint32 {
+	return c.ConsecutiveCorrectAnswersNumber
 }
 
 func (s *UserSession) Duration() (time.Duration, error) {

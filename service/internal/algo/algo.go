@@ -15,13 +15,13 @@ func NewAnki(now func() time.Time) *Anki {
 
 const day = 24 * time.Hour
 
-func (a Anki) CalculateNextDueDate(performance uint32, correctAnswers uint32) time.Time {
+func (a Anki) CalculateNextDueDate(performance uint32, consecutiveCorrectAnswersNumber uint32) time.Time {
 	next := a.now().
 		UTC().
 		Add(
 			a.calculateShift(
 				float64(performance),
-				float64(correctAnswers),
+				float64(consecutiveCorrectAnswersNumber),
 			),
 		).Truncate(day)
 
