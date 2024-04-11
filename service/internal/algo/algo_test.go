@@ -1,13 +1,20 @@
-package algo
+package algo_test
 
 import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/genvmoroz/lale/service/internal/algo"
 )
 
 func TestAnkiCalculateNextDueDate(t *testing.T) {
 	t.Parallel()
+
+	var (
+		testNowTime = time.Now().UTC()
+		testNow     = func() time.Time { return testNowTime }
+	)
 
 	type (
 		field struct {
@@ -94,7 +101,7 @@ func TestAnkiCalculateNextDueDate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			a := NewAnki(testcase.field.now)
+			a := algo.NewAnki(testcase.field.now)
 
 			got := a.CalculateNextDueDate(testcase.input.performance, testcase.input.correctAnswers)
 			if !reflect.DeepEqual(got, testcase.want.nextDueDate) {
@@ -102,10 +109,4 @@ func TestAnkiCalculateNextDueDate(t *testing.T) {
 			}
 		})
 	}
-}
-
-var testNowTime = time.Now().UTC()
-
-func testNow() time.Time {
-	return testNowTime
 }

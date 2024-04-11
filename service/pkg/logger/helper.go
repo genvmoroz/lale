@@ -7,10 +7,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var key = struct {
-	correlationID string
+var key = struct { //nolint:gochecknoglobals // it's a context key
+	val string
 }{
-	correlationID: "3ef61cf6-ffe1-4ac3-87f2-da400fc71e6f",
+	val: "3ef61cf6-ffe1-4ac3-87f2-da400fc71e6f",
 }
 
 func ContextWithLogger(ctx context.Context, entry *logrus.Entry) context.Context {
@@ -21,6 +21,10 @@ func FromContext(ctx context.Context) *logrus.Entry {
 	if logger, ok := ctx.Value(key).(*logrus.Entry); ok {
 		return logger
 	}
+	return WithCorrelationID()
+}
+
+func WithCorrelationID() *logrus.Entry {
 	return logrus.
 		StandardLogger().
 		WithFields(logrus.Fields{"ID": uuid.NewString()})

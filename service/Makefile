@@ -1,7 +1,6 @@
 #!/bin/sh
 
-include ./scripts/linting.mk
-include ./scripts/gen.mk
+include ./local-run.sh
 
 OSNAME=$(shell go env GOOS)
 ARCH = $(shell go env GOARCH)
@@ -9,12 +8,12 @@ ARCH = $(shell go env GOARCH)
 CMD_DIR=./cmd/service/.
 ARTIFACT_DIR=./bin
 ARTIFACT=${ARTIFACT_DIR}/svc
-REPO=genmoroz
+REPO=genvmoroz
 IMAGE_NAME=lale-service
 DOCKER_TAG=development
 
 .PHONY: ci
-ci: lint test
+ci: lint test vulnerabilities_lookup
 
 .PHONY: deps
 deps:
@@ -50,40 +49,29 @@ test_coverage:
 	go test -coverprofile coverage.html ./... ; go tool cover -html=coverage.html
 	rm ./coverage.html
 
-.PHONY: run-infra
-run-infra:
-	docker compose -f ./deployments/docker-compose.yml up -d --remove-orphans
+.PHONY: gen
+gen: protoc-gen
+	go install go.uber.org/mock/mockgen@latest
+	go install golang.org/x/tools/cmd/stringer@latest
+	go generate ./...
 
-.PHONY: stop-infra
-stop-infra:
-	docker compose -f ./deployments/docker-compose.yml down
+.PHONY: protoc-gen
+protoc-gen:
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	protoc --go_out=. --go_opt=paths=source_relative \
+        --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+        api/**.proto
 
-.PHONY: run-locally
-run-locally:
-	APP_LOG_LEVEL=DEBUG \
-	APP_GRPC_PORT=8080 \
-	APP_HIPPO_SENTENCE_HOST="https://www.wordhippo.com" \
-	APP_HIPPO_SENTENCE_RETRIES=3 \
-	APP_HIPPO_SENTENCE_TIMEOUT=5s \
-	APP_YOUR_DICTIONARY_SENTENCE_HOST="https://sentence.yourdictionary.com" \
-	APP_YOUR_DICTIONARY_SENTENCE_RETRIES=3 \
-	APP_YOUR_DICTIONARY_SENTENCE_TIMEOUT=5s \
-	APP_MONGO_CARD_PROTOCOL="mongodb" \
-	APP_MONGO_CARD_HOST="localhost" \
-	APP_MONGO_CARD_PORT=27017 \
-	APP_MONGO_CARD_URI_PARAMS="" \
-	APP_MONGO_USER="admin" \
-	APP_MONGO_PASS="pass" \
-	APP_MONGO_CARD_DATABASE="dictionary" \
-	APP_MONGO_CARD_COLLECTION="cards" \
-	APP_REDIS_DB=0 \
-	APP_REDIS_HOST="localhost" \
-	APP_REDIS_INSECURE_SKIP_VERIFY=true \
-	APP_REDIS_PASS="pass" \
-	APP_REDIS_PORT=6379 \
-	APP_REDIS_USE_TLS=false \
-	APP_USER_SESSION_EXPIRATION=1h \
-	APP_USER_SESSION_KEY_PREFIX="user-session" \
-	APP_DICTIONARY_HOST="https://api.dictionaryapi.dev" \
-	APP_GOOGLE_PROJECT_KEY_FILE=${APP_GOOGLE_PROJECT_KEY_FILE} \
-	${ARTIFACT}
+vulnerabilities_lookup:
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	govulncheck -test ./...
+
+lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
+	golangci-lint run --allow-parallel-runners -c ./.golangci.yml
+
+.PHONY: gci
+gci:
+	go install github.com/luw2007/gci@latest
+	gci write . --skip-generated

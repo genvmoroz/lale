@@ -14,10 +14,6 @@ type (
 		Word     string
 	}
 
-	InspectCardResponse struct {
-		Card entity.Card
-	}
-
 	PromptCardRequest struct {
 		UserID              string
 		Word                string
@@ -29,7 +25,7 @@ type (
 		Words []string
 	}
 
-	CreateCardParameters struct {
+	Parameters struct {
 		EnrichWordInformationFromDictionary bool
 	}
 
@@ -37,25 +33,12 @@ type (
 		UserID              string
 		Language            language.Tag
 		WordInformationList []entity.WordInformation
-		Params              CreateCardParameters
-	}
-
-	CreateCardResponse struct {
-		Card entity.Card
+		Params              Parameters
 	}
 
 	DeleteCardRequest struct {
 		UserID string
 		CardID string
-	}
-
-	DeleteCardResponse struct {
-		Card entity.Card
-	}
-
-	GetCardsForReviewRequest struct {
-		UserID   string
-		Language language.Tag
 	}
 
 	GetCardsRequest struct {
@@ -69,10 +52,17 @@ type (
 		Cards    []entity.Card
 	}
 
+	UpdateCardRequest struct {
+		UserID              string
+		CardID              string
+		WordInformationList []entity.WordInformation
+		Params              Parameters
+	}
+
 	UpdateCardPerformanceRequest struct {
-		UserID            string
-		CardID            string
-		PerformanceRating uint32
+		UserID         string
+		CardID         string
+		IsInputCorrect bool
 	}
 
 	UpdateCardPerformanceResponse struct {

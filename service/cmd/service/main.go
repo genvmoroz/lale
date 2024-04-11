@@ -3,18 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/genvmoroz/lale/service/internal/dependency"
 	"github.com/genvmoroz/lale/service/internal/grpc"
 	"github.com/genvmoroz/lale/service/internal/options"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -24,8 +21,6 @@ func main() {
 }
 
 func run() error {
-	rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
-
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
@@ -48,15 +43,15 @@ func run() error {
 	coreService := deps.BuildService()
 
 	logrus.Info("build gRPC service")
-	resolver, err := grpc.NewResolver(coreService, grpc.DefaultTransformer)
+	resolver, err := grpc.NewResolver(coreService, grpc.DefaultTransformer())
 	if err != nil {
 		return fmt.Errorf("create gRPC service: %w", err)
 	}
 
-	grpcService := grpc.NewService(cfg.GRPCPort, resolver)
+	grpcServer := grpc.NewServer(cfg.GRPCPort, resolver)
 
 	errGroup.Go(func() error {
-		return grpcService.Run(ctx)
+		return grpcServer.Run(ctx)
 	})
 
 	logrus.Info("service started")

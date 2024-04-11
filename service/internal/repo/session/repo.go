@@ -11,10 +11,6 @@ import (
 )
 
 type (
-	Config struct {
-		SessionExpiration time.Duration `envconfig:"APP_USER_SESSION_EXPIRATION" required:"true" json:"session_expiration,omitempty"`
-	}
-
 	Repo struct {
 		cache cache
 		mux   *sync.Mutex
@@ -31,17 +27,12 @@ type (
 	}
 )
 
-var OpenedSessionError = errors.New("session already opened")
+var ErrOpenedSession = errors.New("session already opened") // todo: move to core layer
 
-func NewRepo(cfg Config) (*Repo, error) {
-	if cfg.SessionExpiration < 0 {
-		return nil, fmt.Errorf("session expiration should not be negative, actual: %s", cfg.SessionExpiration)
-	}
-
+func NewRepo() (*Repo, error) {
 	return &Repo{
 		cache: cache{
-			entries:  make(map[string]cacheEntry),
-			expireIn: cfg.SessionExpiration,
+			entries: make(map[string]cacheEntry),
 		},
 		mux: &sync.Mutex{},
 	}, nil
@@ -57,7 +48,7 @@ func (r *Repo) CreateSession(userID string) error {
 
 	entry, exist := r.cache.get(userID)
 	if exist && !entry.session.IsClosed() {
-		return OpenedSessionError
+		return ErrOpenedSession
 	}
 
 	r.cache.set(entity.NewUserSession(userID))

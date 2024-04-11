@@ -1,3 +1,4 @@
+//nolint:gomnd,all // magic numbers are fine here
 package chatgpt
 
 import (
@@ -96,6 +97,9 @@ func (r *Repo) generateSentences(ctx context.Context, word string, size uint32, 
 		if len(sentence) != 0 {
 			sentences = append(sentences, sentence)
 		}
+	}
+	if len(sentences) > int(size) {
+		return sentences[:size], nil
 	}
 	return sentences, nil
 }

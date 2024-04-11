@@ -3,12 +3,14 @@ package transform
 import (
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/service/pkg/entity"
-	"github.com/genvmoroz/lale/service/pkg/lang"
+	"golang.org/x/text/language"
 )
 
 type (
 	Transformer interface {
+		ToCoreWordInformation(wi *api.WordInformation) entity.WordInformation
 		ToCoreWordInformationList(list []*api.WordInformation) []entity.WordInformation
+		ToCoreMeaning(wi *api.Meaning) entity.Meaning
 	}
 
 	transformer struct{}
@@ -24,7 +26,7 @@ func (t transformer) ToCoreWordInformationList(list []*api.WordInformation) []en
 	res := make([]entity.WordInformation, 0, len(list))
 	for _, w := range list {
 		if w != nil {
-			res = append(res, t.toCoreWordInformation(w))
+			res = append(res, t.ToCoreWordInformation(w))
 		}
 	}
 
@@ -37,19 +39,18 @@ func (transformer) toCoreTranslation(t *api.Translation) *entity.Translation {
 	}
 
 	return &entity.Translation{
-		Language:     lang.Language(t.Language),
+		Language:     language.MustParse(t.Language),
 		Translations: t.Translations,
 	}
 }
 
-func (t transformer) toCoreWordInformation(info *api.WordInformation) entity.WordInformation {
+func (t transformer) ToCoreWordInformation(info *api.WordInformation) entity.WordInformation {
 	return entity.WordInformation{
 		Word:        info.Word,
 		Translation: t.toCoreTranslation(info.Translation),
 		Origin:      info.Origin,
 		Phonetics:   t.toCorePhonetics(info.Phonetics),
 		Meanings:    t.toCoreMeanings(info.Meanings),
-		Sentences:   info.Sentences,
 	}
 }
 
@@ -61,14 +62,14 @@ func (t transformer) toCoreMeanings(meanings []*api.Meaning) []entity.Meaning {
 	res := make([]entity.Meaning, 0, len(meanings))
 	for _, m := range meanings {
 		if m != nil {
-			res = append(res, t.toCoreMeaning(m))
+			res = append(res, t.ToCoreMeaning(m))
 		}
 	}
 
 	return res
 }
 
-func (t transformer) toCoreMeaning(m *api.Meaning) entity.Meaning {
+func (t transformer) ToCoreMeaning(m *api.Meaning) entity.Meaning {
 	return entity.Meaning{
 		PartOfSpeech: m.PartOfSpeech,
 		Definitions:  t.toCoreDefinitions(m.Definitions),
@@ -115,8 +116,5 @@ func (t transformer) toCorePhonetics(phonetics []*api.Phonetic) []entity.Phoneti
 }
 
 func (transformer) toCorePhonetic(p *api.Phonetic) entity.Phonetic {
-	return entity.Phonetic{
-		Text:      p.Text,
-		AudioLink: p.AudioLink,
-	}
+	return entity.Phonetic{Text: p.Text}
 }

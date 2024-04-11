@@ -103,8 +103,13 @@ func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Car
 		Database(r.database).
 		Collection(r.collection)
 
-	query := bson.M{"userID": userID}
-	cursor, err := cardsCollection.Find(ctx, query)
+	query := bson.M{"userid": userID}
+	count, err := cardsCollection.EstimatedDocumentCount(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("estimate document count: %w", err)
+	}
+	const extraSize = 100
+	cursor, err := cardsCollection.Find(ctx, query, options.Find().SetBatchSize(int32(count)+extraSize))
 	if err != nil {
 		return nil, fmt.Errorf("find: %w", err)
 	}
@@ -116,10 +121,11 @@ func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Car
 }
 
 // TODO: implement search card by name on Repo side
-//func (r *Repo) FindCardsByWord(ctx context.Context, userID, word string) ([]entity.Card, error) {
+// func (r *Repo) FindCardsByWord(ctx context.Context, userID, word string) ([]entity.Card, error) {
 //	return nil, errors.New("not implemented yet")
-//}
+// }
 
+//nolint:gocognit // need to fix later
 func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 	if len(cards) == 0 {
 		return nil
@@ -153,7 +159,8 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 		}
 
 		for _, card := range cards {
-			doc, err := cardToDoc(card)
+			var doc []byte
+			doc, err = cardToDoc(card)
 			if err != nil {
 				return fmt.Errorf("marshal: %w", err)
 			}
@@ -162,7 +169,6 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 			filter := bson.M{"id": card.ID}
 			if err = cardsCollection.FindOne(ctx, filter).Err(); err != nil {
 				if errors.Is(err, mongo.ErrNoDocuments) {
-
 					// since card does not exist do insert
 					_, err = cardsCollection.InsertOne(ctx, doc)
 					if err != nil {
@@ -170,13 +176,11 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 						return fmt.Errorf("insert: %w", err)
 					}
 				} else {
-
 					// checking existence failed with unpredictable error
 					abortTransaction(ctx, sessionContext)
 					return fmt.Errorf("check card existence: %w", err)
 				}
 			} else {
-
 				// since card already exists do replacement
 				_, err = cardsCollection.ReplaceOne(ctx, filter, doc)
 				if err != nil {
@@ -193,6 +197,7 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 
 	return nil
 }
+
 func (r *Repo) DeleteCard(ctx context.Context, cardID string) error {
 	if !utf8.ValidString(cardID) {
 		return fmt.Errorf("cardID [%s] is invalid utf8 string", cardID)

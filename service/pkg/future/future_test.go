@@ -1,23 +1,27 @@
-package future
+package future_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
+	"github.com/genvmoroz/lale/service/pkg/future"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/goleak"
 )
 
+// TODO: improve testing, add new testcases
+
 func TestFutureTaskCorrect(t *testing.T) {
-	t.Parallel()
+	defer goleak.VerifyNone(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	run := func(ctx context.Context) (string, error) { return "done", nil }
+	run := func(_ context.Context) (string, error) { return "done", nil }
 
-	task := NewTask[string](ctx, run)
+	task := future.NewTask[string](ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
@@ -35,7 +39,7 @@ func TestFutureTaskCorrect(t *testing.T) {
 }
 
 func TestFutureTaskContextCanceled(t *testing.T) {
-	t.Parallel()
+	defer goleak.VerifyNone(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -51,7 +55,7 @@ func TestFutureTaskContextCanceled(t *testing.T) {
 		}
 	}
 
-	task := NewTask[string](ctx, run)
+	task := future.NewTask[string](ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
@@ -66,7 +70,7 @@ func TestFutureTaskContextCanceled(t *testing.T) {
 }
 
 func TestFutureTaskTimeoutExpired(t *testing.T) {
-	t.Parallel()
+	defer goleak.VerifyNone(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -83,7 +87,7 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 		}
 	}
 
-	task := NewTask[string](ctx, run)
+	task := future.NewTask[string](ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
@@ -94,7 +98,11 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 	require.Equal(t, "", res)
 	require.False(t, task.IsCompleted())
 
-	time.Sleep(2 * time.Second)
+	select {
+	case <-ctx.Done():
+		t.Fatalf("context is closed, context error: %s", ctx.Err())
+	case <-time.After(2 * time.Second):
+	}
 
 	res, err = task.Get(time.Second)
 	require.NoError(t, err)
@@ -104,21 +112,21 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 }
 
 func TestFutureTaskRunWithTaskError(t *testing.T) {
-	t.Parallel()
+	defer goleak.VerifyNone(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	run := func(ctx context.Context) (string, error) { return "", assert.AnError }
+	run := func(_ context.Context) (string, error) { return "", assert.AnError }
 
-	task := NewTask[string](ctx, run)
+	task := future.NewTask[string](ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
 	require.False(t, task.IsCompleted())
 
 	res, err := task.Get(time.Second)
-	require.ErrorAs(t, err, &TaskError{})
+	require.ErrorAs(t, err, &future.TaskError{})
 	require.ErrorIs(t, err, assert.AnError)
 	require.Equal(t, "", res)
 	require.False(t, task.IsCancelled())
@@ -126,17 +134,17 @@ func TestFutureTaskRunWithTaskError(t *testing.T) {
 }
 
 func TestFutureTaskRunTaskCanceled(t *testing.T) {
-	t.Parallel()
+	defer goleak.VerifyNone(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	run := func(ctx context.Context) (string, error) {
+	run := func(_ context.Context) (string, error) {
 		time.Sleep(time.Second)
 		return "done", nil
 	}
 
-	task := NewTask[string](ctx, run)
+	task := future.NewTask[string](ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())

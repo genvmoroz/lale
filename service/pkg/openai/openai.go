@@ -1,9 +1,13 @@
+//nolint:gomnd,lll,all // magic numbers are fine here
 package openai
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	basehttp "net/http"
 	"net/url"
 	"regexp"
@@ -11,8 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/genvmoroz/client-go/http"
-	"github.com/valyala/fasthttp"
+	http "github.com/hashicorp/go-retryablehttp"
 	"golang.org/x/text/language"
 )
 
@@ -26,7 +29,7 @@ type (
 
 	Scraper struct {
 		addr   string
-		client *http.Client
+		client *basehttp.Client
 		token  string
 	}
 )
@@ -40,18 +43,16 @@ func NewHelper(cfg Config) (*Scraper, error) {
 		return nil, fmt.Errorf("timeout shouldn't be negative [%d]: %w", cfg.Timeout, err)
 	}
 
-	client, err := http.NewClient(http.WithRetry(cfg.Retries, cfg.Timeout))
-	if err != nil {
-		return nil, fmt.Errorf("create http client: %w", err)
-	}
+	client := http.NewClient()
+	client.RetryMax = int(cfg.Retries)
+	client.Backoff = http.DefaultBackoff
+	baseClient := client.StandardClient()
+	baseClient.Timeout = cfg.Timeout
 
 	scr := &Scraper{
-		client: client,
+		client: baseClient,
 		addr:   cfg.Addr,
 		token:  cfg.Token,
-	}
-	if err = scr.ping(); err != nil {
-		return nil, fmt.Errorf("ping the service: %w", err)
 	}
 
 	return scr, nil
@@ -93,18 +94,13 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 	if len(strings.TrimSpace(word)) == 0 {
 		return nil, errors.New("word is blank")
 	}
-
-	req := http.AcquireRequest()
-	defer http.ReleaseRequest(req)
-
-	req.Header.SetRequestURI(s.addr)
-	req.Header.SetMethod(basehttp.MethodPost)
-
-	s.authorizeReq(req)
+	if !complexity.IsValid() {
+		return nil, fmt.Errorf("invalid complexity: %d", int32(complexity))
+	}
 
 	body, err := s.prepareRequestBody(
 		fmt.Sprintf(
-			"Generate %d random sentences with the word \"%s\" for %s English level with any topics.",
+			"Generate %d random sentences with the word \"%s\" in different meanings of the word for %s English level with any topics.",
 			size,
 			strings.TrimSpace(word),
 			complexity.String(),
@@ -114,24 +110,35 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 		return nil, fmt.Errorf("prepare request body: %w", err)
 	}
 
-	req.AppendBody(body)
+	req, err := basehttp.NewRequest(basehttp.MethodPost, s.addr, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	s.authorizeReq(req)
 
 	resp, err := s.client.Do(req)
 	defer func() {
 		if resp != nil {
-			http.ReleaseResponse(resp)
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				log.Printf("close response body: %s", closeErr.Error())
+			}
 		}
 	}()
 	if err != nil {
 		return nil, fmt.Errorf("executing request error: %w", err)
 	}
 
-	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("status code: %d", resp.StatusCode())
+	if resp.StatusCode != basehttp.StatusOK {
+		return nil, fmt.Errorf("status code: %d", resp.StatusCode)
 	}
 
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response body: %w", err)
+	}
 	var parsedResponse response
-	if err = json.Unmarshal(resp.Body(), &parsedResponse); err != nil {
+	if err = json.Unmarshal(respBody, &parsedResponse); err != nil {
 		return nil, fmt.Errorf("parse response body: %w", err)
 	}
 
@@ -149,6 +156,9 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 		if len(sentence) != 0 {
 			sentences = append(sentences, sentence)
 		}
+	}
+	if len(sentences) > int(size) {
+		return sentences[:size], nil
 	}
 	return sentences, nil
 }
@@ -181,20 +191,12 @@ func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) 
 		return nil, errors.New("word is blank")
 	}
 
-	req := http.AcquireRequest()
-	defer http.ReleaseRequest(req)
-
-	req.Header.SetRequestURI(s.addr)
-	req.Header.SetMethod(basehttp.MethodPost)
-
-	s.authorizeReq(req)
-
 	base, _ := lang.Base()
 
 	body, err := s.prepareRequestBody(
 		fmt.Sprintf(
 			"Write all words which are in the one family with word \"%s\" and in use pretty often. "+
-				"Include \"%s\" into beginning of this list. After each word write \"-\" and translation in %s language. "+
+				"Include \"%s\" into beginning of your list. After each word write \"-\" and translation in %s language. "+
 				"Write only words in your response.",
 			strings.TrimSpace(word),
 			strings.TrimSpace(word),
@@ -205,24 +207,36 @@ func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) 
 		return nil, fmt.Errorf("prepare request body: %w", err)
 	}
 
-	req.AppendBody(body)
+	req, err := basehttp.NewRequest(basehttp.MethodPost, s.addr, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	s.authorizeReq(req)
 
 	resp, err := s.client.Do(req)
 	defer func() {
 		if resp != nil {
-			http.ReleaseResponse(resp)
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				log.Printf("close response body: %s", closeErr.Error())
+			}
 		}
 	}()
 	if err != nil {
 		return nil, fmt.Errorf("executing request error: %w", err)
 	}
 
-	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("status code: %d", resp.StatusCode())
+	if resp.StatusCode != basehttp.StatusOK {
+		return nil, fmt.Errorf("status code: %d", resp.StatusCode)
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response body: %w", err)
 	}
 
 	var parsedResponse response
-	if err = json.Unmarshal(resp.Body(), &parsedResponse); err != nil {
+	if err = json.Unmarshal(respBody, &parsedResponse); err != nil {
 		return nil, fmt.Errorf("parse response body: %w", err)
 	}
 
@@ -243,6 +257,10 @@ func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) 
 }
 
 func (s *Scraper) GenStory(words []string, lang language.Tag) (string, error) {
+	if len(words) == 0 {
+		return "", fmt.Errorf("words are missing")
+	}
+
 	return s.genStoryWithRetry(words, lang, 5)
 }
 
@@ -263,43 +281,43 @@ func (s *Scraper) genStoryWithRetry(words []string, lang language.Tag, retries u
 }
 
 func (s *Scraper) genStory(words []string, lang language.Tag) (string, error) {
-	if len(words) == 0 {
-		return "", fmt.Errorf("words are missing")
-	}
-
-	req := http.AcquireRequest()
-	defer http.ReleaseRequest(req)
-
-	req.Header.SetRequestURI(s.addr)
-	req.Header.SetMethod(basehttp.MethodPost)
-
-	s.authorizeReq(req)
-
 	base, _ := lang.Base()
 
-	body, err := s.prepareRequestBody(fmt.Sprintf("Generate a story using words %v in language %s.", words, base.ISO3()))
+	body, err := s.prepareRequestBody(fmt.Sprintf("Generate a story using words %v in language %s. The story should contain only one word from that list per sentence.", words, base.ISO3()))
 	if err != nil {
 		return "", fmt.Errorf("prepare request body: %w", err)
 	}
 
-	req.AppendBody(body)
+	req, err := basehttp.NewRequest(basehttp.MethodPost, s.addr, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+
+	s.authorizeReq(req)
 
 	resp, err := s.client.Do(req)
 	defer func() {
 		if resp != nil {
-			http.ReleaseResponse(resp)
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				log.Printf("close response body: %s", closeErr.Error())
+			}
 		}
 	}()
 	if err != nil {
 		return "", fmt.Errorf("executing request error: %w", err)
 	}
 
-	if resp.StatusCode() != 200 {
-		return "", fmt.Errorf("status code: %d", resp.StatusCode())
+	if resp.StatusCode != basehttp.StatusOK {
+		return "", fmt.Errorf("status code: %d", resp.StatusCode)
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response body: %w", err)
 	}
 
 	var parsedResponse response
-	if err = json.Unmarshal(resp.Body(), &parsedResponse); err != nil {
+	if err = json.Unmarshal(respBody, &parsedResponse); err != nil {
 		return "", fmt.Errorf("parse response body: %w", err)
 	}
 
@@ -308,48 +326,6 @@ func (s *Scraper) genStory(words []string, lang language.Tag) (string, error) {
 	}
 
 	return parsedResponse.Choices[0].Message.Content, nil
-}
-
-func (s *Scraper) foo(v string) error { //nolint:unused
-	req := http.AcquireRequest()
-	defer http.ReleaseRequest(req)
-
-	req.Header.SetRequestURI(s.addr)
-	req.Header.SetMethod(basehttp.MethodPost)
-
-	s.authorizeReq(req)
-
-	body, err := s.prepareRequestBody(v)
-	if err != nil {
-		return fmt.Errorf("prepare request body: %w", err)
-	}
-
-	req.AppendBody(body)
-
-	resp, err := s.client.Do(req)
-	defer func() {
-		if resp != nil {
-			http.ReleaseResponse(resp)
-		}
-	}()
-	if err != nil {
-		return fmt.Errorf("executing request error: %w", err)
-	}
-
-	if resp.StatusCode() != 200 {
-		return fmt.Errorf("status code: %d", resp.StatusCode())
-	}
-
-	var parsedResponse response
-	if err = json.Unmarshal(resp.Body(), &parsedResponse); err != nil {
-		return fmt.Errorf("parse response body: %w", err)
-	}
-
-	if len(parsedResponse.Choices) == 0 {
-		return errors.New("connection successful but response is empty")
-	}
-
-	return nil
 }
 
 type (
@@ -387,48 +363,6 @@ type (
 
 const defaultModel = "gpt-3.5-turbo"
 
-func (s *Scraper) ping() error {
-	req := http.AcquireRequest()
-	defer http.ReleaseRequest(req)
-
-	req.Header.SetRequestURI(s.addr)
-	req.Header.SetMethod(basehttp.MethodPost)
-
-	s.authorizeReq(req)
-
-	body, err := s.prepareRequestBody("Ping")
-	if err != nil {
-		return fmt.Errorf("prepare request body: %w", err)
-	}
-
-	req.AppendBody(body)
-
-	resp, err := s.client.Do(req)
-	defer func() {
-		if resp != nil {
-			http.ReleaseResponse(resp)
-		}
-	}()
-	if err != nil {
-		return fmt.Errorf("execute request: %w", err)
-	}
-
-	if resp.StatusCode() != 200 {
-		return fmt.Errorf("status code: %d", resp.StatusCode())
-	}
-
-	var parsedResponse response
-	if err = json.Unmarshal(resp.Body(), &parsedResponse); err != nil {
-		return fmt.Errorf("unmarshal: %w", err)
-	}
-
-	if len(parsedResponse.Choices) == 0 {
-		return errors.New("connection successful but response is empty")
-	}
-
-	return nil
-}
-
 func (s *Scraper) prepareRequestBody(content string) ([]byte, error) {
 	req := request{
 		Model: defaultModel,
@@ -444,7 +378,7 @@ func (s *Scraper) prepareRequestBody(content string) ([]byte, error) {
 	return body, nil
 }
 
-func (s *Scraper) authorizeReq(req *fasthttp.Request) {
+func (s *Scraper) authorizeReq(req *basehttp.Request) {
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Accept-Charset", "utf-8")
 	req.Header.Set("Content-Type", "application/json")
@@ -464,7 +398,7 @@ func (c EnglishComplexity) IsValid() bool {
 	return ok
 }
 
-var complexities = map[EnglishComplexity]string{
+var complexities = map[EnglishComplexity]string{ //nolint:gochecknoglobals // it's a map of constants
 	Beginner:     "Beginner",
 	Intermediate: "Intermediate",
 	Advanced:     "Advanced",

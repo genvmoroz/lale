@@ -16,8 +16,18 @@ import (
 
 type (
 	Connection interface {
-		SynthesizeSpeech(ctx context.Context, req *texttospeechpb.SynthesizeSpeechRequest, opts ...gax.CallOption) (*texttospeechpb.SynthesizeSpeechResponse, error)
-		ListVoices(ctx context.Context, req *texttospeechpb.ListVoicesRequest, opts ...gax.CallOption) (*texttospeechpb.ListVoicesResponse, error)
+		SynthesizeSpeech(
+			ctx context.Context,
+			req *texttospeechpb.SynthesizeSpeechRequest,
+			opts ...gax.CallOption,
+		) (*texttospeechpb.SynthesizeSpeechResponse, error)
+
+		ListVoices(
+			ctx context.Context,
+			req *texttospeechpb.ListVoicesRequest,
+			opts ...gax.CallOption,
+		) (*texttospeechpb.ListVoicesResponse, error)
+
 		Close() error
 	}
 
@@ -109,7 +119,7 @@ func (c *TextToSpeechClient) ping(ctx context.Context) error {
 
 func googleTextToSpeechConnection(cfg Config) func(context.Context) (Connection, error) {
 	return func(ctx context.Context) (Connection, error) {
-		return api.NewClient(ctx, option.WithCredentialsFile(cfg.ProjectKeyFile))
+		return api.NewClient(ctx, option.WithCredentialsJSON([]byte(cfg.ProjectKeyJSON)))
 	}
 }
 

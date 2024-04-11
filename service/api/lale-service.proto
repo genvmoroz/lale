@@ -5,15 +5,17 @@ package api;
 import "google/protobuf/timestamp.proto";
 
 service LaleService {
-  rpc InspectCard(InspectCardRequest) returns (InspectCardResponse);
+  rpc InspectCard(InspectCardRequest) returns (Card);
   rpc PromptCard(PromptCardRequest) returns (PromptCardResponse);
-  rpc CreateCard(CreateCardRequest) returns (CreateCardResponse);
+  rpc CreateCard(CreateCardRequest) returns (Card);
   rpc GetAllCards(GetCardsRequest) returns (GetCardsResponse);
+  rpc UpdateCard(UpdateCardRequest) returns (Card);
   rpc UpdateCardPerformance(UpdateCardPerformanceRequest) returns (UpdateCardPerformanceResponse);
-  rpc GetCardsToReview(GetCardsForReviewRequest) returns (GetCardsResponse);
+  rpc GetCardsToRepeat(GetCardsRequest) returns (GetCardsResponse);
+  rpc GetCardsToLearn(GetCardsRequest) returns (GetCardsResponse);
   rpc GetSentences(GetSentencesRequest) returns (GetSentencesResponse);
   rpc GenerateStory(GenerateStoryRequest) returns (GenerateStoryResponse);
-  rpc DeleteCard(DeleteCardRequest) returns (DeleteCardResponse);
+  rpc DeleteCard(DeleteCardRequest) returns (Card);
 }
 
 message Card {
@@ -21,7 +23,7 @@ message Card {
   string userID = 2;
   string language = 3;
   repeated WordInformation wordInformationList = 4;
-  uint32 correctAnswers = 5;
+  uint32 consecutiveCorrectAnswersNumber = 5;
   google.protobuf.Timestamp nextDueDate = 6;
 }
 
@@ -60,12 +62,7 @@ message GetCardsRequest {
   string language = 2;
 }
 
-message GetCardsForReviewRequest {
-  string userID = 1;
-  string language = 2;
-}
-
-message CreateCardParameters {
+message Parameters {
   bool enrichWordInformationFromDictionary = 1;
 }
 
@@ -73,21 +70,20 @@ message CreateCardRequest {
   string userID = 1;
   string language = 2;
   repeated WordInformation wordInformationList = 3;
-  CreateCardParameters params = 4;
+  Parameters params = 4;
 }
 
-message CreateCardResponse {
-  Card card = 1;
+message UpdateCardRequest {
+  string userID = 1;
+  string cardID = 2;
+  repeated WordInformation wordInformationList = 4;
+  Parameters params = 5;
 }
 
 message InspectCardRequest {
   string userID = 1;
   string language = 2;
   string word = 3;
-}
-
-message InspectCardResponse {
-  Card card = 1;
 }
 
 message PromptCardRequest {
@@ -110,7 +106,7 @@ message GetCardsResponse {
 message UpdateCardPerformanceRequest {
   string userID = 1;
   string cardID = 2;
-  uint32 performanceRating = 3;
+  bool is_input_correct = 3;
 }
 
 message UpdateCardPerformanceResponse {
@@ -139,8 +135,4 @@ message GenerateStoryResponse {
 message DeleteCardRequest {
   string userID = 1;
   string cardID = 2;
-}
-
-message DeleteCardResponse {
-  Card card = 1;
 }

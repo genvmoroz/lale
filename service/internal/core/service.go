@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/genvmoroz/lale/service/pkg/speech"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
 	"golang.org/x/text/language"
 )
@@ -31,7 +31,7 @@ type (
 	}
 
 	AnkiAlgo interface {
-		CalculateNextDueDate(uint32, uint32) time.Time
+		CalculateNextDueDate(performance uint32, consecutiveCorrectAnswersNumber uint32) time.Time
 	}
 
 	AIHelper interface {
@@ -48,19 +48,7 @@ type (
 		ToSpeech(ctx context.Context, req speech.ToSpeechRequest) ([]byte, error)
 	}
 
-	Service interface {
-		InspectCard(ctx context.Context, req InspectCardRequest) (InspectCardResponse, error)
-		PromptCard(ctx context.Context, req PromptCardRequest) (PromptCardResponse, error)
-		CreateCard(ctx context.Context, req CreateCardRequest) (CreateCardResponse, error)
-		GetAllCards(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error)
-		UpdateCardPerformance(ctx context.Context, req UpdateCardPerformanceRequest) (UpdateCardPerformanceResponse, error)
-		GetCardsToReview(ctx context.Context, req GetCardsForReviewRequest) (GetCardsResponse, error)
-		GetSentences(ctx context.Context, req GetSentencesRequest) (GetSentencesResponse, error)
-		GenerateStory(ctx context.Context, req GenerateStoryRequest) (GenerateStoryResponse, error)
-		DeleteCard(ctx context.Context, req DeleteCardRequest) (DeleteCardResponse, error)
-	}
-
-	service struct {
+	Service struct {
 		cardRepo         CardRepo
 		sessionRepo      SessionRepo
 		aiHelper         AIHelper
@@ -78,27 +66,27 @@ func NewService(
 	aiHelper AIHelper,
 	anki AnkiAlgo,
 	dictionary Dictionary,
-	textToSpeechRepo TextToSpeechRepo) (Service, error) {
-	if cardRepo == nil {
+	textToSpeechRepo TextToSpeechRepo) (*Service, error) {
+	if lo.IsNil(cardRepo) {
 		return nil, errors.New("card repo is required")
 	}
-	if sessionRepo == nil {
+	if lo.IsNil(sessionRepo) {
 		return nil, errors.New("session repo is required")
 	}
-	if aiHelper == nil {
+	if lo.IsNil(aiHelper) {
 		return nil, errors.New("aiHelper is required")
 	}
-	if anki == nil {
+	if lo.IsNil(anki) {
 		return nil, errors.New("anki algo is required")
 	}
-	if dictionary == nil {
+	if lo.IsNil(dictionary) {
 		return nil, errors.New("dictionary is required")
 	}
-	if textToSpeechRepo == nil {
+	if lo.IsNil(textToSpeechRepo) {
 		return nil, errors.New("textToSpeechRepo is required")
 	}
 
-	return &service{
+	return &Service{
 		cardRepo:         cardRepo,
 		sessionRepo:      sessionRepo,
 		aiHelper:         aiHelper,
@@ -109,116 +97,87 @@ func NewService(
 	}, nil
 }
 
-func (s *service) InspectCard(ctx context.Context, req InspectCardRequest) (InspectCardResponse, error) {
-	resp := InspectCardResponse{}
-
+func (s *Service) InspectCard(ctx context.Context, req InspectCardRequest) (entity.Card, error) {
 	if err := s.validator.ValidateInspectCardRequest(req); err != nil {
-		return resp, NewRequestValidationError(err)
+		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
-	ctx = logger.ContextWithLogger(ctx,
-		logger.FromContext(ctx).
-			WithFields(
-				logrus.Fields{
-					"UserID":   req.UserID,
-					"Language": req.Language.String(),
-					"Word":     req.Word,
-					"Request":  "InspectCard",
-				},
-			),
+	ctx = createContextWithCorrelationLogger(ctx,
+		map[string]any{
+			"UserID":   req.UserID,
+			"Language": req.Language.String(),
+			"Word":     req.Word,
+			"Request":  "InspectCard",
+		},
 	)
 
-	logger.FromContext(ctx).
-		Debug("create user session")
-	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
-		return resp, logAndReturnError(
-			ctx,
-			fmt.Sprintf("create user session: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
-		)
+	closeSession, err := s.createUserSession(ctx, req.UserID)
+	if err != nil {
+		return entity.Card{}, fmt.Errorf("create user session: %w", err)
 	}
-	defer func() {
-		logger.FromContext(ctx).
-			Debug("close user session")
-		if closeErr := s.sessionRepo.CloseSession(req.UserID); closeErr != nil {
-			logger.FromContext(ctx).
-				Errorf("close user session: %s", closeErr.Error())
-		}
-	}()
+	defer closeSession()
 
 	logger.FromContext(ctx).
 		Debug("get all cards for user")
 	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
 	if err != nil {
-		return resp, logAndReturnError(
+		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("get cards: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
 	}
 
-	for _, card := range cards {
-		card := card
-
-		if strings.EqualFold(card.Language.String(), req.Language.String()) {
-			for _, wordInfo := range card.WordInformationList {
-				if strings.EqualFold(wordInfo.Word, req.Word) {
-					logger.FromContext(ctx).
-						Debug("card found")
-					resp.Card = card
-					return resp, nil
-				}
-			}
-		}
+	card, found := lo.Find(cards,
+		func(item entity.Card) bool {
+			_, wordFound := lo.Find(item.WordInformationList,
+				func(item entity.WordInformation) bool {
+					return strings.EqualFold(item.Word, req.Word)
+				},
+			)
+			return wordFound
+		},
+	)
+	if found {
+		logger.FromContext(ctx).
+			Debug("card found")
+		return card, nil
 	}
 
 	logger.FromContext(ctx).
 		Debug("card not found")
-
-	return resp, NewCardNotFoundError().WithWord(req.Word)
+	return entity.Card{}, fmt.Errorf("%w: word %s", NewNotFoundError(), req.Word)
 }
 
-func (s *service) PromptCard(ctx context.Context, req PromptCardRequest) (PromptCardResponse, error) {
+func (s *Service) PromptCard(ctx context.Context, req PromptCardRequest) (PromptCardResponse, error) {
 	if err := s.validator.ValidatePromptCardRequest(req); err != nil {
-		return PromptCardResponse{}, NewRequestValidationError(err)
+		return PromptCardResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
-	ctx = logger.ContextWithLogger(ctx,
-		logger.FromContext(ctx).
-			WithFields(
-				logrus.Fields{
-					"UserID":              req.UserID,
-					"WordLanguage":        req.WordLanguage.String(),
-					"TranslationLanguage": req.TranslationLanguage.String(),
-					"Word":                req.Word,
-					"Request":             "PromptCard",
-				},
-			),
+	ctx = createContextWithCorrelationLogger(ctx,
+		map[string]any{
+			"UserID":              req.UserID,
+			"WordLanguage":        req.WordLanguage.String(),
+			"TranslationLanguage": req.TranslationLanguage.String(),
+			"Word":                req.Word,
+			"Request":             "PromptCard",
+		},
 	)
 
-	logger.FromContext(ctx).
-		Debug("create user session")
-	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
-		return PromptCardResponse{}, logAndReturnError(
-			ctx,
-			fmt.Sprintf("create user session: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
-		)
+	closeSession, err := s.createUserSession(ctx, req.UserID)
+	if err != nil {
+		return PromptCardResponse{}, fmt.Errorf("create user session: %w", err)
 	}
-	defer func() {
-		logger.FromContext(ctx).
-			Debug("close user session")
-		if closeErr := s.sessionRepo.CloseSession(req.UserID); closeErr != nil {
-			logger.FromContext(ctx).
-				Errorf("close user session: %s", closeErr.Error())
-		}
-	}()
+	defer closeSession()
 
 	logger.FromContext(ctx).
-		Debug("request words from the ai helper")
+		Debug("request words from the AI helper")
 	wordsWithTranslationMap, err := s.aiHelper.GetFamilyWordsWithTranslation(req.Word, req.TranslationLanguage)
 	if err != nil {
-		return PromptCardResponse{}, fmt.Errorf("get family words with translation for word (%s): %w", req.Word, err)
+		return PromptCardResponse{}, fmt.Errorf(
+			"get family words with translation for word (%s): %w",
+			req.Word, err,
+		)
 	}
 
 	logger.FromContext(ctx).
@@ -237,55 +196,31 @@ func (s *service) PromptCard(ctx context.Context, req PromptCardRequest) (Prompt
 	}, nil
 }
 
-func (s *service) notFoundInDictionary(lang language.Tag) func(word, _ string) bool {
-	return func(word, _ string) bool {
-		_, err := s.dictionary.GetWordInformation(word, lang)
-		return err != nil && errors.Is(err, dictionary.ErrNotFound)
-	}
-}
-
-func (s *service) CreateCard(ctx context.Context, req CreateCardRequest) (CreateCardResponse, error) {
-	resp := CreateCardResponse{}
-
+func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity.Card, error) { //nolint:gocognit,lll // it's ok
 	if err := s.validator.ValidateCreateCardRequest(req); err != nil {
-		return resp, NewRequestValidationError(err)
+		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
-	ctx = logger.ContextWithLogger(ctx,
-		logger.FromContext(ctx).
-			WithFields(
-				logrus.Fields{
-					"UserID":   req.UserID,
-					"Language": req.Language.String(),
-					"Words":    extractWords(req.WordInformationList),
-					"Request":  "CreateCard",
-				},
-			),
+	ctx = createContextWithCorrelationLogger(ctx,
+		map[string]any{
+			"UserID":   req.UserID,
+			"Language": req.Language.String(),
+			"Words":    extractWords(req.WordInformationList),
+			"Request":  "CreateCard",
+		},
 	)
 
-	logger.FromContext(ctx).
-		Debug("create user session")
-	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
-		return resp, logAndReturnError(
-			ctx,
-			fmt.Sprintf("create user session: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
-		)
+	closeSession, err := s.createUserSession(ctx, req.UserID)
+	if err != nil {
+		return entity.Card{}, fmt.Errorf("create user session: %w", err)
 	}
-	defer func() {
-		logger.FromContext(ctx).
-			Debug("close user session")
-		if closeErr := s.sessionRepo.CloseSession(req.UserID); closeErr != nil {
-			logger.FromContext(ctx).
-				Errorf("close user session: %s", closeErr.Error())
-		}
-	}()
+	defer closeSession()
 
 	logger.FromContext(ctx).
 		Debug("get all cards for user")
 	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
 	if err != nil {
-		return resp, logAndReturnError(
+		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("get cards: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
@@ -299,7 +234,7 @@ func (s *service) CreateCard(ctx context.Context, req CreateCardRequest) (Create
 					if strings.EqualFold(val.Word, wordInfo.Word) {
 						logger.FromContext(ctx).
 							Debug("card already exists")
-						return resp, NewCardAlreadyExistsError(wordInfo.Word)
+						return entity.Card{}, fmt.Errorf("%w: word %s", NewAlreadyExistsError(), wordInfo.Word)
 					}
 				}
 			}
@@ -316,124 +251,56 @@ func (s *service) CreateCard(ctx context.Context, req CreateCardRequest) (Create
 	if req.Params.EnrichWordInformationFromDictionary {
 		logger.FromContext(ctx).
 			Debug("enrich card with info from dictionary")
-		enrichedWordInformationList, err := s.enrichWordInformationListFromDictionary(card.Language, card.WordInformationList)
+		var enriched []entity.WordInformation
+		enriched, err = s.enrichWordInformationListFromDictionary(card.Language, card.WordInformationList)
 		if err != nil {
-			return resp, logAndReturnError(
+			return entity.Card{}, logAndReturnError(
 				ctx,
 				fmt.Sprintf("get words from dictionary: %s", err.Error()),
 				map[string]interface{}{"UserID": req.UserID},
 			)
 		}
-		card.WordInformationList = enrichedWordInformationList
+		card.WordInformationList = enriched
 	}
 
 	logger.FromContext(ctx).
 		Debug("enrich card with audio")
 	if err = s.enrichWordInformationListWithAudio(ctx, card.Language, card.WordInformationList); err != nil {
-		return CreateCardResponse{}, fmt.Errorf("enrich card with audio: %w", err)
+		return entity.Card{}, fmt.Errorf("enrich card with audio: %w", err)
 	}
 
 	logger.
 		FromContext(ctx).
 		Debug("save card")
 	if err = s.cardRepo.SaveCards(ctx, []entity.Card{card}); err != nil {
-		return resp, logAndReturnError(
+		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("save card: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
 	}
 
-	resp.Card = card
-
-	return resp, nil
+	return card, nil
 }
 
-func (s *service) enrichWordInformationListFromDictionary(language language.Tag, wordInformationLists []entity.WordInformation) ([]entity.WordInformation, error) {
-	var enrichedWords []entity.WordInformation
-	for _, wordInfo := range wordInformationLists {
-		enrichedWordInfo, err := s.dictionary.GetWordInformation(wordInfo.Word, language)
-		if err != nil {
-			return nil, fmt.Errorf("request word [%s] from dictionary: %w", wordInfo.Word, err)
-		}
-
-		enrichedWordInfo.Word = wordInfo.Word
-		enrichedWordInfo.Translation = wordInfo.Translation
-
-		enrichedWords = append(enrichedWords, enrichedWordInfo)
-	}
-
-	return enrichedWords, nil
-}
-
-func (s *service) enrichWordInformationListWithAudio(ctx context.Context, lang language.Tag, infoList []entity.WordInformation) error {
-	for i := 0; i < len(infoList); i++ {
-		if err := s.textToSpeech(ctx, lang, &infoList[i]); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (s *service) textToSpeech(ctx context.Context, lang language.Tag, info *entity.WordInformation) error {
-	if info == nil {
-		return nil
-	}
-
-	req := speech.ToSpeechRequest{
-		Input: info.Word,
-		Voice: speech.VoiceSelectionParams{
-			Language:             lang,
-			Name:                 "en-US-Standard-C",
-			PreferredVoiceGender: speech.Female,
-		},
-		AudioConfig: speech.AudioConfig{AudioEncoding: speech.Mp3},
-	}
-	audio, err := s.textToSpeechRepo.ToSpeech(ctx, req)
-	if err != nil {
-		return fmt.Errorf("text to speech: %w", err)
-	}
-
-	info.Audio = audio
-
-	return nil
-}
-
-func (s *service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
+func (s *Service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
 	if err := s.validator.ValidateGetCardsRequest(req); err != nil {
-		return GetCardsResponse{}, NewRequestValidationError(err)
+		return GetCardsResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
-	ctx = logger.ContextWithLogger(ctx,
-		logger.FromContext(ctx).
-			WithFields(
-				logrus.Fields{
-					"UserID":   req.UserID,
-					"Language": req.Language.String(),
-					"Request":  "GetAllCards",
-				},
-			),
+	ctx = createContextWithCorrelationLogger(ctx,
+		map[string]any{
+			"UserID":   req.UserID,
+			"Language": req.Language.String(),
+			"Request":  "GetAllCards",
+		},
 	)
 
-	logger.FromContext(ctx).
-		Debug("create user session")
-	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
-		return GetCardsResponse{}, logAndReturnError(
-			ctx,
-			fmt.Sprintf("create user session: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
-		)
+	closeSession, err := s.createUserSession(ctx, req.UserID)
+	if err != nil {
+		return GetCardsResponse{}, fmt.Errorf("create user session: %w", err)
 	}
-	defer func() {
-		logger.FromContext(ctx).
-			Debug("close user session")
-		if closeErr := s.sessionRepo.CloseSession(req.UserID); closeErr != nil {
-			logger.FromContext(ctx).
-				WithField("UserID", req.UserID).
-				Errorf("close user session: %s", closeErr.Error())
-		}
-	}()
+	defer closeSession()
 
 	logger.FromContext(ctx).
 		Debug("get all cards for user")
@@ -451,7 +318,8 @@ func (s *service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCard
 	logger.FromContext(ctx).
 		Debug("filter cards out by language")
 	for _, card := range cards {
-		if len(strings.TrimSpace(req.Language.String())) == 0 || strings.EqualFold(card.Language.String(), req.Language.String()) {
+		if len(strings.TrimSpace(req.Language.String())) == 0 ||
+			strings.EqualFold(card.Language.String(), req.Language.String()) {
 			apiCards = append(apiCards, card)
 		}
 	}
@@ -463,48 +331,34 @@ func (s *service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCard
 	}, nil
 }
 
-func (s *service) UpdateCardPerformance(ctx context.Context, req UpdateCardPerformanceRequest) (UpdateCardPerformanceResponse, error) {
-	resp := UpdateCardPerformanceResponse{}
-
+func (s *Service) UpdateCardPerformance(
+	ctx context.Context,
+	req UpdateCardPerformanceRequest,
+) (UpdateCardPerformanceResponse, error) {
 	if err := s.validator.ValidateUpdateCardPerformanceRequest(req); err != nil {
-		return resp, NewRequestValidationError(err)
+		return UpdateCardPerformanceResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
-	ctx = logger.ContextWithLogger(ctx,
-		logger.FromContext(ctx).
-			WithFields(
-				logrus.Fields{
-					"UserID":            req.UserID,
-					"CardID":            req.CardID,
-					"PerformanceRating": req.PerformanceRating,
-					"Request":           "UpdateCardPerformance",
-				},
-			),
+	ctx = createContextWithCorrelationLogger(ctx,
+		map[string]any{
+			"UserID":         req.UserID,
+			"CardID":         req.CardID,
+			"IsInputCorrect": req.IsInputCorrect,
+			"Request":        "UpdateCardPerformance",
+		},
 	)
 
-	logger.FromContext(ctx).
-		Debug("create user session")
-	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
-		return resp, logAndReturnError(
-			ctx,
-			fmt.Sprintf("create user session: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
-		)
+	closeSession, err := s.createUserSession(ctx, req.UserID)
+	if err != nil {
+		return UpdateCardPerformanceResponse{}, fmt.Errorf("create user session: %w", err)
 	}
-	defer func() {
-		logger.FromContext(ctx).
-			Debug("close user session")
-		if closeErr := s.sessionRepo.CloseSession(req.UserID); closeErr != nil {
-			logger.FromContext(ctx).
-				Errorf("close user session: %s", closeErr.Error())
-		}
-	}()
+	defer closeSession()
 
 	logger.FromContext(ctx).
 		Debug("get all cards for user")
 	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
 	if err != nil {
-		return resp, logAndReturnError(
+		return UpdateCardPerformanceResponse{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("get cards: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
@@ -525,62 +379,150 @@ func (s *service) UpdateCardPerformance(ctx context.Context, req UpdateCardPerfo
 	if card == nil {
 		logger.FromContext(ctx).
 			Debug("card not found")
-		return resp, NewCardNotFoundError().WithID(req.CardID)
+		return UpdateCardPerformanceResponse{}, fmt.Errorf("%w: card ID %s", NewNotFoundError(), req.CardID)
 	}
 
 	logger.FromContext(ctx).
 		Debug("calculate next due date")
-	nextDueDate := s.ankiAlgo.CalculateNextDueDate(req.PerformanceRating, card.GetAnswer(req.PerformanceRating > 2))
+
+	card.AddAnswer(req.IsInputCorrect)
+	consecutiveCorrectAnswersNumber := card.GetConsecutiveCorrectAnswersNumber()
+
+	performance := consecutiveCorrectAnswersNumber
+	if performance > MaxAllowedPerformanceRating {
+		performance = MaxAllowedPerformanceRating
+	}
+	nextDueDate := s.ankiAlgo.CalculateNextDueDate(performance, consecutiveCorrectAnswersNumber)
 	card.NextDueDate = nextDueDate
 
 	logger.FromContext(ctx).
 		Debug("save card")
 	if err = s.cardRepo.SaveCards(ctx, []entity.Card{*card}); err != nil {
-		return resp, logAndReturnError(
+		return UpdateCardPerformanceResponse{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("save card: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
 	}
 
-	resp.NextDueDate = nextDueDate
-
-	return resp, nil
+	return UpdateCardPerformanceResponse{
+		NextDueDate: nextDueDate,
+	}, nil
 }
 
-func (s *service) GetCardsToReview(ctx context.Context, req GetCardsForReviewRequest) (GetCardsResponse, error) {
-	if err := s.validator.ValidateGetCardsForReviewRequest(req); err != nil {
-		return GetCardsResponse{}, NewRequestValidationError(err)
+func (s *Service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity.Card, error) {
+	if err := s.validator.ValidateUpdateCardRequest(req); err != nil {
+		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
-	ctx = logger.ContextWithLogger(ctx,
-		logger.FromContext(ctx).
-			WithFields(
-				logrus.Fields{
-					"UserID":   req.UserID,
-					"Language": req.Language.String(),
-					"Request":  "GetCardsToReview",
-				},
-			),
+	ctx = createContextWithCorrelationLogger(ctx,
+		map[string]any{
+			"UserID":  req.UserID,
+			"CardID":  req.CardID,
+			"Request": "UpdateCard",
+		},
 	)
 
+	closeSession, err := s.createUserSession(ctx, req.UserID)
+	if err != nil {
+		return entity.Card{}, fmt.Errorf("create user session: %w", err)
+	}
+	defer closeSession()
+
 	logger.FromContext(ctx).
-		Debug("create user session")
-	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
-		return GetCardsResponse{}, logAndReturnError(
+		Debug("get all cards for user")
+
+	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
+	if err != nil {
+		return entity.Card{}, logAndReturnError(
 			ctx,
-			fmt.Sprintf("create user session: %s", err.Error()),
+			fmt.Sprintf("get cards: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
 	}
-	defer func() {
+
+	card, found := lo.Find(cards,
+		func(item entity.Card) bool {
+			return item.ID == req.CardID
+		},
+	)
+	if !found {
 		logger.FromContext(ctx).
-			Debug("close user session")
-		if closeErr := s.sessionRepo.CloseSession(req.UserID); closeErr != nil {
-			logger.FromContext(ctx).
-				Errorf("close user session: %s", closeErr.Error())
+			Debug("card not found")
+		return entity.Card{}, fmt.Errorf("%w: card ID %s", NewNotFoundError(), req.CardID)
+	}
+
+	card.WordInformationList = req.WordInformationList
+	if req.Params.EnrichWordInformationFromDictionary {
+		err = s.enrichCardFromDictionary(&card)
+		if err != nil {
+			return entity.Card{}, fmt.Errorf("enrich card words from dictionary: %w", err)
 		}
-	}()
+	}
+
+	err = s.enrichCardWithAudio(ctx, &card)
+	if err != nil {
+		return entity.Card{}, fmt.Errorf("enrich card with audio: %w", err)
+	}
+
+	logger.FromContext(ctx).
+		Debug("save card")
+	if err = s.cardRepo.SaveCards(ctx, []entity.Card{card}); err != nil {
+		return entity.Card{}, logAndReturnError(
+			ctx,
+			fmt.Sprintf("save card: %s", err.Error()),
+			map[string]interface{}{"UserID": req.UserID},
+		)
+	}
+
+	return card, nil
+}
+
+func (s *Service) GetCardsToLearn(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
+	return s.getCardsByFilter(
+		ctx,
+		req,
+		"GetCardsToLearn",
+		func(card entity.Card) bool {
+			return strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToLearn()
+		},
+	)
+}
+
+func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
+	return s.getCardsByFilter(
+		ctx,
+		req,
+		"GetCardsToRepeat",
+		func(card entity.Card) bool {
+			return strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToRepeat()
+		},
+	)
+}
+
+func (s *Service) getCardsByFilter(
+	ctx context.Context,
+	req GetCardsRequest,
+	requestName string,
+	predicate func(card entity.Card) bool,
+) (GetCardsResponse, error) {
+	if err := s.validator.ValidateGetCardsRequest(req); err != nil {
+		return GetCardsResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
+	}
+
+	ctx = createContextWithCorrelationLogger(ctx,
+		map[string]any{
+			"UserID":   req.UserID,
+			"Language": req.Language.String(),
+			"Request":  requestName,
+		},
+	)
+
+	closeSession, err := s.createUserSession(ctx, req.UserID)
+	if err != nil {
+		return GetCardsResponse{}, fmt.Errorf("create user session: %w", err)
+	}
+	defer closeSession()
 
 	logger.FromContext(ctx).
 		Debug("get all cards for user")
@@ -594,35 +536,32 @@ func (s *service) GetCardsToReview(ctx context.Context, req GetCardsForReviewReq
 	}
 
 	logger.FromContext(ctx).
-		Debug("filter cards out by next due date")
-	cardsToReview := make([]entity.Card, 0, len(cards))
-	for _, card := range cards {
-		if strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToReview() {
-			cardsToReview = append(cardsToReview, card)
-		}
-	}
+		Debug("filter cards out")
+	filtered := lo.Filter[entity.Card](cards,
+		func(item entity.Card, _ int) bool {
+			return predicate(item)
+		},
+	)
 
 	return GetCardsResponse{
 		UserID:   req.UserID,
 		Language: req.Language,
-		Cards:    cardsToReview,
+		Cards:    filtered,
 	}, nil
 }
 
-func (s *service) GetSentences(ctx context.Context, req GetSentencesRequest) (GetSentencesResponse, error) {
+func (s *Service) GetSentences(ctx context.Context, req GetSentencesRequest) (GetSentencesResponse, error) {
 	if err := s.validator.ValidateGetSentencesRequest(req); err != nil {
-		return GetSentencesResponse{}, NewRequestValidationError(err)
+		return GetSentencesResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
-	ctx = logger.ContextWithLogger(ctx, logger.FromContext(ctx).
-		WithFields(
-			logrus.Fields{
-				"UserID":         req.UserID,
-				"Word":           req.Word,
-				"SentencesCount": req.SentencesCount,
-				"Request":        "GetSentences",
-			},
-		),
+	ctx = createContextWithCorrelationLogger(ctx,
+		map[string]any{
+			"UserID":         req.UserID,
+			"Word":           req.Word,
+			"SentencesCount": req.SentencesCount,
+			"Request":        "GetSentences",
+		},
 	)
 
 	logger.FromContext(ctx).
@@ -632,42 +571,29 @@ func (s *service) GetSentences(ctx context.Context, req GetSentencesRequest) (Ge
 		return GetSentencesResponse{}, fmt.Errorf("get sentences for word [%s]: %w", req.Word, err)
 	}
 
-	return GetSentencesResponse{Sentences: sentences}, nil
+	return GetSentencesResponse{
+		Sentences: sentences,
+	}, nil
 }
 
-func (s *service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (GenerateStoryResponse, error) {
+func (s *Service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (GenerateStoryResponse, error) {
 	if err := s.validator.ValidateGenerateStoryRequest(req); err != nil {
-		return GenerateStoryResponse{}, NewRequestValidationError(err)
+		return GenerateStoryResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
-	ctx = logger.ContextWithLogger(ctx,
-		logger.FromContext(ctx).
-			WithFields(
-				logrus.Fields{
-					"UserID":   req.UserID,
-					"Language": req.Language.String(),
-					"Request":  "GenerateStory",
-				},
-			),
+	ctx = createContextWithCorrelationLogger(ctx,
+		map[string]any{
+			"UserID":   req.UserID,
+			"Language": req.Language.String(),
+			"Request":  "GenerateStory",
+		},
 	)
 
-	logger.FromContext(ctx).
-		Debug("create user session")
-	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
-		return GenerateStoryResponse{}, logAndReturnError(
-			ctx,
-			fmt.Sprintf("create user session: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
-		)
+	closeSession, err := s.createUserSession(ctx, req.UserID)
+	if err != nil {
+		return GenerateStoryResponse{}, fmt.Errorf("create user session: %w", err)
 	}
-	defer func() {
-		logger.FromContext(ctx).
-			Debug("close user session")
-		if closeErr := s.sessionRepo.CloseSession(req.UserID); closeErr != nil {
-			logger.FromContext(ctx).
-				Errorf("close user session: %s", closeErr.Error())
-		}
-	}()
+	defer closeSession()
 
 	logger.FromContext(ctx).
 		Debug("get all cards for user")
@@ -682,14 +608,15 @@ func (s *service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (
 
 	logger.FromContext(ctx).
 		Debug("filter cards out by next due date")
-	cardsToReview := make([]entity.Card, 0, len(cards))
+	cardsForStory := make([]entity.Card, 0, len(cards))
 	for _, card := range cards {
-		if strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToReview() {
-			cardsToReview = append(cardsToReview, card)
+		if strings.EqualFold(card.Language.String(), req.Language.String()) &&
+			!reflect.DeepEqual(card.NextDueDate, time.Time{}) {
+			cardsForStory = append(cardsForStory, card)
 		}
 	}
 
-	words := mapCardsToWords(cardsToReview)
+	words := mapCardsToWords(cardsForStory)
 
 	story, err := s.aiHelper.GenStory(lo.Shuffle[string](words), req.Language)
 	if err != nil {
@@ -697,6 +624,63 @@ func (s *service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (
 	}
 
 	return GenerateStoryResponse{Story: story}, nil
+}
+
+func (s *Service) DeleteCard(ctx context.Context, req DeleteCardRequest) (entity.Card, error) {
+	if err := s.validator.ValidateDeleteCardRequest(req); err != nil {
+		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
+	}
+
+	ctx = createContextWithCorrelationLogger(ctx,
+		map[string]any{
+			"UserID":  req.UserID,
+			"CardID":  req.CardID,
+			"Request": "DeleteCard",
+		},
+	)
+
+	closeSession, err := s.createUserSession(ctx, req.UserID)
+	if err != nil {
+		return entity.Card{}, fmt.Errorf("create user session: %w", err)
+	}
+	defer closeSession()
+
+	logger.FromContext(ctx).
+		Debug("get all cards for user")
+	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
+	if err != nil {
+		return entity.Card{}, logAndReturnError(
+			ctx,
+			fmt.Sprintf("get cards: %s", err.Error()),
+			map[string]interface{}{"UserID": req.UserID},
+		)
+	}
+
+	card, found := lo.Find(cards,
+		func(item entity.Card) bool {
+			return item.ID == req.CardID
+		},
+	)
+	if !found {
+		logger.FromContext(ctx).
+			Debug("card not found")
+		return entity.Card{}, fmt.Errorf("%w: card ID %s", NewNotFoundError(), req.CardID)
+	}
+
+	logger.FromContext(ctx).
+		Debug("delete card")
+	if err = s.cardRepo.DeleteCard(ctx, req.CardID); err != nil {
+		return entity.Card{}, logAndReturnError(
+			ctx,
+			fmt.Sprintf("delete card: %s", err.Error()),
+			map[string]interface{}{
+				"UserID": req.UserID,
+				"CardID": req.CardID,
+			},
+		)
+	}
+
+	return card, nil
 }
 
 func mapCardsToWords(cards []entity.Card) []string {
@@ -713,7 +697,7 @@ func mapCardsToWords(cards []entity.Card) []string {
 	)
 }
 
-func (s *service) generateSentences(word string, size uint32) ([]string, error) {
+func (s *Service) generateSentences(word string, size uint32) ([]string, error) {
 	if len(strings.TrimSpace(word)) == 0 {
 		return nil, nil
 	}
@@ -726,88 +710,7 @@ func (s *service) generateSentences(word string, size uint32) ([]string, error) 
 	return sentences, nil
 }
 
-func (s *service) DeleteCard(ctx context.Context, req DeleteCardRequest) (DeleteCardResponse, error) {
-	resp := DeleteCardResponse{}
-
-	if err := s.validator.ValidateDeleteCardRequest(req); err != nil {
-		return resp, NewRequestValidationError(err)
-	}
-
-	ctx = logger.ContextWithLogger(ctx, logger.FromContext(ctx).
-		WithFields(
-			logrus.Fields{
-				"UserID":  req.UserID,
-				"CardID":  req.CardID,
-				"Request": "DeleteCard",
-			},
-		),
-	)
-
-	logger.FromContext(ctx).
-		Debug("create user session")
-	if err := s.sessionRepo.CreateSession(req.UserID); err != nil {
-		return resp, logAndReturnError(
-			ctx,
-			fmt.Sprintf("create user session: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
-		)
-	}
-	defer func() {
-		logger.FromContext(ctx).
-			Debug("close user session")
-		if closeErr := s.sessionRepo.CloseSession(req.UserID); closeErr != nil {
-			logger.FromContext(ctx).
-				Errorf("close user session: %s", closeErr.Error())
-		}
-	}()
-
-	logger.FromContext(ctx).
-		Debug("get all cards for user")
-	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
-	if err != nil {
-		return resp, logAndReturnError(
-			ctx,
-			fmt.Sprintf("get cards: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
-		)
-	}
-
-	var card *entity.Card
-	for _, c := range cards {
-		c := c
-		if c.ID == req.CardID {
-			logger.FromContext(ctx).
-				Debug("card found")
-			card = &c
-			break
-		}
-	}
-
-	if card == nil {
-		logger.FromContext(ctx).
-			Debug("card not found")
-		return resp, NewCardNotFoundError().WithID(req.CardID)
-	}
-
-	logger.FromContext(ctx).
-		Debug("delete card")
-	if err = s.cardRepo.DeleteCard(ctx, req.CardID); err != nil {
-		return resp, logAndReturnError(
-			ctx,
-			fmt.Sprintf("delete card: %s", err.Error()),
-			map[string]interface{}{
-				"UserID": req.UserID,
-				"CardID": req.CardID,
-			},
-		)
-	}
-
-	resp.Card = *card
-
-	return resp, nil
-}
-
-func logAndReturnError(ctx context.Context, msg string, fields logrus.Fields) error {
+func logAndReturnError(ctx context.Context, msg string, fields map[string]any) error {
 	logger.FromContext(ctx).
 		WithFields(fields).
 		Errorf(msg)
@@ -823,4 +726,115 @@ func extractWords(list []entity.WordInformation) []string {
 	}
 
 	return words
+}
+
+func (s *Service) createUserSession(ctx context.Context, userID string) (func(), error) {
+	logger.FromContext(ctx).
+		Debug("create user session")
+	if err := s.sessionRepo.CreateSession(userID); err != nil {
+		return nil, logAndReturnError(
+			ctx,
+			fmt.Sprintf("create user session: %s", err.Error()),
+			map[string]interface{}{"UserID": userID},
+		)
+	}
+	return func() {
+		logger.FromContext(ctx).
+			Debug("close user session")
+		if closeErr := s.sessionRepo.CloseSession(userID); closeErr != nil {
+			logger.FromContext(ctx).
+				Errorf("close user session: %s", closeErr.Error())
+		}
+	}, nil
+}
+
+func (s *Service) enrichCardFromDictionary(card *entity.Card) error {
+	if card == nil {
+		return fmt.Errorf("card is nil")
+	}
+
+	enriched, err := s.enrichWordInformationListFromDictionary(card.Language, card.WordInformationList)
+	if err != nil {
+		return fmt.Errorf("enrich word information list from dictionary: %w", err)
+	}
+
+	card.WordInformationList = enriched
+
+	return nil
+}
+
+func (s *Service) enrichWordInformationListFromDictionary(
+	language language.Tag,
+	wordInformationLists []entity.WordInformation,
+) ([]entity.WordInformation, error) {
+	var enrichedWords []entity.WordInformation
+	for _, wordInfo := range wordInformationLists {
+		enrichedWordInfo, err := s.dictionary.GetWordInformation(wordInfo.Word, language)
+		if err != nil {
+			return nil, fmt.Errorf("request word [%s] from dictionary: %w", wordInfo.Word, err)
+		}
+
+		enrichedWordInfo.Word = wordInfo.Word
+		enrichedWordInfo.Translation = wordInfo.Translation
+
+		enrichedWords = append(enrichedWords, enrichedWordInfo)
+	}
+
+	return enrichedWords, nil
+}
+
+func (s *Service) enrichCardWithAudio(ctx context.Context, card *entity.Card) error {
+	if card == nil {
+		return fmt.Errorf("card is nil")
+	}
+
+	err := s.enrichWordInformationListWithAudio(ctx, card.Language, card.WordInformationList)
+	if err != nil {
+		return fmt.Errorf("enrich words with audio: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) enrichWordInformationListWithAudio(
+	ctx context.Context,
+	_ language.Tag,
+	infoList []entity.WordInformation,
+) error {
+	for i := 0; i < len(infoList); i++ {
+		audio, err := s.textToAudio(ctx, infoList[i].Word)
+		if err != nil {
+			return fmt.Errorf("text (%s) to speech: %w", infoList[i].Word, err)
+		}
+		infoList[i].Audio = audio
+	}
+
+	return nil
+}
+
+func (s *Service) textToAudio(ctx context.Context, text string) ([]byte, error) {
+	req := speech.ToSpeechRequest{
+		Input: text,
+		Voice: speech.VoiceSelectionParams{
+			Language:             "en-US",
+			Name:                 "en-US-Standard-C",
+			PreferredVoiceGender: speech.Female,
+		},
+		AudioConfig: speech.AudioConfig{AudioEncoding: speech.Mp3},
+	}
+	return s.textToSpeechRepo.ToSpeech(ctx, req)
+}
+
+func (s *Service) notFoundInDictionary(lang language.Tag) func(word, _ string) bool {
+	return func(word, _ string) bool {
+		_, err := s.dictionary.GetWordInformation(word, lang)
+		return err != nil && errors.Is(err, dictionary.ErrNotFound)
+	}
+}
+
+func createContextWithCorrelationLogger(ctx context.Context, fields map[string]any) context.Context {
+	return logger.ContextWithLogger(ctx,
+		logger.WithCorrelationID().
+			WithFields(fields),
+	)
 }

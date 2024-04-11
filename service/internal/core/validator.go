@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -53,6 +52,20 @@ func (validator) ValidateCreateCardRequest(req CreateCardRequest) error {
 	return nil
 }
 
+func (validator) ValidateUpdateCardRequest(req UpdateCardRequest) error {
+	if len(strings.TrimSpace(req.UserID)) == 0 {
+		return errors.New("userID is required")
+	}
+	if len(strings.TrimSpace(req.CardID)) == 0 {
+		return errors.New("cardID is required")
+	}
+	if len(req.WordInformationList) == 0 {
+		return errors.New("wordInformationList are required, specify one at least")
+	}
+
+	return nil
+}
+
 func (validator) ValidateDeleteCardRequest(req DeleteCardRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")
@@ -64,26 +77,12 @@ func (validator) ValidateDeleteCardRequest(req DeleteCardRequest) error {
 	return nil
 }
 
-func (validator) ValidateGetCardsForReviewRequest(req GetCardsForReviewRequest) error {
-	if len(strings.TrimSpace(req.UserID)) == 0 {
-		return errors.New("userID is required")
-	}
-	if len(strings.TrimSpace(req.Language.String())) == 0 {
-		return errors.New("language is required")
-	}
-
-	return nil
-}
-
 func (validator) ValidateUpdateCardPerformanceRequest(req UpdateCardPerformanceRequest) error {
 	if len(strings.TrimSpace(req.UserID)) == 0 {
 		return errors.New("userID is required")
 	}
 	if len(strings.TrimSpace(req.CardID)) == 0 {
 		return errors.New("cardID is required")
-	}
-	if req.PerformanceRating > 5 {
-		return fmt.Errorf("performance rating %d is out of range [0:5]", req.PerformanceRating)
 	}
 
 	return nil

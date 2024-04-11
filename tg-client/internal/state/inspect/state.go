@@ -2,13 +2,13 @@ package inspect
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale/service/api"
+	"github.com/genvmoroz/lale/tg-client/internal/pretty"
 	"github.com/genvmoroz/lale/tg-client/internal/repository"
 )
 
@@ -34,8 +34,35 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	req := &api.InspectCardRequest{}
 
+	for len(req.Language) == 0 {
+		if len(req.GetLanguage()) == 0 {
+			if err := client.SendWithParseMode(chatID, "Send the ISO 1 Letter Language Code . Ex. <code>en</code>", "HTML"); err != nil {
+				return err
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return nil
+		case update, ok := <-updateChan:
+			if !ok {
+				return errors.New("updateChan is closed")
+			}
+			text := strings.TrimSpace(update.Message.Text)
+			switch text {
+			case "/back":
+				return client.Send(chatID, "Back to previous state")
+			case "":
+				if err := client.Send(chatID, "Empty value is not allowed"); err != nil {
+					return err
+				}
+			default:
+				req.Language = text
+			}
+		}
+	}
+
 	for len(req.GetWord()) == 0 {
-		if err := client.Send(chatID, "Send the word. Ex. suspicion"); err != nil {
+		if err := client.SendWithParseMode(chatID, "Send the word. Ex. <code>suspicion</code>", "HTML"); err != nil {
 			return err
 		}
 
@@ -61,47 +88,17 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		}
 	}
 
-	for len(req.Language) == 0 {
-		if len(req.GetLanguage()) == 0 {
-			if err := client.Send(chatID, "Send the language. Ex. en"); err != nil {
-				return err
-			}
-		}
-		select {
-		case <-ctx.Done():
-			return nil
-		case update, ok := <-updateChan:
-			if !ok {
-				return errors.New("updateChan is closed")
-			}
-			text := strings.TrimSpace(update.Message.Text)
-			switch text {
-			case "/back":
-				return client.Send(chatID, "Back to previous state")
-			case "":
-				if err := client.Send(chatID, "Empty value is not allowed"); err != nil {
-					return err
-				}
-			default:
-				req.Language = text
-			}
-		}
-	}
-
-	resp, err := s.laleRepo.InspectCard(ctx, req)
+	resp, err := s.laleRepo.Client.InspectCard(ctx, req)
 	if err != nil {
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("grpc [InspectCard] err: %s", err.Error()), "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [InspectCard] err: %s</code>", err.Error()), "HTML"); err != nil {
 			return err
 		}
 	}
 
-	empJSON, err := json.MarshalIndent(resp.GetCard(), "", "\t\t\t")
-	if err != nil {
-		return err
-	}
-
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card:\n%s", string(empJSON)), "HTML"); err != nil {
-		return err
+	for _, msg := range pretty.Card(resp, true) {
+		if err = client.SendWithParseMode(chatID, msg, "HTML"); err != nil {
+			return err
+		}
 	}
 
 	return nil

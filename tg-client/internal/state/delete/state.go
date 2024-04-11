@@ -33,7 +33,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 	var req *api.DeleteCardRequest
 
 	for req == nil {
-		if err := client.Send(chatID, "Send the CardID of the Card you want it to be deleted"); err != nil {
+		if err := client.Send(chatID, "Send the ID of the Card you want to be deleted"); err != nil {
 			return err
 		}
 
@@ -61,14 +61,14 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		}
 	}
 
-	resp, err := s.laleRepo.DeleteCard(ctx, req)
+	resp, err := s.laleRepo.Client.DeleteCard(ctx, req)
 	if err != nil {
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("grpc [DeleteCard] err: %s", err.Error()), "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [DeleteCard] err: %s</code>", err.Error()), "HTML"); err != nil {
 			return err
 		}
 	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card with ID <code>%s</code> deleted", resp.GetCard().GetId()), "HTML"); err != nil {
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card with ID <code>%s</code> deleted", resp.GetId()), "HTML"); err != nil {
 		return err
 	}
 
@@ -80,5 +80,5 @@ func (s *State) Command() string {
 }
 
 func (s *State) Description() string {
-	return "Inspect Card"
+	return "Delete Card"
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/genvmoroz/lale/service/internal/options"
 	"github.com/genvmoroz/lale/service/internal/repo/card"
 	"github.com/genvmoroz/lale/service/internal/repo/dictionary"
-	"github.com/genvmoroz/lale/service/internal/repo/redis"
 	"github.com/genvmoroz/lale/service/internal/repo/session"
 	"github.com/genvmoroz/lale/service/pkg/openai"
 	"github.com/genvmoroz/lale/service/pkg/speech"
@@ -18,7 +17,7 @@ import (
 )
 
 type Dependency struct {
-	service core.Service
+	service *core.Service
 }
 
 func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error) {
@@ -27,8 +26,7 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 		return nil, fmt.Errorf("create openai helper: %w", err)
 	}
 
-	redisRepo := redis.NewRepo(cfg.Redis)
-	userSessionRepo, err := session.NewRepo(cfg.Session)
+	userSessionRepo, err := session.NewRepo()
 	if err != nil {
 		return nil, fmt.Errorf("create user session client: %w", err)
 	}
@@ -67,12 +65,9 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 		return nil, fmt.Errorf("create core service: %w", err)
 	}
 
-	// temporary unused clients
-	_ = redisRepo
-
 	return &Dependency{service: service}, nil
 }
 
-func (d *Dependency) BuildService() core.Service {
+func (d *Dependency) BuildService() *core.Service {
 	return d.service
 }

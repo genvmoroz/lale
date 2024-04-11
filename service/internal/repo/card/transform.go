@@ -1,6 +1,7 @@
 package card
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"reflect"
@@ -14,19 +15,43 @@ import (
 )
 
 func cardToDoc(card entity.Card) ([]byte, error) {
-	return bson.MarshalWithRegistry(defaultCustomRegistry, card)
+	buf := new(bytes.Buffer)
+	w, err := bsonrw.NewBSONValueWriter(buf)
+	if err != nil {
+		return nil, fmt.Errorf("new bson writer: %w", err)
+	}
+	encoder, err := bson.NewEncoder(w)
+	if err != nil {
+		return nil, fmt.Errorf("new bson writer: %w", err)
+	}
+	if err = encoder.SetRegistry(defaultCustomRegistry); err != nil {
+		return nil, fmt.Errorf("set registry: %w", err)
+	}
+	if err = encoder.Encode(card); err != nil {
+		return nil, fmt.Errorf("encode: %w", err)
+	}
+
+	return buf.Bytes(), nil
 }
 
 func unmarshalCursor(ctx context.Context, cursor *mongo.Cursor) ([]entity.Card, error) {
 	var cards []entity.Card
 
-	for data := cursor.Current; cursor.Next(ctx); data = cursor.Current {
-		if len(data) == 0 {
-			continue
+	for cursor.Next(ctx) {
+		if cursor.Err() != nil {
+			return nil, fmt.Errorf("cursor error: %w", cursor.Err())
+		}
+
+		decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(cursor.Current))
+		if err != nil {
+			return nil, fmt.Errorf("new decoder: %w", err)
+		}
+		if err = decoder.SetRegistry(defaultCustomRegistry); err != nil {
+			return nil, fmt.Errorf("set registry: %w", err)
 		}
 		card := entity.Card{}
-		if err := bson.UnmarshalWithRegistry(defaultCustomRegistry, data, &card); err != nil {
-			return nil, fmt.Errorf("unmarshal: %w", err)
+		if err = decoder.Decode(&card); err != nil {
+			return nil, fmt.Errorf("decode: %w", err)
 		}
 		cards = append(cards, card)
 	}
@@ -34,13 +59,11 @@ func unmarshalCursor(ctx context.Context, cursor *mongo.Cursor) ([]entity.Card, 
 	return cards, nil
 }
 
-var defaultCustomRegistry = createCustomRegistry()
+var defaultCustomRegistry = createCustomRegistry() //nolint:gochecknoglobals // it's fine to have here
 
 func createCustomRegistry() *bsoncodec.Registry {
-	rb := bsoncodec.NewRegistryBuilder()
-	bsoncodec.DefaultValueEncoders{}.RegisterDefaultEncoders(rb)
-	bsoncodec.DefaultValueDecoders{}.RegisterDefaultDecoders(rb)
-	rb.RegisterTypeEncoder(
+	registry := bson.DefaultRegistry
+	registry.RegisterTypeEncoder(
 		reflect.TypeOf(language.Tag{}),
 		bsoncodec.ValueEncoderFunc(func(_ bsoncodec.EncodeContext, writer bsonrw.ValueWriter, value reflect.Value) error {
 			if lang, ok := value.Interface().(language.Tag); ok {
@@ -49,7 +72,7 @@ func createCustomRegistry() *bsoncodec.Registry {
 			return fmt.Errorf("convert (%s) to (%T) error", value.Type().String(), language.Tag{})
 		}),
 	)
-	rb.RegisterTypeDecoder(
+	registry.RegisterTypeDecoder(
 		reflect.TypeOf(language.Tag{}),
 		bsoncodec.ValueDecoderFunc(func(_ bsoncodec.DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 			read, err := vr.ReadString()
@@ -65,7 +88,5 @@ func createCustomRegistry() *bsoncodec.Registry {
 		}),
 	)
 
-	bson.PrimitiveCodecs{}.RegisterPrimitiveCodecs(rb)
-
-	return rb.Build()
+	return registry
 }

@@ -23,7 +23,7 @@ func toSynthesisInput(input string) *texttospeechpb.SynthesisInput {
 
 func toVoiceSelectionParams(params speech.VoiceSelectionParams) *texttospeechpb.VoiceSelectionParams {
 	return &texttospeechpb.VoiceSelectionParams{
-		LanguageCode: params.Language.String(),
+		LanguageCode: params.Language,
 		Name:         params.Name,
 		SsmlGender:   toGender(params.PreferredVoiceGender),
 	}
@@ -34,7 +34,7 @@ func toAudioConfig(cfg speech.AudioConfig) *texttospeechpb.AudioConfig {
 		AudioEncoding:    toAudioEncoding(cfg.AudioEncoding),
 		SpeakingRate:     cfg.SpeakingRate,
 		Pitch:            cfg.Pitch,
-		VolumeGainDb:     cfg.VolumeGainDb,
+		VolumeGainDb:     cfg.VolumeGainDB,
 		SampleRateHertz:  cfg.SampleRateHertz,
 		EffectsProfileId: cfg.EffectsProfileIDs,
 	}
@@ -48,6 +48,8 @@ func toGender(gender speech.VoiceGender) texttospeechpb.SsmlVoiceGender {
 		return texttospeechpb.SsmlVoiceGender_FEMALE
 	case speech.Neutral:
 		return texttospeechpb.SsmlVoiceGender_NEUTRAL
+	case speech.Any:
+		return texttospeechpb.SsmlVoiceGender_SSML_VOICE_GENDER_UNSPECIFIED
 	default:
 		return texttospeechpb.SsmlVoiceGender_SSML_VOICE_GENDER_UNSPECIFIED
 	}
@@ -61,6 +63,8 @@ func toDomainGender(gender texttospeechpb.SsmlVoiceGender) speech.VoiceGender {
 		return speech.Female
 	case texttospeechpb.SsmlVoiceGender_NEUTRAL:
 		return speech.Neutral
+	case texttospeechpb.SsmlVoiceGender_SSML_VOICE_GENDER_UNSPECIFIED:
+		return speech.Any
 	default:
 		return speech.Any
 	}
@@ -78,6 +82,8 @@ func toAudioEncoding(audio speech.AudioEncoding) texttospeechpb.AudioEncoding {
 		return texttospeechpb.AudioEncoding_MULAW
 	case speech.Alaw:
 		return texttospeechpb.AudioEncoding_ALAW
+	case speech.Unknown:
+		return texttospeechpb.AudioEncoding_AUDIO_ENCODING_UNSPECIFIED
 	default:
 		return texttospeechpb.AudioEncoding_AUDIO_ENCODING_UNSPECIFIED
 	}

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/genvmoroz/lale/service/pkg/auxiliary"
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 	"golang.org/x/text/language"
 )
 
@@ -17,8 +17,8 @@ type (
 
 		WordInformationList []WordInformation `yaml:"WordInformationList,omitempty"`
 
-		CorrectAnswers uint32
-		NextDueDate    time.Time
+		ConsecutiveCorrectAnswersNumber uint32
+		NextDueDate                     time.Time
 	}
 
 	WordInformation struct {
@@ -51,10 +51,12 @@ type (
 		Antonyms   []string `yaml:"Antonyms,omitempty"`
 	}
 
-	User struct {
-		id      string    // nolint: unused
-		created time.Time // nolint: unused
-	}
+	/*	temporary unused, but may be useful in the future
+		User struct {
+				id      string
+				created time.Time
+			}
+	*/
 
 	UserSession struct {
 		ID      string     `json:"id"`
@@ -72,18 +74,24 @@ func NewUserSession(userID string) UserSession {
 	}
 }
 
-func (c *Card) NeedToReview() bool {
-	return time.Now().UTC().After(c.NextDueDate.UTC())
+func (c *Card) NeedToRepeat() bool {
+	return !c.NextDueDate.IsZero() && time.Now().UTC().After(c.NextDueDate.UTC())
 }
 
-func (c *Card) GetAnswer(correct bool) uint32 {
-	if correct {
-		c.CorrectAnswers += 1
-	} else {
-		c.CorrectAnswers = 0
-	}
+func (c *Card) NeedToLearn() bool {
+	return c.NextDueDate.IsZero()
+}
 
-	return c.CorrectAnswers
+func (c *Card) AddAnswer(correct bool) {
+	if correct {
+		c.ConsecutiveCorrectAnswersNumber++
+	} else {
+		c.ConsecutiveCorrectAnswersNumber = 0
+	}
+}
+
+func (c *Card) GetConsecutiveCorrectAnswersNumber() uint32 {
+	return c.ConsecutiveCorrectAnswersNumber
 }
 
 func (s *UserSession) Duration() (time.Duration, error) {
@@ -99,5 +107,5 @@ func (s *UserSession) IsClosed() bool {
 }
 
 func (s *UserSession) Close() {
-	s.Closed = auxiliary.TimePtr(time.Now().UTC())
+	s.Closed = lo.ToPtr(time.Now().UTC())
 }
