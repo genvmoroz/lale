@@ -63,7 +63,7 @@ func launch() error {
 		Port:    cfg.LaleService.Port,
 		Timeout: cfg.LaleService.Timeout,
 	}
-	laleRepo, err := repository.NewLaleRepo(ctx, clientCfg)
+	laleRepo, err := repository.NewLaleRepo(clientCfg)
 	if err != nil {
 		return fmt.Errorf("create LaleRepo: %w", err)
 	}

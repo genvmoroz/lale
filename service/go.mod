@@ -15,7 +15,7 @@ require (
 	github.com/samber/lo v1.39.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
-	go.mongodb.org/mongo-driver v1.14.0
+	go.mongodb.org/mongo-driver v1.15.0
 	go.uber.org/goleak v1.3.0
 	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8
 	golang.org/x/sync v0.7.0

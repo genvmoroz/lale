@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"strconv"
@@ -17,17 +16,14 @@ type ClientConfig struct {
 	Timeout time.Duration
 }
 
-func connectToGRPCService(ctx context.Context, cfg ClientConfig) (*grpc.ClientConn, error) {
+func connectToGRPCService(cfg ClientConfig) (*grpc.ClientConn, error) {
 	target := net.JoinHostPort(cfg.Host, strconv.Itoa(int(cfg.Port)))
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, cfg.Timeout)
-	defer cancel()
-
-	conn, err := grpc.DialContext(ctx, target, opts...)
+	conn, err := grpc.NewClient(target, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("grpc: dial error: %w", err)
 	}

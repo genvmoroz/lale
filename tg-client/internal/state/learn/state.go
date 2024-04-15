@@ -3,7 +3,6 @@ package learn
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -105,8 +104,6 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			}
 		}
 
-		var easiness []int
-
 		for i, word := range card.Words {
 			if err = client.Send(chatID, "Word:"); err != nil {
 				return err
@@ -168,42 +165,10 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 				if err = client.Send(chatID, "Correct"); err != nil {
 					return err
 				}
-				easinessLevel, _, back, err := auxl.RequestInput[*uint32](
-					ctx,
-					func(u *uint32) bool {
-						return u != nil
-					},
-					chatID,
-					"Send Level Of Easiness. Ex. 3, range [0:5]",
-					func(input string, chatID int64, client *bot.Client) (*uint32, error) {
-						parsed, err := strconv.Atoi(strings.TrimSpace(input))
-						switch {
-						case err != nil:
-							return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Parsing error: %s", err.Error()), "HTML")
-						case parsed < 0 || parsed > 5:
-							return nil, client.Send(chatID, "The value is out of range [0:5]")
-						default:
-							v := uint32(parsed)
-							return &v, nil
-						}
-					},
-					client,
-					updateChan,
-				)
-				if err != nil {
-					return fmt.Errorf("request easiness level: %w", err)
-				}
-				if back {
-					return nil
-				}
-				if easinessLevel != nil {
-					easiness = append(easiness, int(*easinessLevel))
-				}
 			} else {
 				if err = client.SendWithParseMode(chatID, fmt.Sprintf("Incorrect, inspect word <code>%s</code> first", word.GetWord()), "HTML"); err != nil {
 					return err
 				}
-				easiness = append(easiness, 0)
 			}
 			if err = client.Send(chatID, "Sentences:"); err != nil {
 				return err
@@ -254,21 +219,10 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			}
 		}
 
-		sum := 0
-
-		for i := 0; i < len(easiness); i++ {
-			sum += easiness[i]
-		}
-		avg := (float64(sum)) / (float64(len(easiness)))
-
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card learnt, easiness level is <code>%d</code>", uint32(avg)), "HTML"); err != nil {
-			return err
-		}
-
 		perfReq := &api.UpdateCardPerformanceRequest{
-			UserID:            card.Card.GetUserID(),
-			CardID:            card.Card.GetId(),
-			PerformanceRating: uint32(avg),
+			UserID:         card.Card.GetUserID(),
+			CardID:         card.Card.GetId(),
+			IsInputCorrect: false,
 		}
 
 		resp, err := s.laleRepo.Client.UpdateCardPerformance(ctx, perfReq)
@@ -417,9 +371,9 @@ func (s *State) processFirstReview(
 	}
 
 	perfReq := &api.UpdateCardPerformanceRequest{
-		UserID:            card.Card.GetUserID(),
-		CardID:            card.Card.GetId(),
-		PerformanceRating: 0,
+		UserID:         card.Card.GetUserID(),
+		CardID:         card.Card.GetId(),
+		IsInputCorrect: false,
 	}
 
 	resp, err := s.laleRepo.Client.UpdateCardPerformance(ctx, perfReq)
