@@ -26,7 +26,7 @@ type (
 )
 
 func NewRepo(token string) (*Repo, error) {
-	client := goclient.NewClient(&goclient.Config{ApiKey: token})
+	client := goclient.NewClient(&goclient.Config{ApiKey: token, LogLevel: goclient.LogLevelError})
 	if err := client.Start(); err != nil {
 		return nil, err
 	}
