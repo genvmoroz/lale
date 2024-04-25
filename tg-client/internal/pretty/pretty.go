@@ -3,6 +3,7 @@ package pretty
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/genvmoroz/lale/service/api"
@@ -22,8 +23,18 @@ CardID: <code>%s</code>
 UserID: <code>%s</code>
 Language: <code>%s</code>
 NextDueDate: <code>%s</code>
+ConsecutiveCorrectAnswersNumber: <code>%s</code>
 `
-	p = append(p, fmt.Sprintf(meta, card.GetId(), card.GetUserID(), card.GetLanguage(), card.GetNextDueDate().AsTime().Format(time.RFC3339)))
+	p = append(p,
+		fmt.Sprintf(
+			meta,
+			card.GetId(),
+			card.GetUserID(),
+			card.GetLanguage(),
+			card.GetNextDueDate().AsTime().Format(time.RFC3339),
+			strconv.Itoa(int(card.GetConsecutiveCorrectAnswersNumber())),
+		),
+	)
 
 	if !withWords {
 		return p
