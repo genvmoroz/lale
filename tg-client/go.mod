@@ -5,14 +5,14 @@ go 1.22
 require (
 	github.com/genvmoroz/bot-engine v1.0.17
 	github.com/genvmoroz/lale/service v0.2.3
-	github.com/go-playground/validator/v10 v10.19.0
+	github.com/go-playground/validator/v10 v10.21.0
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/samber/lo v1.39.0
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/text v0.14.0
-	google.golang.org/grpc v1.63.2
+	golang.org/x/text v0.16.0
+	google.golang.org/grpc v1.64.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

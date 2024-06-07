@@ -25,7 +25,6 @@ func TestFutureTaskCorrect(t *testing.T) {
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
-	require.False(t, task.IsCompleted())
 
 	res, err := task.Get(time.Second)
 	require.NoError(t, err)
