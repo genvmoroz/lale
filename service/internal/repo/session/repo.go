@@ -7,8 +7,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/genvmoroz/lale/service/pkg/entity"
+	"github.com/genvmoroz/lale-service/pkg/entity"
 )
+
+const defaultExpireIn = 24 * time.Hour
 
 type (
 	Repo struct {
@@ -32,7 +34,8 @@ var ErrOpenedSession = errors.New("session already opened") // todo: move to cor
 func NewRepo() (*Repo, error) {
 	return &Repo{
 		cache: cache{
-			entries: make(map[string]cacheEntry),
+			entries:  make(map[string]cacheEntry),
+			expireIn: defaultExpireIn,
 		},
 		mux: &sync.Mutex{},
 	}, nil

@@ -100,7 +100,7 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 
 	body, err := s.prepareRequestBody(
 		fmt.Sprintf(
-			"Generate %d random sentences with the word \"%s\" in different meanings of the word for %s English level with any topics.",
+			"Generate %d random sentences with the word \"%s\" in different meanings of the word for %s English level with any topics. Print only sentences.",
 			size,
 			strings.TrimSpace(word),
 			complexity.String(),
@@ -361,7 +361,7 @@ type (
 	}
 )
 
-const defaultModel = "gpt-3.5-turbo"
+const defaultModel = "gpt-4o"
 
 func (s *Scraper) prepareRequestBody(content string) ([]byte, error) {
 	req := request{

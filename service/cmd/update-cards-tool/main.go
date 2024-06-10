@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/genvmoroz/lale/service/api"
+	"github.com/genvmoroz/lale-service/api"
 	"github.com/liamg/clinch/prompt"
 	"github.com/liamg/clinch/task"
 	"github.com/liamg/tml"

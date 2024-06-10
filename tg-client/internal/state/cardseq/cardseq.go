@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/genvmoroz/lale-tg-client/internal/repository"
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/service/pkg/future"
-	"github.com/genvmoroz/lale/tg-client/internal/repository"
 )
 
 type (

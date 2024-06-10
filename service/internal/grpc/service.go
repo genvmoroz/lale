@@ -6,7 +6,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/genvmoroz/lale/service/api"
+	"github.com/genvmoroz/lale-service/api"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )

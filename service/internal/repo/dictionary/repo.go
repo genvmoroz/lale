@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/genvmoroz/lale/service/pkg/entity"
+	"github.com/genvmoroz/lale-service/pkg/entity"
 	clientHTTP "github.com/hashicorp/go-retryablehttp"
 	"golang.org/x/text/language"
 )

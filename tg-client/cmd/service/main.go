@@ -14,17 +14,17 @@ import (
 	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/bot-engine/dispatcher"
 	"github.com/genvmoroz/bot-engine/processor"
-	"github.com/genvmoroz/lale/tg-client/internal/options"
-	"github.com/genvmoroz/lale/tg-client/internal/repository"
-	createstate "github.com/genvmoroz/lale/tg-client/internal/state/create"
-	deletestate "github.com/genvmoroz/lale/tg-client/internal/state/delete"
-	getallstate "github.com/genvmoroz/lale/tg-client/internal/state/getall"
-	helpstate "github.com/genvmoroz/lale/tg-client/internal/state/help"
-	inspectstate "github.com/genvmoroz/lale/tg-client/internal/state/inspect"
-	"github.com/genvmoroz/lale/tg-client/internal/state/learn"
-	"github.com/genvmoroz/lale/tg-client/internal/state/repeat"
-	"github.com/genvmoroz/lale/tg-client/internal/state/story"
-	"github.com/genvmoroz/lale/tg-client/internal/state/update"
+	"github.com/genvmoroz/lale-tg-client/internal/options"
+	"github.com/genvmoroz/lale-tg-client/internal/repository"
+	createstate "github.com/genvmoroz/lale-tg-client/internal/state/create"
+	deletestate "github.com/genvmoroz/lale-tg-client/internal/state/delete"
+	getallstate "github.com/genvmoroz/lale-tg-client/internal/state/getall"
+	helpstate "github.com/genvmoroz/lale-tg-client/internal/state/help"
+	inspectstate "github.com/genvmoroz/lale-tg-client/internal/state/inspect"
+	"github.com/genvmoroz/lale-tg-client/internal/state/learn"
+	"github.com/genvmoroz/lale-tg-client/internal/state/repeat"
+	"github.com/genvmoroz/lale-tg-client/internal/state/story"
+	"github.com/genvmoroz/lale-tg-client/internal/state/update"
 	"github.com/sirupsen/logrus"
 )
 
@@ -63,7 +63,7 @@ func launch() error {
 		Port:    cfg.LaleService.Port,
 		Timeout: cfg.LaleService.Timeout,
 	}
-	laleRepo, err := repository.NewLaleRepo(ctx, clientCfg)
+	laleRepo, err := repository.NewLaleRepo(clientCfg)
 	if err != nil {
 		return fmt.Errorf("create LaleRepo: %w", err)
 	}

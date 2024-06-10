@@ -107,5 +107,8 @@ func (s *UserSession) IsClosed() bool {
 }
 
 func (s *UserSession) Close() {
+	if s.IsClosed() {
+		return
+	}
 	s.Closed = lo.ToPtr(time.Now().UTC())
 }

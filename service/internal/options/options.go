@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/genvmoroz/lale/service/internal/repo/card"
-	"github.com/genvmoroz/lale/service/pkg/openai"
-	"github.com/genvmoroz/lale/service/pkg/speech/google"
+	"github.com/genvmoroz/lale-service/internal/repo/card"
+	"github.com/genvmoroz/lale-service/pkg/openai"
+	"github.com/genvmoroz/lale-service/pkg/speech/google"
 	"github.com/go-playground/validator/v10"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"

@@ -1,4 +1,4 @@
-package card
+package mongo
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/genvmoroz/lale-service/pkg/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -85,7 +84,7 @@ func prepareURI(cfg Config) string {
 	return uri.String()
 }
 
-func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Card, error) {
+func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]Card, error) {
 	if !utf8.ValidString(userID) {
 		return nil, fmt.Errorf("userID [%s] is invalid utf8 string", userID)
 	}
@@ -120,20 +119,15 @@ func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Car
 	return unmarshalCursor(ctx, cursor)
 }
 
-// TODO: implement search card by name on Repo side
-// func (r *Repo) FindCardsByWord(ctx context.Context, userID, word string) ([]entity.Card, error) {
-//	return nil, errors.New("not implemented yet")
-// }
-
 //nolint:gocognit // need to fix later
-func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
+func (r *Repo) SaveCards(ctx context.Context, cards []Card) error {
 	if len(cards) == 0 {
 		return nil
 	}
 
-	dupls := lo.FindDuplicatesBy[entity.Card, string](
+	dupls := lo.FindDuplicatesBy[Card, string](
 		cards,
-		func(item entity.Card) string {
+		func(item Card) string {
 			return item.ID
 		},
 	)

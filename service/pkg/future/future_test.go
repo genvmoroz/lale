@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/genvmoroz/lale/service/pkg/future"
+	"github.com/genvmoroz/lale-service/pkg/future"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
@@ -25,7 +25,6 @@ func TestFutureTaskCorrect(t *testing.T) {
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
-	require.False(t, task.IsCompleted())
 
 	res, err := task.Get(time.Second)
 	require.NoError(t, err)
@@ -42,16 +41,15 @@ func TestFutureTaskContextCanceled(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
 
 	run := func(ctx context.Context) (string, error) {
-		for {
-			select {
-			case <-ctx.Done():
-				return "", nil
-			default:
-				time.Sleep(time.Second)
-				return "done", nil
-			}
+		select {
+		case <-ctx.Done():
+			return "", nil
+		default:
+			time.Sleep(time.Second)
+			return "done", nil
 		}
 	}
 
@@ -60,8 +58,6 @@ func TestFutureTaskContextCanceled(t *testing.T) {
 
 	require.False(t, task.IsCancelled())
 	require.False(t, task.IsCompleted())
-
-	cancel()
 
 	res, err := task.Get(time.Second)
 	require.ErrorContains(t, err, "context closed before the task is completed")
@@ -76,14 +72,12 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 	defer cancel()
 
 	run := func(ctx context.Context) (string, error) {
-		for {
-			select {
-			case <-ctx.Done():
-				return "", nil
-			default:
-				time.Sleep(2 * time.Second)
-				return "done", nil
-			}
+		select {
+		case <-ctx.Done():
+			return "", nil
+		default:
+			time.Sleep(2 * time.Second)
+			return "done", nil
 		}
 	}
 

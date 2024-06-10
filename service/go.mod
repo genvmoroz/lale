@@ -1,4 +1,4 @@
-module github.com/genvmoroz/lale/service
+module github.com/genvmoroz/lale-service
 
 go 1.22
 

@@ -1,12 +1,12 @@
-package card
+package mongo
 
 import (
 	"bytes"
 	"context"
 	"fmt"
 	"reflect"
+	"time"
 
-	"github.com/genvmoroz/lale-service/pkg/entity"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
@@ -14,9 +14,51 @@ import (
 	"golang.org/x/text/language"
 )
 
-// todo: implement dto here
+type (
+	Card struct {
+		ID       string
+		UserID   string
+		Language language.Tag
 
-func cardToDoc(card entity.Card) ([]byte, error) {
+		WordInformationList []WordInformation `yaml:"WordInformationList,omitempty"`
+
+		ConsecutiveCorrectAnswersNumber uint32
+		CorrectAnswers                  uint32 // deprecated
+		NextDueDate                     time.Time
+	}
+
+	WordInformation struct {
+		Word        string       `yaml:"Word,omitempty"`
+		Translation *Translation `yaml:"Translation,omitempty"`
+		Origin      string       `yaml:"Origin,omitempty"`
+		Phonetics   []Phonetic   `yaml:"Phonetics,omitempty"`
+		Meanings    []Meaning    `yaml:"Meanings,omitempty"`
+		Audio       []byte       `yaml:"Audio,omitempty"`
+	}
+
+	Translation struct {
+		Language     language.Tag `yaml:"Language,omitempty"`
+		Translations []string     `yaml:"Translations,omitempty"`
+	}
+
+	Phonetic struct {
+		Text string `yaml:"Text,omitempty"`
+	}
+
+	Meaning struct {
+		PartOfSpeech string       `yaml:"PartOfSpeech,omitempty"`
+		Definitions  []Definition `yaml:"Definitions,omitempty"`
+	}
+
+	Definition struct {
+		Definition string   `yaml:"Definition,omitempty"`
+		Example    string   `yaml:"Example,omitempty"`
+		Synonyms   []string `yaml:"Synonyms,omitempty"`
+		Antonyms   []string `yaml:"Antonyms,omitempty"`
+	}
+)
+
+func cardToDoc(card Card) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	w, err := bsonrw.NewBSONValueWriter(buf)
 	if err != nil {
@@ -36,8 +78,8 @@ func cardToDoc(card entity.Card) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func unmarshalCursor(ctx context.Context, cursor *mongo.Cursor) ([]entity.Card, error) {
-	var cards []entity.Card
+func unmarshalCursor(ctx context.Context, cursor *mongo.Cursor) ([]Card, error) {
+	var cards []Card
 
 	for cursor.Next(ctx) {
 		if cursor.Err() != nil {
@@ -51,7 +93,7 @@ func unmarshalCursor(ctx context.Context, cursor *mongo.Cursor) ([]entity.Card, 
 		if err = decoder.SetRegistry(defaultCustomRegistry); err != nil {
 			return nil, fmt.Errorf("set registry: %w", err)
 		}
-		card := entity.Card{}
+		card := Card{}
 		if err = decoder.Decode(&card); err != nil {
 			return nil, fmt.Errorf("decode: %w", err)
 		}

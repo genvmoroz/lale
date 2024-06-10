@@ -3,9 +3,9 @@ package grpc
 import (
 	"fmt"
 
-	"github.com/genvmoroz/lale/service/api"
-	"github.com/genvmoroz/lale/service/internal/core"
-	"github.com/genvmoroz/lale/service/pkg/entity"
+	"github.com/genvmoroz/lale-service/api"
+	"github.com/genvmoroz/lale-service/internal/core"
+	"github.com/genvmoroz/lale-service/pkg/entity"
 	"golang.org/x/text/language"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )

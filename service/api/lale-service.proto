@@ -1,5 +1,5 @@
 syntax = "proto3";
-option go_package = "github.com/genvmoroz/lale/service/api";
+option go_package = "github.com/genvmoroz/lale-service/api";
 package api;
 
 import "google/protobuf/timestamp.proto";
