@@ -7,8 +7,8 @@ import (
 
 	api "cloud.google.com/go/texttospeech/apiv1"
 	"cloud.google.com/go/texttospeech/apiv1/texttospeechpb"
-	"github.com/genvmoroz/lale-service/pkg/logger"
-	"github.com/genvmoroz/lale-service/pkg/speech"
+	"github.com/genvmoroz/lale/service/pkg/logger"
+	"github.com/genvmoroz/lale/service/pkg/speech"
 	"github.com/googleapis/gax-go/v2"
 	"golang.org/x/text/language"
 	"google.golang.org/api/option"

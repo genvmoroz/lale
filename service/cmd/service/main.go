@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/genvmoroz/lale-service/internal/dependency"
-	"github.com/genvmoroz/lale-service/internal/grpc"
-	"github.com/genvmoroz/lale-service/internal/options"
+	"github.com/genvmoroz/lale/service/internal/dependency"
+	"github.com/genvmoroz/lale/service/internal/grpc"
+	"github.com/genvmoroz/lale/service/internal/options"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )

@@ -9,7 +9,7 @@ CMD_DIR=./cmd/service/.
 ARTIFACT_DIR=./bin
 ARTIFACT=${ARTIFACT_DIR}/svc
 REPO=genvmoroz
-IMAGE_NAME=lale-service
+IMAGE_NAME=service
 DOCKER_TAG=development
 
 .PHONY: ci

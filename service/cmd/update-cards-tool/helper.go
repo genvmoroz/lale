@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/genvmoroz/lale-service/api"
+	"github.com/genvmoroz/lale/service/api"
 	"github.com/liamg/tml"
 )
 

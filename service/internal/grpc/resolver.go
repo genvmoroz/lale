@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/genvmoroz/lale-service/api"
-	"github.com/genvmoroz/lale-service/internal/core"
-	"github.com/genvmoroz/lale-service/pkg/entity"
+	"github.com/genvmoroz/lale/service/api"
+	"github.com/genvmoroz/lale/service/internal/core"
+	"github.com/genvmoroz/lale/service/pkg/entity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

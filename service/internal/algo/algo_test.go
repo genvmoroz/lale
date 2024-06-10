@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/genvmoroz/lale-service/internal/algo"
+	"github.com/genvmoroz/lale/service/internal/algo"
 )
 
 func TestAnkiCalculateNextDueDate(t *testing.T) {

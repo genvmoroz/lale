@@ -2,7 +2,7 @@ package google
 
 import (
 	"cloud.google.com/go/texttospeech/apiv1/texttospeechpb"
-	"github.com/genvmoroz/lale-service/pkg/speech"
+	"github.com/genvmoroz/lale/service/pkg/speech"
 )
 
 func toSynthesizeSpeechRequest(req speech.ToSpeechRequest) *texttospeechpb.SynthesizeSpeechRequest {
