@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/genvmoroz/lale/service/internal/algo"
-	"github.com/genvmoroz/lale/service/internal/core"
-	"github.com/genvmoroz/lale/service/internal/options"
-	"github.com/genvmoroz/lale/service/internal/repo/card"
-	"github.com/genvmoroz/lale/service/internal/repo/dictionary"
-	"github.com/genvmoroz/lale/service/internal/repo/session"
-	"github.com/genvmoroz/lale/service/pkg/openai"
-	"github.com/genvmoroz/lale/service/pkg/speech"
-	"github.com/genvmoroz/lale/service/pkg/speech/google"
+	"github.com/genvmoroz/lale-service/internal/algo"
+	"github.com/genvmoroz/lale-service/internal/core"
+	"github.com/genvmoroz/lale-service/internal/options"
+	"github.com/genvmoroz/lale-service/internal/repo/card"
+	"github.com/genvmoroz/lale-service/internal/repo/dictionary"
+	"github.com/genvmoroz/lale-service/internal/repo/session"
+	"github.com/genvmoroz/lale-service/pkg/openai"
+	"github.com/genvmoroz/lale-service/pkg/speech"
+	"github.com/genvmoroz/lale-service/pkg/speech/google"
 )
 
 type Dependency struct {

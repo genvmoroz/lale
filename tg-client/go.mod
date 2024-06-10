@@ -1,4 +1,4 @@
-module github.com/genvmoroz/lale/tg-client
+module github.com/genvmoroz/lale-tg-client
 
 go 1.22
 

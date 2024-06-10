@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/genvmoroz/lale/service/pkg/entity"
+	"github.com/genvmoroz/lale-service/pkg/entity"
 )
 
 const defaultExpireIn = 24 * time.Hour

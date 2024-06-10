@@ -3,7 +3,7 @@ package core
 import (
 	"time"
 
-	"github.com/genvmoroz/lale/service/pkg/entity"
+	"github.com/genvmoroz/lale-service/pkg/entity"
 	"golang.org/x/text/language"
 )
 

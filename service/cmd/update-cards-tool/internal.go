@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/genvmoroz/lale/service/api"
+	"github.com/genvmoroz/lale-service/api"
 	"github.com/liamg/clinch/prompt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

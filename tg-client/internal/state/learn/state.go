@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/genvmoroz/bot-engine/bot"
+	"github.com/genvmoroz/lale-tg-client/internal/auxl"
+	"github.com/genvmoroz/lale-tg-client/internal/pretty"
+	"github.com/genvmoroz/lale-tg-client/internal/repository"
+	"github.com/genvmoroz/lale-tg-client/internal/state/cardseq"
 	"github.com/genvmoroz/lale/service/api"
-	"github.com/genvmoroz/lale/tg-client/internal/auxl"
-	"github.com/genvmoroz/lale/tg-client/internal/pretty"
-	"github.com/genvmoroz/lale/tg-client/internal/repository"
-	"github.com/genvmoroz/lale/tg-client/internal/state/cardseq"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/sirupsen/logrus"
 )

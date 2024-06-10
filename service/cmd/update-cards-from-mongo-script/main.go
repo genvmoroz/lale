@@ -17,8 +17,8 @@ func main() {
 	defer cancel()
 
 	cfg := mongo.Config{
-		Protocol: "",
-		Host:     "",
+		Protocol: "mongodb+srv",
+		Host:     "dictionary.zxrao.mongodb.net",
 		Params: map[string]string{
 			"retryWrites": "true",
 			"w":           "majority",
@@ -26,7 +26,7 @@ func main() {
 		Database:   "dictionary",
 		Collection: "cards",
 		Creds: mongo.Creds{
-			User: "",
+			User: "genvmoroz",
 			Pass: "",
 		},
 	}

@@ -1,8 +1,8 @@
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/genvmoroz/lale/service v0.2.3 h1:ZCSWj7+SLLK5INfnH4lJY1rK1mZyTRpwmjHR7lhEoN4=
-github.com/genvmoroz/lale/service v0.2.3/go.mod h1:uKHOLMrYqP2pHIbCb/dg7gNXAZRHLdS2+NT7CG0f/Lc=
+github.com/genvmoroz/lale-service v0.2.3 h1:ZCSWj7+SLLK5INfnH4lJY1rK1mZyTRpwmjHR7lhEoN4=
+github.com/genvmoroz/lale-service v0.2.3/go.mod h1:uKHOLMrYqP2pHIbCb/dg7gNXAZRHLdS2+NT7CG0f/Lc=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/liamg/clinch v1.6.6 h1:0b4DxnjBe6+65Kbw9xhCsNGw/jJJ4ODOgihLAvqf/eQ=

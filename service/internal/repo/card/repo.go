@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/genvmoroz/lale/service/pkg/entity"
+	"github.com/genvmoroz/lale-service/pkg/entity"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
