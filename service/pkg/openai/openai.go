@@ -361,7 +361,7 @@ type (
 	}
 )
 
-const defaultModel = "gpt-4o"
+const defaultModel = "gpt-4o-mini"
 
 func (s *Scraper) prepareRequestBody(content string) ([]byte, error) {
 	req := request{
