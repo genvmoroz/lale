@@ -3,8 +3,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/gabriel-vasile/mimetype v1.4.3 h1:in2uUcidCuFcDKtdcBxlR0rJ1+fsokWf+uqxgUFjbI0=
 github.com/gabriel-vasile/mimetype v1.4.3/go.mod h1:d8uq/6HKRL6CGdk+aubisF/M5GcPfT7nKyLpA0lbSSk=
-github.com/genvmoroz/bot-engine v1.1.2 h1:Z7fscHf8gz/0A43yGqUGh9llsNybpND6pHugHIpgfDE=
-github.com/genvmoroz/bot-engine v1.1.2/go.mod h1:NBFUvAiZxBTcZMmEaxqyvjfqEHJJl2TjpaPR12cDxXM=
+github.com/genvmoroz/bot-engine v1.1.3 h1:ApPmoaxoO8SHxEZXmKrg+8su+zDo8L3whCvG5flBSJk=
+github.com/genvmoroz/bot-engine v1.1.3/go.mod h1:NBFUvAiZxBTcZMmEaxqyvjfqEHJJl2TjpaPR12cDxXM=
 github.com/genvmoroz/lale/service v1.0.0 h1:HlsCH0oWBC1N60WXZXIekhGb6pLTAHsWA0PizklLGPg=
 github.com/genvmoroz/lale/service v1.0.0/go.mod h1:r6YWRNe7L9XHyjK1PffrI2a3/bJANFYOx/Sijb5BBnc=
 github.com/go-playground/assert/v2 v2.2.0 h1:JvknZsQTYeFEAhQwI4qEt9cyV5ONwRHC+lYKSsYSR8s=

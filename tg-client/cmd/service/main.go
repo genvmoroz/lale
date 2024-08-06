@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"sync"
 	"syscall"
 	"time"
@@ -31,7 +32,7 @@ import (
 func main() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Fatalf("recovered: %s", r)
+			log.Fatalf("recovered: %s. Stack: %s", r, string(debug.Stack()))
 		}
 	}()
 

@@ -3,7 +3,7 @@ module github.com/genvmoroz/lale-tg-client
 go 1.22
 
 require (
-	github.com/genvmoroz/bot-engine v1.1.2
+	github.com/genvmoroz/bot-engine v1.1.3
 	github.com/genvmoroz/lale/service v1.0.0
 	github.com/go-playground/validator/v10 v10.22.0
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
