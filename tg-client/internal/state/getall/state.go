@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/genvmoroz/bot-engine/processor"
+	"github.com/genvmoroz/bot-engine/tg"
 	"strings"
 
-	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale-tg-client/internal/pretty"
 	"github.com/genvmoroz/lale-tg-client/internal/repository"
 	"github.com/genvmoroz/lale/service/api"
@@ -26,7 +27,7 @@ const initialMessage = `
 Get All Cards State
 `
 
-func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) error {
+func (s *State) Process(ctx context.Context, client processor.Client, chatID int64, updateChan tg.UpdatesChannel) error {
 	if err := client.Send(chatID, initialMessage); err != nil {
 		return err
 	}
@@ -34,7 +35,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 	var req *api.GetCardsRequest
 
 	for req == nil {
-		if err := client.SendWithParseMode(chatID, "Send the ISO 1 Letter Language Code. Ex. <code>en</code>. Or  <code>all</code> to request cards without filtering by language", "HTML"); err != nil {
+		if err := client.SendWithParseMode(chatID, "Send the ISO 1 Letter Language Code. Ex. <code>en</code>. Or  <code>all</code> to request cards without filtering by language", tg.ModeHTML); err != nil {
 			return err
 		}
 
@@ -69,14 +70,14 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	resp, err := s.laleRepo.Client.GetAllCards(ctx, req)
 	if err != nil {
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [GetAllCards] err: %s</code>", err.Error()), "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [GetAllCards] err: %s</code>", err.Error()), tg.ModeHTML); err != nil {
 			return err
 		}
 	}
 
 	for _, card := range resp.GetCards() {
 		for _, msg := range pretty.Card(card, true) {
-			if err = client.SendWithParseMode(chatID, msg, "HTML"); err != nil {
+			if err = client.SendWithParseMode(chatID, msg, tg.ModeHTML); err != nil {
 				return err
 			}
 		}

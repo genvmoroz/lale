@@ -3,9 +3,9 @@ package help
 import (
 	"context"
 	"fmt"
+	"github.com/genvmoroz/bot-engine/tg"
 	"strings"
 
-	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/bot-engine/processor"
 )
 
@@ -19,7 +19,7 @@ func NewState(states []processor.StateProcessor) *State {
 	return &State{states: states}
 }
 
-func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, _ bot.UpdatesChannel) error {
+func (s *State) Process(ctx context.Context, client processor.Client, chatID int64, _ tg.UpdatesChannel) error {
 	select {
 	case <-ctx.Done():
 		return nil

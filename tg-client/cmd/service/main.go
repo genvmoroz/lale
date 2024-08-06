@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/bot-engine/dispatcher"
 	"github.com/genvmoroz/bot-engine/processor"
+	"github.com/genvmoroz/bot-engine/tg"
 	"github.com/genvmoroz/lale-tg-client/internal/options"
 	"github.com/genvmoroz/lale-tg-client/internal/repository"
 	createstate "github.com/genvmoroz/lale-tg-client/internal/state/create"
@@ -53,7 +53,7 @@ func launch() error {
 
 	logrus.SetLevel(cfg.LogLevel)
 
-	baseBot, err := bot.NewClient(cfg.TelegramToken)
+	baseBot, err := tg.NewClient(cfg.TelegramToken)
 	if err != nil {
 		return err
 	}

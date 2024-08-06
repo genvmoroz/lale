@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/genvmoroz/bot-engine/processor"
+	"github.com/genvmoroz/bot-engine/tg"
 	"strings"
-
-	"github.com/genvmoroz/bot-engine/bot"
 )
 
 func RequestInput[T any](
@@ -14,16 +14,16 @@ func RequestInput[T any](
 	until func(T) bool,
 	chatID int64,
 	message string,
-	processInput func(input string, chatID int64, client *bot.Client) (T, error),
-	client *bot.Client,
-	updateChan bot.UpdatesChannel) (T, string, bool, error) {
+	processInput func(input string, chatID int64, client processor.Client) (T, error),
+	client processor.Client,
+	updateChan tg.UpdatesChannel) (T, string, bool, error) {
 
 	var (
 		val      T
 		userName string
 	)
 
-	if err := client.SendWithParseMode(chatID, message, "HTML"); err != nil {
+	if err := client.SendWithParseMode(chatID, message, tg.ModeHTML); err != nil {
 		return val, userName, false, err
 	}
 

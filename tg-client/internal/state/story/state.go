@@ -3,9 +3,10 @@ package story
 import (
 	"context"
 	"fmt"
+	"github.com/genvmoroz/bot-engine/processor"
 	"strings"
 
-	"github.com/genvmoroz/bot-engine/bot"
+	"github.com/genvmoroz/bot-engine/tg"
 	"github.com/genvmoroz/lale-tg-client/internal/auxl"
 	"github.com/genvmoroz/lale-tg-client/internal/repository"
 	"github.com/genvmoroz/lale/service/api"
@@ -26,7 +27,7 @@ const initialMessage = `
 Let the service generate a story with words you have learnt.
 `
 
-func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) error {
+func (s *State) Process(ctx context.Context, client processor.Client, chatID int64, updateChan tg.UpdatesChannel) error {
 	if err := client.Send(chatID, initialMessage); err != nil {
 		return err
 	}
@@ -38,7 +39,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		},
 		chatID,
 		"Send the ISO 1 Letter Language Code of the story, ex: <code>en</code>",
-		func(input string, _ int64, _ *bot.Client) (string, error) {
+		func(input string, _ int64, _ processor.Client) (string, error) {
 			return strings.TrimSpace(input), nil
 		},
 		client,
@@ -58,7 +59,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	resp, err := s.laleRepo.Client.GenerateStory(ctx, req)
 	if err != nil {
-		if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [GenerateStory] err: %s</code>", err.Error()), "HTML"); sendErr != nil {
+		if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [GenerateStory] err: %s</code>", err.Error()), tg.ModeHTML); sendErr != nil {
 			logrus.
 				WithField("grpc error", err.Error()).
 				WithField("tg-bot error", sendErr.Error()).

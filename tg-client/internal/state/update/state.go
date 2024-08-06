@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/genvmoroz/bot-engine/processor"
+	"github.com/genvmoroz/bot-engine/tg"
 	"strings"
 
-	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale-tg-client/internal/auxl"
 	"github.com/genvmoroz/lale-tg-client/internal/repository"
 	"github.com/genvmoroz/lale/service/api"
@@ -32,7 +33,7 @@ const initialMessage = `
 Update Card State
 `
 
-func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) error {
+func (s *State) Process(ctx context.Context, client processor.Client, chatID int64, updateChan tg.UpdatesChannel) error {
 	if err := client.Send(chatID, initialMessage); err != nil {
 		return err
 	}
@@ -75,7 +76,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		},
 		chatID,
 		"Send the ISO 1 Letter Language Code, ex: <code>en</code>",
-		func(input string, _ int64, _ *bot.Client) (string, error) {
+		func(input string, _ int64, _ processor.Client) (string, error) {
 			return strings.TrimSpace(input), nil
 		},
 		client,
@@ -95,7 +96,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		},
 		chatID,
 		createExample,
-		func(input string, chatID int64, client *bot.Client) ([][2]string, error) {
+		func(input string, chatID int64, client processor.Client) ([][2]string, error) {
 			lines := slices.DeleteFunc(strings.Split(input, "\n"),
 				func(s string) bool {
 					return len(strings.TrimSpace(s)) == 0
@@ -109,7 +110,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			for _, line := range lines {
 				parts := strings.Split(line, "-")
 				if len(parts) != 2 {
-					return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Value [%s] is invalid, ex. <code>word - translation</code>", line), "HTML")
+					return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Value [%s] is invalid, ex. <code>word - translation</code>", line), tg.ModeHTML)
 				}
 				wordList = append(wordList, [2]string{parts[0], parts[1]})
 			}
@@ -142,7 +143,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		},
 		chatID,
 		"Do you want the service to enrich your Card with additional word information? [<code>yes</code>|<code>no</code>]",
-		func(input string, chatID int64, client *bot.Client) (*bool, error) {
+		func(input string, chatID int64, client processor.Client) (*bool, error) {
 			text := strings.ToLower(strings.TrimSpace(input))
 			switch text {
 			case "/back":
@@ -156,7 +157,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 				t := false
 				return &t, nil
 			default:
-				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter [<code>yes</code>|<code>no</code>] or <code>/back</code> to go to the previous state", text), "HTML")
+				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter [<code>yes</code>|<code>no</code>] or <code>/back</code> to go to the previous state", text), tg.ModeHTML)
 			}
 		},
 		client,
@@ -177,12 +178,12 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	resp, err := s.laleRepo.Client.UpdateCard(ctx, req)
 	if err != nil {
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [UpdateCard] err: %s</code>", err.Error()), "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [UpdateCard] err: %s</code>", err.Error()), tg.ModeHTML); err != nil {
 			return err
 		}
 	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card with ID <code>%s</code> updated", resp.GetId()), "HTML"); err != nil {
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card with ID <code>%s</code> updated", resp.GetId()), tg.ModeHTML); err != nil {
 		return err
 	}
 

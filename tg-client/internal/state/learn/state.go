@@ -3,16 +3,16 @@ package learn
 import (
 	"context"
 	"fmt"
+	"github.com/genvmoroz/bot-engine/processor"
+	"github.com/genvmoroz/bot-engine/tg"
 	"strings"
 	"time"
 
-	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale-tg-client/internal/auxl"
 	"github.com/genvmoroz/lale-tg-client/internal/pretty"
 	"github.com/genvmoroz/lale-tg-client/internal/repository"
 	"github.com/genvmoroz/lale-tg-client/internal/state/cardseq"
 	"github.com/genvmoroz/lale/service/api"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,7 +31,7 @@ Learn Words State
 Send the ISO 1 Letter Language Code to learn the Words with that language
 `
 
-func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) error {
+func (s *State) Process(ctx context.Context, client processor.Client, chatID int64, updateChan tg.UpdatesChannel) error {
 	if err := client.Send(chatID, initialMessage); err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		chatID,
 
 		"Send the language, ex: <code>en</code>",
-		func(input string, _ int64, _ *bot.Client) (string, error) {
+		func(input string, _ int64, _ processor.Client) (string, error) {
 			return strings.TrimSpace(input), nil
 		},
 		client,
@@ -62,7 +62,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	resp, err := s.laleRepo.Client.GetCardsToLearn(ctx, req)
 	if err != nil {
-		if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [GetCardsToLearn] err: %s</code>", err.Error()), "HTML"); sendErr != nil {
+		if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [GetCardsToLearn] err: %s</code>", err.Error()), tg.ModeHTML); sendErr != nil {
 			logrus.
 				WithField("grpc error", err.Error()).
 				WithField("tg-bot error", sendErr.Error()).
@@ -72,7 +72,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		return err
 	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Found <code>%d</code> Cards to learn", len(resp.GetCards())), "HTML"); err != nil {
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Found <code>%d</code> Cards to learn", len(resp.GetCards())), tg.ModeHTML); err != nil {
 		return err
 	}
 
@@ -92,14 +92,14 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		}
 
 		if len(card.Words) == 0 {
-			if err = client.SendWithParseMode(chatID, fmt.Sprintf("No words for Card <code>%s</code>. Inspect the Card and delete if empty", card.Card.GetId()), "HTML"); err != nil {
+			if err = client.SendWithParseMode(chatID, fmt.Sprintf("No words for Card <code>%s</code>. Inspect the Card and delete if empty", card.Card.GetId()), tg.ModeHTML); err != nil {
 				return err
 			}
 			continue
 		}
 
 		for _, msg := range pretty.Card(card.Card, false) {
-			if err = client.SendWithParseMode(chatID, msg, "HTML"); err != nil {
+			if err = client.SendWithParseMode(chatID, msg, tg.ModeHTML); err != nil {
 				return err
 			}
 		}
@@ -108,7 +108,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			if err = client.Send(chatID, "Word:"); err != nil {
 				return err
 			}
-			if err = client.SendWithParseMode(chatID, pretty.Translation(word.GetTranslation()), "HTML"); err != nil {
+			if err = client.SendWithParseMode(chatID, pretty.Translation(word.GetTranslation()), tg.ModeHTML); err != nil {
 				return err
 			}
 			for _, meaning := range word.GetMeanings() {
@@ -117,10 +117,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 				}
 			}
 
-			_, err = client.Bot.Send(tgbotapi.NewAudio(chatID, tgbotapi.FileBytes{
-				Name:  "pronunciation",
-				Bytes: word.GetAudio(),
-			}))
+			err = client.SendAudio(chatID, "pronunciation", word.GetAudio())
 			if err != nil {
 				if err = client.Send(chatID, fmt.Sprintf("sending audio error: %v", err.Error())); err != nil {
 					return err
@@ -135,7 +132,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 				},
 				chatID,
 				"Send the Word",
-				func(input string, chatID int64, client *bot.Client) (*bool, error) {
+				func(input string, chatID int64, client processor.Client) (*bool, error) {
 					text := strings.ToLower(strings.TrimSpace(input))
 					switch text {
 					case "/back":
@@ -166,7 +163,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 					return err
 				}
 			} else {
-				if err = client.SendWithParseMode(chatID, fmt.Sprintf("Incorrect, inspect word <code>%s</code> first", word.GetWord()), "HTML"); err != nil {
+				if err = client.SendWithParseMode(chatID, fmt.Sprintf("Incorrect, inspect word <code>%s</code> first", word.GetWord()), tg.ModeHTML); err != nil {
 					return err
 				}
 			}
@@ -195,7 +192,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 					},
 					chatID,
 					"Write <code>next</code> to learn next word",
-					func(input string, chatID int64, client *bot.Client) (*bool, error) {
+					func(input string, chatID int64, client processor.Client) (*bool, error) {
 						text := strings.ToLower(strings.TrimSpace(input))
 						switch text {
 						case "":
@@ -204,7 +201,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 							t := true
 							return &t, nil
 						default:
-							return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter <code>/back</code> to go to the previous state", text), "HTML")
+							return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter <code>/back</code> to go to the previous state", text), tg.ModeHTML)
 						}
 					},
 					client,
@@ -227,7 +224,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 		resp, err := s.laleRepo.Client.UpdateCardPerformance(ctx, perfReq)
 		if err != nil {
-			if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [UpdateCardPerformance] err: %s</code>", err.Error()), "HTML"); err != nil {
+			if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [UpdateCardPerformance] err: %s</code>", err.Error()), tg.ModeHTML); err != nil {
 				return err
 			}
 		}
@@ -250,7 +247,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			},
 			chatID,
 			"Write <code>next</code> to Learn next Card",
-			func(input string, chatID int64, client *bot.Client) (*bool, error) {
+			func(input string, chatID int64, client processor.Client) (*bool, error) {
 				text := strings.ToLower(strings.TrimSpace(input))
 				switch text {
 				case "":
@@ -259,7 +256,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 					t := true
 					return &t, nil
 				default:
-					return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter <code>/back</code> to go to the previous state", text), "HTML")
+					return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter <code>/back</code> to go to the previous state", text), tg.ModeHTML)
 				}
 			},
 			client,
@@ -273,7 +270,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		}
 	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Learn finished, leanrt <code>%d</code> cards", len(resp.GetCards())), "HTML"); err != nil {
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Learn finished, leanrt <code>%d</code> cards", len(resp.GetCards())), tg.ModeHTML); err != nil {
 		return err
 	}
 
@@ -282,17 +279,17 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 func (s *State) processFirstReview(
 	ctx context.Context,
-	client *bot.Client,
+	client processor.Client,
 	chatID int64,
-	updateChan bot.UpdatesChannel,
+	updateChan tg.UpdatesChannel,
 	card cardseq.Card,
 ) (bool, error) {
 	if len(card.Words) == 0 {
-		return false, client.SendWithParseMode(chatID, fmt.Sprintf("No words for Card <code>%s</code>. Inspect the Card and delete if empty", card.Card.GetId()), "HTML")
+		return false, client.SendWithParseMode(chatID, fmt.Sprintf("No words for Card <code>%s</code>. Inspect the Card and delete if empty", card.Card.GetId()), tg.ModeHTML)
 	}
 
 	for _, msg := range pretty.Card(card.Card, false) {
-		if err := client.SendWithParseMode(chatID, msg, "HTML"); err != nil {
+		if err := client.SendWithParseMode(chatID, msg, tg.ModeHTML); err != nil {
 			return false, err
 		}
 	}
@@ -301,7 +298,7 @@ func (s *State) processFirstReview(
 		if err := client.Send(chatID, fmt.Sprintf("Word: %s", word.GetWord())); err != nil {
 			return false, err
 		}
-		if err := client.SendWithParseMode(chatID, pretty.Translation(word.GetTranslation()), "HTML"); err != nil {
+		if err := client.SendWithParseMode(chatID, pretty.Translation(word.GetTranslation()), tg.ModeHTML); err != nil {
 			return false, err
 		}
 		for _, meaning := range word.GetMeanings() {
@@ -310,10 +307,7 @@ func (s *State) processFirstReview(
 			}
 		}
 
-		_, err := client.Bot.Send(tgbotapi.NewAudio(chatID, tgbotapi.FileBytes{
-			Name:  "pronunciation",
-			Bytes: word.GetAudio(),
-		}))
+		err := client.SendAudio(chatID, "pronunciation", word.GetAudio())
 		if err != nil {
 			if err = client.Send(chatID, fmt.Sprintf("sending audio error: %v", err.Error())); err != nil {
 				return false, err
@@ -342,7 +336,7 @@ func (s *State) processFirstReview(
 				},
 				chatID,
 				"Write <code>next</code> to learn next word",
-				func(input string, chatID int64, client *bot.Client) (*bool, error) {
+				func(input string, chatID int64, client processor.Client) (*bool, error) {
 					text := strings.ToLower(strings.TrimSpace(input))
 					switch text {
 					case "":
@@ -351,7 +345,7 @@ func (s *State) processFirstReview(
 						t := true
 						return &t, nil
 					default:
-						return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter <code>/back</code> to go to the previous state", text), "HTML")
+						return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter <code>/back</code> to go to the previous state", text), tg.ModeHTML)
 					}
 				},
 				client,
@@ -366,7 +360,7 @@ func (s *State) processFirstReview(
 		}
 	}
 
-	if err := client.SendWithParseMode(chatID, "Card Learnt", "HTML"); err != nil {
+	if err := client.SendWithParseMode(chatID, "Card Learnt", tg.ModeHTML); err != nil {
 		return false, err
 	}
 
@@ -378,7 +372,7 @@ func (s *State) processFirstReview(
 
 	resp, err := s.laleRepo.Client.UpdateCardPerformance(ctx, perfReq)
 	if err != nil {
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [UpdateCardPerformance] err: %s</code>", err.Error()), "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [UpdateCardPerformance] err: %s</code>", err.Error()), tg.ModeHTML); err != nil {
 			return false, err
 		}
 	}
@@ -397,7 +391,7 @@ func (s *State) processFirstReview(
 		},
 		chatID,
 		"Write <code>next</code> to learn next Card",
-		func(input string, chatID int64, client *bot.Client) (*bool, error) {
+		func(input string, chatID int64, client processor.Client) (*bool, error) {
 			text := strings.ToLower(strings.TrimSpace(input))
 			switch text {
 			case "":
@@ -406,7 +400,7 @@ func (s *State) processFirstReview(
 				t := true
 				return &t, nil
 			default:
-				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter <code>/back</code> to go to the previous state", text), "HTML")
+				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter <code>/back</code> to go to the previous state", text), tg.ModeHTML)
 			}
 		},
 		client,

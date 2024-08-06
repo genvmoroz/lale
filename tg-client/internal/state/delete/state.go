@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/genvmoroz/bot-engine/processor"
+	"github.com/genvmoroz/bot-engine/tg"
 	"strings"
 
-	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale-tg-client/internal/repository"
 	"github.com/genvmoroz/lale/service/api"
 )
@@ -25,7 +26,7 @@ const initialMessage = `
 Delete Card State
 `
 
-func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) error {
+func (s *State) Process(ctx context.Context, client processor.Client, chatID int64, updateChan tg.UpdatesChannel) error {
 	if err := client.Send(chatID, initialMessage); err != nil {
 		return err
 	}
@@ -63,12 +64,12 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	resp, err := s.laleRepo.Client.DeleteCard(ctx, req)
 	if err != nil {
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [DeleteCard] err: %s</code>", err.Error()), "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [DeleteCard] err: %s</code>", err.Error()), tg.ModeHTML); err != nil {
 			return err
 		}
 	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card with ID <code>%s</code> deleted", resp.GetId()), "HTML"); err != nil {
+	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card with ID <code>%s</code> deleted", resp.GetId()), tg.ModeHTML); err != nil {
 		return err
 	}
 

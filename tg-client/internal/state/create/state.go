@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/genvmoroz/bot-engine/bot"
+	"github.com/genvmoroz/bot-engine/processor"
+	"github.com/genvmoroz/bot-engine/tg"
 	"github.com/genvmoroz/lale-tg-client/internal/auxl"
 	"github.com/genvmoroz/lale-tg-client/internal/pretty"
 	"github.com/genvmoroz/lale-tg-client/internal/repository"
@@ -32,8 +33,8 @@ Send the Card you want to create. Examples:
 <code>word - translate 1, translate 2</code>
 `
 
-func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) error {
-	if err := client.SendWithParseMode(chatID, initialMessage, "HTML"); err != nil {
+func (s *State) Process(ctx context.Context, client processor.Client, chatID int64, updateChan tg.UpdatesChannel) error {
+	if err := client.SendWithParseMode(chatID, initialMessage, tg.ModeHTML); err != nil {
 		return err
 	}
 
@@ -46,7 +47,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		},
 		chatID,
 		"Send the ISO 1 Letter Language Code, ex: <code>en</code>",
-		func(input string, _ int64, _ *bot.Client) (string, error) {
+		func(input string, _ int64, _ processor.Client) (string, error) {
 			return strings.TrimSpace(input), nil
 		},
 		client,
@@ -66,7 +67,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		},
 		chatID,
 		"Would you like me to prompt you possible complete card? [<code>yes</code>|<code>no</code>]",
-		func(input string, chatID int64, client *bot.Client) (*bool, error) {
+		func(input string, chatID int64, client processor.Client) (*bool, error) {
 			text := strings.ToLower(strings.TrimSpace(input))
 			switch text {
 			case "/back":
@@ -80,7 +81,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 				t := false
 				return &t, nil
 			default:
-				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter [<code>yes</code>|<code>no</code>] or <code>/back</code> to go to the previous state", text), "HTML")
+				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter [<code>yes</code>|<code>no</code>] or <code>/back</code> to go to the previous state", text), tg.ModeHTML)
 			}
 		},
 		client,
@@ -110,7 +111,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		},
 		chatID,
 		createExample,
-		func(input string, chatID int64, client *bot.Client) ([][2]string, error) {
+		func(input string, chatID int64, client processor.Client) ([][2]string, error) {
 			lines := slices.DeleteFunc(strings.Split(input, "\n"),
 				func(s string) bool {
 					return len(strings.TrimSpace(s)) == 0
@@ -124,7 +125,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 			for _, line := range lines {
 				parts := strings.Split(line, "-")
 				if len(parts) != 2 {
-					return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Value [%s] is invalid, ex. <code>word - translation</code>", line), "HTML")
+					return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Value [%s] is invalid, ex. <code>word - translation</code>", line), tg.ModeHTML)
 				}
 				wordList = append(wordList, [2]string{parts[0], parts[1]})
 			}
@@ -157,7 +158,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 		},
 		chatID,
 		"Do you want the service to enrich your Card with additional word information? [<code>yes</code>|<code>no</code>]",
-		func(input string, chatID int64, client *bot.Client) (*bool, error) {
+		func(input string, chatID int64, client processor.Client) (*bool, error) {
 			text := strings.ToLower(strings.TrimSpace(input))
 			switch text {
 			case "/back":
@@ -171,7 +172,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 				t := false
 				return &t, nil
 			default:
-				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter [<code>yes</code>|<code>no</code>] or <code>/back</code> to go to the previous state", text), "HTML")
+				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter [<code>yes</code>|<code>no</code>] or <code>/back</code> to go to the previous state", text), tg.ModeHTML)
 			}
 		},
 		client,
@@ -194,7 +195,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	resp, err := s.laleRepo.Client.CreateCard(ctx, req)
 	if err != nil {
-		if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [CreateCard] err: %s</code>", err.Error()), "HTML"); sendErr != nil {
+		if sendErr := client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [CreateCard] err: %s</code>", err.Error()), tg.ModeHTML); sendErr != nil {
 			return fmt.Errorf("send error [%s] message: %w", err.Error(), sendErr)
 		}
 		return err
@@ -205,7 +206,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 	}
 
 	for _, msg := range pretty.Card(resp, true) {
-		if err = client.SendWithParseMode(chatID, msg, "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, msg, tg.ModeHTML); err != nil {
 			return err
 		}
 	}
@@ -213,7 +214,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 	return nil
 }
 
-func (s *State) requestCardPrompt(ctx context.Context, language string, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) (bool, error) {
+func (s *State) requestCardPrompt(ctx context.Context, language string, client processor.Client, chatID int64, updateChan tg.UpdatesChannel) (bool, error) {
 	word, userName, back, err := auxl.RequestInput[*string](
 		ctx,
 		func(s *string) bool {
@@ -221,7 +222,7 @@ func (s *State) requestCardPrompt(ctx context.Context, language string, client *
 		},
 		chatID,
 		"Send the word? ex: <code>suspicion</code>",
-		func(input string, chatID int64, client *bot.Client) (*string, error) {
+		func(input string, chatID int64, client processor.Client) (*string, error) {
 			text := strings.ToLower(strings.TrimSpace(input))
 			switch text {
 			case "/back":

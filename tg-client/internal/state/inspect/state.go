@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/genvmoroz/bot-engine/processor"
+	"github.com/genvmoroz/bot-engine/tg"
 	"strings"
 
-	"github.com/genvmoroz/bot-engine/bot"
 	"github.com/genvmoroz/lale-tg-client/internal/pretty"
 	"github.com/genvmoroz/lale-tg-client/internal/repository"
 	"github.com/genvmoroz/lale/service/api"
@@ -27,7 +28,7 @@ Inspect Card State
 Send the Word, Language to inspect the Card with that values
 `
 
-func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, updateChan bot.UpdatesChannel) error {
+func (s *State) Process(ctx context.Context, client processor.Client, chatID int64, updateChan tg.UpdatesChannel) error {
 	if err := client.Send(chatID, initialMessage); err != nil {
 		return err
 	}
@@ -36,7 +37,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	for len(req.Language) == 0 {
 		if len(req.GetLanguage()) == 0 {
-			if err := client.SendWithParseMode(chatID, "Send the ISO 1 Letter Language Code . Ex. <code>en</code>", "HTML"); err != nil {
+			if err := client.SendWithParseMode(chatID, "Send the ISO 1 Letter Language Code . Ex. <code>en</code>", tg.ModeHTML); err != nil {
 				return err
 			}
 		}
@@ -62,7 +63,7 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 	}
 
 	for len(req.GetWord()) == 0 {
-		if err := client.SendWithParseMode(chatID, "Send the word. Ex. <code>suspicion</code>", "HTML"); err != nil {
+		if err := client.SendWithParseMode(chatID, "Send the word. Ex. <code>suspicion</code>", tg.ModeHTML); err != nil {
 			return err
 		}
 
@@ -90,13 +91,13 @@ func (s *State) Process(ctx context.Context, client *bot.Client, chatID int64, u
 
 	resp, err := s.laleRepo.Client.InspectCard(ctx, req)
 	if err != nil {
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [InspectCard] err: %s</code>", err.Error()), "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [InspectCard] err: %s</code>", err.Error()), tg.ModeHTML); err != nil {
 			return err
 		}
 	}
 
 	for _, msg := range pretty.Card(resp, true) {
-		if err = client.SendWithParseMode(chatID, msg, "HTML"); err != nil {
+		if err = client.SendWithParseMode(chatID, msg, tg.ModeHTML); err != nil {
 			return err
 		}
 	}
