@@ -99,7 +99,8 @@ func NewService(
 
 // TODO: add ability to change speech voice, it's going to be an additional endpoint,
 // the client will be able to choose the voice from the list of available voices.
-// All existing words will be enriched with the new voice. Decide whether it should be lazy loading or not.
+// Create a new collection in the DB with words and their pronunciation.
+// Word - list of audio files with different voices.
 
 func (s *Service) InspectCard(ctx context.Context, req InspectCardRequest) (entity.Card, error) {
 	if err := s.validator.ValidateInspectCardRequest(req); err != nil {
