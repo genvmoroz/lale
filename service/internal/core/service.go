@@ -816,8 +816,8 @@ func (s *Service) textToAudio(ctx context.Context, text string) ([]byte, error) 
 	req := speech.ToSpeechRequest{
 		Input: text,
 		Voice: speech.VoiceSelectionParams{
-			Language:             "en-US",
-			Name:                 "en-US-Standard-C",
+			Language:             "en-GB",
+			Name:                 "en-GB-Standard-C",
 			PreferredVoiceGender: speech.Female,
 		},
 		AudioConfig: speech.AudioConfig{AudioEncoding: speech.Mp3},

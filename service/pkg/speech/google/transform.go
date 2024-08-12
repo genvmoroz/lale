@@ -99,17 +99,13 @@ func toListVoicesResponse(resp *texttospeechpb.ListVoicesResponse) *speech.ListV
 		if v == nil {
 			continue
 		}
-		dResp.Voices = append(dResp.Voices, *toVoice(v))
+		dResp.Voices = append(dResp.Voices, toVoice(v))
 	}
 	return &dResp
 }
 
-func toVoice(v *texttospeechpb.Voice) *speech.Voice {
-	if v == nil {
-		return nil
-	}
-
-	return &speech.Voice{
+func toVoice(v *texttospeechpb.Voice) speech.Voice {
+	return speech.Voice{
 		Languages:              v.GetLanguageCodes(),
 		Name:                   v.GetName(),
 		Gender:                 toDomainGender(v.GetSsmlGender()),

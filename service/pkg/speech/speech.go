@@ -8,6 +8,7 @@ import (
 	"golang.org/x/text/language"
 )
 
+// todo: remove this abstraction level and use the client directly
 type (
 	Client interface {
 		ToSpeech(ctx context.Context, req ToSpeechRequest) ([]byte, error)

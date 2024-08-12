@@ -17,6 +17,7 @@ type (
 		Cancel()
 	}
 
+	// todo: improve it
 	task[R any] struct {
 		completed bool
 		canceled  bool

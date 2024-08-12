@@ -1,3 +1,4 @@
+// TODO: remove this package and use another logger package
 package logger
 
 import (

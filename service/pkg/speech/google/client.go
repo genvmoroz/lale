@@ -14,6 +14,7 @@ import (
 	"google.golang.org/api/option"
 )
 
+// todo: improve it, add one extra func to Close a connection
 type (
 	Connection interface {
 		SynthesizeSpeech(
