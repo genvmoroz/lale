@@ -15,56 +15,14 @@ import (
 )
 
 // todo: implement dto here
+// todo: improve it
 
-func cardToDoc(card entity.Card) ([]byte, error) {
-	buf := new(bytes.Buffer)
-	w, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		return nil, fmt.Errorf("new bson writer: %w", err)
-	}
-	encoder, err := bson.NewEncoder(w)
-	if err != nil {
-		return nil, fmt.Errorf("new bson writer: %w", err)
-	}
-	if err = encoder.SetRegistry(defaultCustomRegistry); err != nil {
-		return nil, fmt.Errorf("set registry: %w", err)
-	}
-	if err = encoder.Encode(card); err != nil {
-		return nil, fmt.Errorf("encode: %w", err)
-	}
-
-	return buf.Bytes(), nil
+type transformer struct {
+	registry *bsoncodec.Registry
 }
 
-func unmarshalCursor(ctx context.Context, cursor *mongo.Cursor) ([]entity.Card, error) {
-	var cards []entity.Card
-
-	for cursor.Next(ctx) {
-		if cursor.Err() != nil {
-			return nil, fmt.Errorf("cursor error: %w", cursor.Err())
-		}
-
-		decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(cursor.Current))
-		if err != nil {
-			return nil, fmt.Errorf("new decoder: %w", err)
-		}
-		if err = decoder.SetRegistry(defaultCustomRegistry); err != nil {
-			return nil, fmt.Errorf("set registry: %w", err)
-		}
-		card := entity.Card{}
-		if err = decoder.Decode(&card); err != nil {
-			return nil, fmt.Errorf("decode: %w", err)
-		}
-		cards = append(cards, card)
-	}
-
-	return cards, nil
-}
-
-var defaultCustomRegistry = createCustomRegistry() //nolint:gochecknoglobals // it's fine to have here
-
-func createCustomRegistry() *bsoncodec.Registry {
-	registry := bson.DefaultRegistry
+func newTransformer() transformer {
+	registry := bson.NewRegistry()
 	registry.RegisterTypeEncoder(
 		reflect.TypeOf(language.Tag{}),
 		bsoncodec.ValueEncoderFunc(func(_ bsoncodec.EncodeContext, writer bsonrw.ValueWriter, value reflect.Value) error {
@@ -90,5 +48,50 @@ func createCustomRegistry() *bsoncodec.Registry {
 		}),
 	)
 
-	return registry
+	return transformer{registry: registry}
+}
+
+func (t transformer) cardToDoc(card entity.Card) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	w, err := bsonrw.NewBSONValueWriter(buf)
+	if err != nil {
+		return nil, fmt.Errorf("new bson writer: %w", err)
+	}
+	encoder, err := bson.NewEncoder(w)
+	if err != nil {
+		return nil, fmt.Errorf("new bson writer: %w", err)
+	}
+	if err = encoder.SetRegistry(t.registry); err != nil {
+		return nil, fmt.Errorf("set registry: %w", err)
+	}
+	if err = encoder.Encode(card); err != nil {
+		return nil, fmt.Errorf("encode: %w", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+func (t transformer) unmarshalCursor(ctx context.Context, cursor *mongo.Cursor) ([]entity.Card, error) {
+	var cards []entity.Card
+
+	for cursor.Next(ctx) {
+		if cursor.Err() != nil {
+			return nil, fmt.Errorf("cursor error: %w", cursor.Err())
+		}
+
+		decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(cursor.Current))
+		if err != nil {
+			return nil, fmt.Errorf("new decoder: %w", err)
+		}
+		if err = decoder.SetRegistry(t.registry); err != nil {
+			return nil, fmt.Errorf("set registry: %w", err)
+		}
+		card := entity.Card{}
+		if err = decoder.Decode(&card); err != nil {
+			return nil, fmt.Errorf("decode: %w", err)
+		}
+		cards = append(cards, card)
+	}
+
+	return cards, nil
 }

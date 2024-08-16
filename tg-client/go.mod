@@ -1,6 +1,6 @@
 module github.com/genvmoroz/lale-tg-client
 
-go 1.22
+go 1.23
 
 require (
 	github.com/genvmoroz/bot-engine v1.1.3
@@ -8,10 +8,10 @@ require (
 	github.com/go-playground/validator/v10 v10.22.0
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/samber/lo v1.46.0
+	github.com/samber/lo v1.47.0
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/text v0.16.0
-	google.golang.org/grpc v1.64.0
+	golang.org/x/text v0.17.0
+	google.golang.org/grpc v1.65.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

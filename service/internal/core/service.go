@@ -506,10 +506,7 @@ func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (Ge
 }
 
 func (s *Service) getCardsByFilter(
-	ctx context.Context,
-	req GetCardsRequest,
-	requestName string,
-	predicate func(card entity.Card) bool,
+	ctx context.Context, req GetCardsRequest, requestName string, predicate func(card entity.Card) bool,
 ) (GetCardsResponse, error) {
 	if err := s.validator.ValidateGetCardsRequest(req); err != nil {
 		return GetCardsResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
@@ -718,7 +715,7 @@ func (s *Service) generateSentences(word string, size uint32) ([]string, error) 
 func logAndReturnError(ctx context.Context, msg string, fields map[string]any) error {
 	logger.FromContext(ctx).
 		WithFields(fields).
-		Errorf(msg)
+		Error(msg)
 
 	return errors.New(msg)
 }

@@ -3,11 +3,11 @@ package repeat
 import (
 	"context"
 	"fmt"
-	"github.com/genvmoroz/bot-engine/processor"
-	"github.com/genvmoroz/bot-engine/tg"
 	"strings"
 	"time"
 
+	"github.com/genvmoroz/bot-engine/processor"
+	"github.com/genvmoroz/bot-engine/tg"
 	"github.com/genvmoroz/lale-tg-client/internal/auxl"
 	"github.com/genvmoroz/lale-tg-client/internal/pretty"
 	"github.com/genvmoroz/lale-tg-client/internal/repository"

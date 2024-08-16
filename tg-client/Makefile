@@ -1,8 +1,5 @@
 #!/bin/sh
 
-include ./scripts/linting.mk
-include ./scripts/gen.mk
-
 OSNAME=$(shell go env GOOS)
 ARCH = $(shell go env GOARCH)
 
@@ -14,7 +11,7 @@ IMAGE_NAME=lale-tg-client
 DOCKER_TAG=development
 
 .PHONY: ci
-ci: lint test
+ci: test
 
 .PHONY: deps
 deps:

@@ -33,7 +33,7 @@ func (a Anki) CalculateNextDueDate(performance uint32, consecutiveCorrectAnswers
 	return next
 }
 
-//nolint:gomnd // magic numbers are used for calculations
+//nolint:mnd // magic numbers are used for calculations
 func (Anki) calculateShift(performance float64, correctAnswers float64) time.Duration {
 	if correctAnswers == 0 {
 		return durationFromDays(1)

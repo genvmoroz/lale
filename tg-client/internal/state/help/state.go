@@ -3,10 +3,10 @@ package help
 import (
 	"context"
 	"fmt"
-	"github.com/genvmoroz/bot-engine/tg"
 	"strings"
 
 	"github.com/genvmoroz/bot-engine/processor"
+	"github.com/genvmoroz/bot-engine/tg"
 )
 
 type State struct {

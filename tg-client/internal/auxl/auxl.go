@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/genvmoroz/bot-engine/processor"
 	"github.com/genvmoroz/bot-engine/tg"
-	"strings"
 )
 
 func RequestInput[T any](

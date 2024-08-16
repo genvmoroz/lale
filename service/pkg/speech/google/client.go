@@ -114,7 +114,7 @@ func (c *TextToSpeechClient) execute(ctx context.Context, act func(ctx context.C
 }
 
 func (c *TextToSpeechClient) ping(ctx context.Context) error {
-	ping := func(ctx context.Context, conn Connection) error { return nil }
+	ping := func(_ context.Context, _ Connection) error { return nil }
 	return c.execute(ctx, ping)
 }
 

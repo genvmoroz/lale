@@ -68,7 +68,7 @@ vulnerabilities_lookup:
 	govulncheck -test ./...
 
 lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	golangci-lint run --allow-parallel-runners -c ./.golangci.yml
 
 .PHONY: gci

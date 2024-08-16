@@ -3,9 +3,9 @@ package story
 import (
 	"context"
 	"fmt"
-	"github.com/genvmoroz/bot-engine/processor"
 	"strings"
 
+	"github.com/genvmoroz/bot-engine/processor"
 	"github.com/genvmoroz/bot-engine/tg"
 	"github.com/genvmoroz/lale-tg-client/internal/auxl"
 	"github.com/genvmoroz/lale-tg-client/internal/repository"

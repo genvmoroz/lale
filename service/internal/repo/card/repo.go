@@ -37,6 +37,8 @@ type (
 		opts       *options.ClientOptions
 		database   string
 		collection string
+
+		tr transformer
 	}
 )
 
@@ -47,6 +49,8 @@ func NewRepo(ctx context.Context, cfg Config) (*Repo, error) {
 		opts:       options.Client().ApplyURI(uri),
 		database:   cfg.Database,
 		collection: cfg.Collection,
+
+		tr: newTransformer(),
 	}
 
 	if err := repo.Ping(ctx); err != nil {
@@ -117,7 +121,7 @@ func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Car
 		_ = cursor.Close(context.Background())
 	}()
 
-	return unmarshalCursor(ctx, cursor)
+	return r.tr.unmarshalCursor(ctx, cursor)
 }
 
 // TODO: implement search card by name on Repo side
@@ -160,7 +164,7 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 
 		for _, card := range cards {
 			var doc []byte
-			doc, err = cardToDoc(card)
+			doc, err = r.tr.cardToDoc(card)
 			if err != nil {
 				return fmt.Errorf("marshal: %w", err)
 			}
