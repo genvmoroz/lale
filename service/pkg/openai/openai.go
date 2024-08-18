@@ -126,7 +126,7 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 		}
 	}()
 	if err != nil {
-		return nil, fmt.Errorf("executing request error: %w", err)
+		return nil, fmt.Errorf("request execution error: %w", err)
 	}
 
 	if resp.StatusCode != basehttp.StatusOK {
@@ -223,7 +223,7 @@ func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) 
 		}
 	}()
 	if err != nil {
-		return nil, fmt.Errorf("executing request error: %w", err)
+		return nil, fmt.Errorf("request execution error: %w", err)
 	}
 
 	if resp.StatusCode != basehttp.StatusOK {
@@ -304,7 +304,7 @@ func (s *Scraper) genStory(words []string, lang language.Tag) (string, error) {
 		}
 	}()
 	if err != nil {
-		return "", fmt.Errorf("executing request error: %w", err)
+		return "", fmt.Errorf("request execution error: %w", err)
 	}
 
 	if resp.StatusCode != basehttp.StatusOK {
