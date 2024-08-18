@@ -393,7 +393,8 @@ func (s *Service) UpdateCardPerformance(
 	card.AddAnswer(req.IsInputCorrect)
 	consecutiveCorrectAnswersNumber := card.GetConsecutiveCorrectAnswersNumber()
 
-	performance := consecutiveCorrectAnswersNumber
+	const performanceDivider = 2
+	performance := consecutiveCorrectAnswersNumber / performanceDivider
 	if performance > MaxAllowedPerformanceRating {
 		performance = MaxAllowedPerformanceRating
 	}
