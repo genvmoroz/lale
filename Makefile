@@ -1,5 +1,4 @@
 .PHONY: deps
 deps:
-	cd service ; tolatest go.mod ; make deps ; make ci
-	cd tg-client ; tolatest go.mod ; make deps ; make ci
-
+	cd service ; go get -u -t ./... ; make deps ; make ci
+	cd tg-client ; go get -u -t ./... ; make deps ; make ci
