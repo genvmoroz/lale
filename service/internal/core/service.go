@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -485,39 +486,11 @@ func (s *Service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity
 }
 
 func (s *Service) GetCardsToLearn(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
-	return s.getCardsByFilter(
-		ctx,
-		req,
-		"GetCardsToLearn",
-		func(card entity.Card) bool {
-			return strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToLearn()
-		},
-	)
-}
-
-func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
-	return s.getCardsByFilter(
-		ctx,
-		req,
-		"GetCardsToRepeat",
-		func(card entity.Card) bool {
-			return strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToRepeat()
-		},
-	)
-}
-
-func (s *Service) getCardsByFilter(
-	ctx context.Context, req GetCardsRequest, requestName string, predicate func(card entity.Card) bool,
-) (GetCardsResponse, error) {
-	if err := s.validator.ValidateGetCardsRequest(req); err != nil {
-		return GetCardsResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
-	}
-
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
 			"UserID":   req.UserID,
 			"Language": req.Language.String(),
-			"Request":  requestName,
+			"Request":  "GetCardsToLearn",
 		},
 	)
 
@@ -526,6 +499,64 @@ func (s *Service) getCardsByFilter(
 		return GetCardsResponse{}, fmt.Errorf("create user session: %w", err)
 	}
 	defer closeSession()
+
+	toLearnFilter := func(card entity.Card) bool {
+		return strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToLearn()
+	}
+
+	resp, err := s.getCardsByFilter(ctx, req, toLearnFilter)
+	if err != nil {
+		return GetCardsResponse{}, err
+	}
+
+	var newCards []entity.Card
+	for _, card := range slices.Backward(resp.Cards) {
+		newCards = append(newCards, card)
+	}
+	resp.Cards = newCards
+
+	return resp, nil
+}
+
+func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
+	ctx = createContextWithCorrelationLogger(ctx,
+		map[string]any{
+			"UserID":   req.UserID,
+			"Language": req.Language.String(),
+			"Request":  "GetCardsToRepeat",
+		},
+	)
+
+	closeSession, err := s.createUserSession(ctx, req.UserID)
+	if err != nil {
+		return GetCardsResponse{}, fmt.Errorf("create user session: %w", err)
+	}
+	defer closeSession()
+
+	toRepeatFilter := func(card entity.Card) bool {
+		return strings.EqualFold(card.Language.String(), req.Language.String()) && card.NeedToRepeat()
+	}
+
+	resp, err := s.getCardsByFilter(ctx, req, toRepeatFilter)
+	if err != nil {
+		return GetCardsResponse{}, err
+	}
+
+	var newCards []entity.Card
+	for _, card := range slices.Backward(resp.Cards) {
+		newCards = append(newCards, card)
+	}
+	resp.Cards = newCards
+
+	return resp, nil
+}
+
+func (s *Service) getCardsByFilter(
+	ctx context.Context, req GetCardsRequest, filter func(card entity.Card) bool,
+) (GetCardsResponse, error) {
+	if err := s.validator.ValidateGetCardsRequest(req); err != nil {
+		return GetCardsResponse{}, fmt.Errorf("%w: %w", NewValidationError(), err)
+	}
 
 	logger.FromContext(ctx).
 		Debug("get all cards for user")
@@ -538,11 +569,12 @@ func (s *Service) getCardsByFilter(
 		)
 	}
 
+	// todo: add iter package here to iterate over cards with a custom iterator
 	logger.FromContext(ctx).
 		Debug("filter cards out")
 	filtered := lo.Filter[entity.Card](cards,
 		func(item entity.Card, _ int) bool {
-			return predicate(item)
+			return filter(item)
 		},
 	)
 
