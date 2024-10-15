@@ -35,7 +35,7 @@ func main() {
 		log.Fatalf("create mongo repo: %v", err)
 	}
 
-	cards, err := repo.GetCardsForUser(ctx, "gennadiymoroz")
+	cards, err := repo.GetCardsForUser(ctx, "hennadiimoroz")
 	if err != nil {
 		log.Fatalf("get cards for user: %v", err)
 	}
