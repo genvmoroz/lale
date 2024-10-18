@@ -1,3 +1,4 @@
+//nolint:copyloopvar // copyloopvar is disabled because of the test table structure
 package grpc_test
 
 import (

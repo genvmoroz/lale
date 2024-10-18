@@ -1,6 +1,7 @@
 package algo_test
 
 import (
+	"maps"
 	"reflect"
 	"testing"
 	"time"
@@ -99,10 +100,7 @@ func TestAnkiCalculateNextDueDate(t *testing.T) {
 			want:  want{nextDueDate: testNowTime.Add(14 * 24 * time.Hour).Truncate(24 * time.Hour)},
 		},
 	}
-	for name, testcase := range testcases {
-		name := name
-		testcase := testcase
-
+	for name, testcase := range maps.All(testcases) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 

@@ -1,3 +1,4 @@
+//nolint:gosec // todo
 package card
 
 import (

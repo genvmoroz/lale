@@ -19,7 +19,7 @@ import (
 type (
 	Config struct {
 		Host    string
-		Retries uint
+		Retries uint16
 		Timeout time.Duration
 	}
 

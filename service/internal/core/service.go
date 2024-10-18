@@ -1,3 +1,4 @@
+//nolint:dupl,copyloopvar // it's ok
 package core
 
 import (
@@ -394,8 +395,9 @@ func (s *Service) UpdateCardPerformance(
 	card.AddAnswer(req.IsInputCorrect)
 	consecutiveCorrectAnswersNumber := card.GetConsecutiveCorrectAnswersNumber()
 
-	//const performanceDivider = 2
-	//performance := consecutiveCorrectAnswersNumber / performanceDivider
+	// todo: remove this line after testing
+	// const performanceDivider = 2
+	// performance := consecutiveCorrectAnswersNumber / performanceDivider
 	performance := consecutiveCorrectAnswersNumber
 	if performance > MaxAllowedPerformanceRating {
 		performance = MaxAllowedPerformanceRating
