@@ -12,6 +12,7 @@ import (
 	"github.com/genvmoroz/lale/service/internal/options"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"gopkg.in/relistan/rubberneck.v1"
 )
 
 func main() {
@@ -30,6 +31,9 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("read env config: %w", err)
 	}
+
+	// Print the configuration for debugging purposes
+	rubberneck.Print(cfg)
 
 	logrus.SetLevel(cfg.LogLevel)
 
