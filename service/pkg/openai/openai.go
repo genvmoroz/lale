@@ -19,6 +19,7 @@ import (
 	"golang.org/x/text/language"
 )
 
+// todo: add stubs here
 type (
 	Config struct {
 		Addr        string        `envconfig:"APP_OPENAI_ADDR" default:"https://api.openai.com/v1/chat/completions" json:"addr,omitempty"`
