@@ -79,7 +79,7 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 
 	cards := cardseq.NewCards(ctx, s.laleRepo, resp, 1, 1)
 
-	failure := false
+	var isAnswerCorrect bool
 
 	for cards.HasNext() {
 		card := cards.Next(ctx)
@@ -157,11 +157,11 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 				if err = client.Send(chatID, "Correct"); err != nil {
 					return err
 				}
+				isAnswerCorrect = true
 			} else {
 				if err = client.SendWithParseMode(chatID, fmt.Sprintf("Incorrect, inspect word <code>%s</code> first", word.GetWord()), tg.ModeHTML); err != nil {
 					return err
 				}
-				failure = true
 			}
 			err = client.SendAudio(chatID, "pronunciation", word.GetAudio())
 			if err != nil {
@@ -221,7 +221,7 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 		perfReq := &api.UpdateCardPerformanceRequest{
 			UserID:         card.Card.GetUserID(),
 			CardID:         card.Card.GetId(),
-			IsInputCorrect: !failure,
+			IsInputCorrect: isAnswerCorrect,
 		}
 
 		resp, err := s.laleRepo.Client.UpdateCardPerformance(ctx, perfReq)
