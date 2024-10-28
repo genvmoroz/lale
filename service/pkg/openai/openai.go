@@ -19,12 +19,13 @@ import (
 	"golang.org/x/text/language"
 )
 
+// todo: add stubs here
 type (
 	Config struct {
-		Addr    string        `envconfig:"APP_OPENAI_ADDR" default:"https://api.openai.com/v1/chat/completions" json:"addr,omitempty"`
-		Token   string        `envconfig:"APP_OPENAI_TOKEN" required:"true" json:"token,omitempty"`
-		Retries uint          `envconfig:"APP_OPENAI_RETRIES" default:"3" json:"retries,omitempty"`
-		Timeout time.Duration `envconfig:"APP_OPENAI_TIMEOUT" default:"3s" json:"timeout,omitempty"`
+		Addr    string        `envconfig:"APP_OPENAI_ADDR" default:"https://api.openai.com/v1/chat/completions"`
+		Token   string        `envconfig:"APP_OPENAI_TOKEN"`
+		Retries uint          `envconfig:"APP_OPENAI_RETRIES" default:"3"`
+		Timeout time.Duration `envconfig:"APP_OPENAI_TIMEOUT" default:"3s"`
 	}
 
 	Scraper struct {
