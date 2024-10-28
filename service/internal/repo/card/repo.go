@@ -35,7 +35,8 @@ type (
 	}
 
 	Repo struct {
-		opts       *options.ClientOptions
+		client *mongo.Client
+
 		database   string
 		collection string
 
@@ -46,8 +47,14 @@ type (
 func NewRepo(ctx context.Context, cfg Config) (*Repo, error) {
 	uri := prepareURI(cfg)
 
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	if err != nil {
+		return nil, fmt.Errorf("connect: %w", err)
+	}
+
 	repo := &Repo{
-		opts:       options.Client().ApplyURI(uri),
+		client: client,
+
 		database:   cfg.Database,
 		collection: cfg.Collection,
 
@@ -57,6 +64,11 @@ func NewRepo(ctx context.Context, cfg Config) (*Repo, error) {
 	if err := repo.Ping(ctx); err != nil {
 		return nil, fmt.Errorf("ping mongo: %w", err)
 	}
+
+	go func() {
+		<-ctx.Done()
+		disconnect(ctx, client)
+	}()
 
 	return repo, nil
 }
@@ -90,21 +102,43 @@ func prepareURI(cfg Config) string {
 	return uri.String()
 }
 
+func (r *Repo) GetCardsByWords(ctx context.Context, userID string, words []string) ([]entity.Card, error) {
+	if !utf8.ValidString(userID) {
+		return nil, fmt.Errorf("userID [%s] is invalid utf8 string", userID)
+	}
+
+	filter := bson.M{
+		"userid": userID,
+		"wordinformationlist": bson.M{
+			"$elemMatch": bson.M{
+				"word": bson.M{"$in": words},
+			},
+		},
+	}
+
+	collection := r.client.
+		Database(r.database).
+		Collection(r.collection)
+
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("find one: %w", err)
+	}
+	defer func() {
+		if err := cursor.Close(ctx); err != nil {
+			logrus.Errorf("failed to close cursor: %s", err.Error())
+		}
+	}()
+
+	return r.tr.unmarshalCursor(ctx, cursor)
+}
+
 func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Card, error) {
 	if !utf8.ValidString(userID) {
 		return nil, fmt.Errorf("userID [%s] is invalid utf8 string", userID)
 	}
 
-	client, err := mongo.Connect(ctx, r.opts)
-	if err != nil {
-		return nil, fmt.Errorf("connect: %w", err)
-	}
-
-	defer func() {
-		disconnect(ctx, client)
-	}()
-
-	cardsCollection := client.
+	cardsCollection := r.client.
 		Database(r.database).
 		Collection(r.collection)
 
@@ -136,8 +170,7 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 		return nil
 	}
 
-	dupls := lo.FindDuplicatesBy[entity.Card, string](
-		cards,
+	dupls := lo.FindDuplicatesBy[entity.Card, string](cards,
 		func(item entity.Card) string {
 			return item.ID
 		},
@@ -146,26 +179,18 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 		return fmt.Errorf("provided cards contain duplicates: %v", dupls)
 	}
 
-	client, err := mongo.Connect(ctx, r.opts)
-	if err != nil {
-		return fmt.Errorf("connect: %w", err)
-	}
-	defer func() {
-		disconnect(ctx, client)
-	}()
-
-	cardsCollection := client.
+	cardsCollection := r.client.
 		Database(r.database).
 		Collection(r.collection)
 
-	if err = client.UseSession(ctx, func(sessionContext mongo.SessionContext) error {
-		if err = sessionContext.StartTransaction(); err != nil {
+	if err := r.client.UseSession(ctx, func(sessionContext mongo.SessionContext) error {
+		if err := sessionContext.StartTransaction(); err != nil {
 			return err
 		}
 
 		for _, card := range cards {
 			var doc []byte
-			doc, err = r.tr.cardToDoc(card)
+			doc, err := r.tr.cardToDoc(card)
 			if err != nil {
 				return fmt.Errorf("marshal: %w", err)
 			}
@@ -181,7 +206,7 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 						return fmt.Errorf("insert: %w", err)
 					}
 				} else {
-					// checking existence failed with unpredictable error
+					// checking existence failed with an unpredictable error
 					abortTransaction(ctx, sessionContext)
 					return fmt.Errorf("check card existence: %w", err)
 				}
@@ -208,21 +233,12 @@ func (r *Repo) DeleteCard(ctx context.Context, cardID string) error {
 		return fmt.Errorf("cardID [%s] is invalid utf8 string", cardID)
 	}
 
-	client, err := mongo.Connect(ctx, r.opts)
-	if err != nil {
-		return fmt.Errorf("connect: %w", err)
-	}
-
-	defer func() {
-		disconnect(ctx, client)
-	}()
-
-	cardsCollection := client.
+	cardsCollection := r.client.
 		Database(r.database).
 		Collection(r.collection)
 
 	query := bson.M{"id": cardID}
-	_, err = cardsCollection.DeleteOne(ctx, query)
+	_, err := cardsCollection.DeleteOne(ctx, query)
 	if err != nil {
 		return fmt.Errorf("delete: %w", err)
 	}
@@ -231,22 +247,14 @@ func (r *Repo) DeleteCard(ctx context.Context, cardID string) error {
 }
 
 func (r *Repo) Ping(ctx context.Context) error {
-	client, err := mongo.Connect(ctx, r.opts)
-	if err != nil {
-		return fmt.Errorf("connect: %w", err)
-	}
-
-	defer func() {
-		disconnect(ctx, client)
-	}()
-
-	if err = client.Ping(ctx, readpref.Primary()); err != nil {
+	if err := r.client.Ping(ctx, readpref.Primary()); err != nil {
 		return fmt.Errorf("ping: %w", err)
 	}
 
 	return nil
 }
 
+// todo: make it open and use it from the outside
 func disconnect(ctx context.Context, client *mongo.Client) {
 	if err := client.Disconnect(ctx); err != nil {
 		logrus.Errorf("disconnect: %s", err.Error())
