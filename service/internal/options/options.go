@@ -16,6 +16,8 @@ type (
 	Config struct {
 		GRPCPort int          `envconfig:"APP_GRPC_PORT" required:"true"`
 		LogLevel logrus.Level `envconfig:"APP_LOG_LEVEL" required:"true"`
+		//todo: add an option to enable/disable stubs for each layer separately
+		StubsEnabled bool `envconfig:"APP_STUBS_ENABLED" default:"false"`
 
 		OpenAI     openai.Config
 		CardRepo   card.Config
@@ -24,7 +26,7 @@ type (
 	}
 
 	DictionaryConfig struct {
-		Host    string        `envconfig:"APP_DICTIONARY_HOST" required:"true"`
+		Host    string        `envconfig:"APP_DICTIONARY_HOST"`
 		Retries uint16        `envconfig:"APP_DICTIONARY_RETRIES" default:"3"`
 		Timeout time.Duration `envconfig:"APP_DICTIONARY_TIMEOUT" default:"5s"`
 	}
