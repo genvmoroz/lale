@@ -1,3 +1,5 @@
+// todo: rename it to someting like aigenerator
+//
 //nolint:gomnd,all // magic numbers are fine here
 package chatgpt
 

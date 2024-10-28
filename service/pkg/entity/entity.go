@@ -10,6 +10,8 @@ import (
 )
 
 type (
+
+	// todo: move to core layer
 	Card struct {
 		ID       string
 		UserID   string
