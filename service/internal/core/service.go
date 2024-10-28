@@ -23,6 +23,7 @@ import (
 
 type (
 	CardRepo interface {
+		GetCardsByWords(ctx context.Context, userID string, words []string) ([]entity.Card, error)
 		GetCardsForUser(ctx context.Context, userID string) ([]entity.Card, error)
 		SaveCards(ctx context.Context, cards []entity.Card) error
 		DeleteCard(ctx context.Context, cardID string) error
@@ -37,6 +38,7 @@ type (
 		CalculateNextDueDate(performance uint32, consecutiveCorrectAnswersNumber uint32) time.Time
 	}
 
+	// todo: rename it to something like AI Generator
 	AIHelper interface {
 		GenerateSentences(word string, size int) ([]string, error)
 		GetFamilyWordsWithTranslation(word string, lang language.Tag) (map[string]string, error)
@@ -209,6 +211,8 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
+	normaliseWords(req.WordInformationList)
+
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
 			"UserID":   req.UserID,
@@ -225,28 +229,19 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 	defer closeSession()
 
 	logger.FromContext(ctx).
-		Debug("get all cards for user")
-	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
+		Debug("get all cards containing words for user")
+	cards, err := s.cardRepo.GetCardsByWords(ctx, req.UserID, extractWords(req.WordInformationList))
 	if err != nil {
 		return entity.Card{}, logAndReturnError(
 			ctx,
-			fmt.Sprintf("get cards: %s", err.Error()),
+			fmt.Sprintf("get cards by words: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
 	}
-
-	for _, wordInfo := range req.WordInformationList {
-		for _, card := range cards {
-			if strings.EqualFold(card.Language.String(), req.Language.String()) {
-				for _, val := range card.WordInformationList {
-					if strings.EqualFold(val.Word, wordInfo.Word) {
-						logger.FromContext(ctx).
-							Debug("card already exists")
-						return entity.Card{}, fmt.Errorf("%w: word %s", NewAlreadyExistsError(), wordInfo.Word)
-					}
-				}
-			}
-		}
+	if len(cards) > 0 {
+		logger.FromContext(ctx).
+			Debug("cards with words already exist")
+		return entity.Card{}, fmt.Errorf("%w: words %v", NewAlreadyExistsError(), extractWords(req.WordInformationList))
 	}
 
 	card := entity.Card{
@@ -759,10 +754,10 @@ func logAndReturnError(ctx context.Context, msg string, fields map[string]any) e
 }
 
 func extractWords(list []entity.WordInformation) []string {
-	words := make([]string, len(list))
+	words := make([]string, 0, len(list))
 
-	for index, info := range list {
-		words[index] = info.Word
+	for info := range slices.Values(list) {
+		words = append(words, info.Word)
 	}
 
 	return words
@@ -877,4 +872,11 @@ func createContextWithCorrelationLogger(ctx context.Context, fields map[string]a
 		logger.WithCorrelationID().
 			WithFields(fields),
 	)
+}
+
+// normaliseWords normalises words in the list. It trims spaces and converts words to lowercase.
+func normaliseWords(info []entity.WordInformation) {
+	for i := range info {
+		info[i].Word = strings.TrimSpace(strings.ToLower(info[i].Word))
+	}
 }
