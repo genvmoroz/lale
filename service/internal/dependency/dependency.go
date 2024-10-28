@@ -11,6 +11,7 @@ import (
 	"github.com/genvmoroz/lale/service/internal/repo/card"
 	"github.com/genvmoroz/lale/service/internal/repo/dictionary"
 	"github.com/genvmoroz/lale/service/internal/repo/session"
+	"github.com/genvmoroz/lale/service/internal/repo/stub"
 	"github.com/genvmoroz/lale/service/pkg/openai"
 	"github.com/genvmoroz/lale/service/pkg/speech"
 	"github.com/genvmoroz/lale/service/pkg/speech/google"
@@ -21,9 +22,16 @@ type Dependency struct {
 }
 
 func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error) {
-	openaiHelper, err := openai.NewHelper(cfg.OpenAI) // TODO: move it to internal/repo package and name it AI
-	if err != nil {
-		return nil, fmt.Errorf("create openai helper: %w", err)
+	var err error
+
+	var openaiHelper core.AIHelper
+	if cfg.StubsEnabled {
+		openaiHelper = &stub.AIHelper{}
+	} else {
+		openaiHelper, err = openai.NewHelper(cfg.OpenAI) // TODO: move it to internal/repo package and name it AI
+		if err != nil {
+			return nil, fmt.Errorf("create openai helper: %w", err)
+		}
 	}
 
 	userSessionRepo, err := session.NewRepo()
@@ -35,23 +43,32 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 		return nil, fmt.Errorf("create card repo: %w", err)
 	}
 
-	dictionaryRepo, err := dictionary.NewRepo(
-		dictionary.Config{
-			Host:    cfg.Dictionary.Host,
-			Retries: cfg.Dictionary.Retries,
-			Timeout: cfg.Dictionary.Timeout,
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create dictionary client: %w", err)
+	var dictionaryRepo core.Dictionary
+	if cfg.StubsEnabled {
+		dictionaryRepo = dictionary.NewStub()
+	} else {
+		dictionaryRepo, err = dictionary.NewRepo(
+			dictionary.Config{
+				Host:    cfg.Dictionary.Host,
+				Retries: cfg.Dictionary.Retries,
+				Timeout: cfg.Dictionary.Timeout,
+			},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("create dictionary client: %w", err)
+		}
 	}
 
-	googleTextToSpeechClient, err := google.NewTextToSpeechClient(ctx, cfg.Google)
-	if err != nil {
-		return nil, fmt.Errorf("new google text-to-speech client: %w", err)
+	var textToSpeechRepo core.TextToSpeechRepo
+	if cfg.StubsEnabled {
+		textToSpeechRepo = &stub.SpeachStub{}
+	} else {
+		googleTextToSpeechClient, err := google.NewTextToSpeechClient(ctx, cfg.Google)
+		if err != nil {
+			return nil, fmt.Errorf("new google text-to-speech client: %w", err)
+		}
+		textToSpeechRepo = speech.NewRepo(googleTextToSpeechClient)
 	}
-
-	textToSpeechRepo := speech.NewRepo(googleTextToSpeechClient)
 
 	service, err := core.NewService(
 		cardRepo,
