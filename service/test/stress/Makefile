@@ -6,6 +6,7 @@ run_full:
 	echo "Waiting for the server to start..."
 	sleep 5
 	make run_loader
+	make clean_containers
 
 .PHONY: run_loader
 run_loader:
