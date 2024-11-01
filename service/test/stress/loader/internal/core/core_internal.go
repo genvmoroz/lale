@@ -47,7 +47,6 @@ func generateUsersInParallel(n uint32, workersCount uint32, cardsPerUser uint32,
 	usersPerWorker := n / workersCount
 	remainder := n % workersCount
 
-	// Launch workers
 	for i := uint32(0); i < workersCount; i++ {
 		wg.Add(1)
 		go func(workerID uint32) {
@@ -62,13 +61,11 @@ func generateUsersInParallel(n uint32, workersCount uint32, cardsPerUser uint32,
 		}(i)
 	}
 
-	// Close the channel once all workers are done
 	go func() {
 		wg.Wait()
 		close(usersChan)
 	}()
 
-	// Collect results
 	for users := range usersChan {
 		result = append(result, users...)
 	}
@@ -86,7 +83,7 @@ func generateUsers(workerID uint32, usersNumber uint32, cardsNumber uint32, word
 
 func generateUser(workerID uint32, n uint32, cardsNumber uint32, wordsNumber uint32) User {
 	return User{
-		Name:  fmt.Sprintf("worker-%d-user-%d", workerID, n),
+		Name:  fmt.Sprintf("W-%d-U-%d", workerID, n),
 		Cards: generateCards(cardsNumber, wordsNumber),
 	}
 }
@@ -115,7 +112,7 @@ func generateWords(cardN uint32, wordsNumber uint32) []Word {
 
 func generateWord(cardN uint32, n uint32) Word {
 	return Word{
-		Word:        fmt.Sprintf("card-%d-word-%d", cardN, n),
-		Translation: []string{"1", "2", "3", "4", "5"},
+		Word:        fmt.Sprintf("C-%d-W-%d", cardN, n),
+		Translation: []string{"1", "2"},
 	}
 }
