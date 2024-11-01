@@ -13,7 +13,7 @@ func TestAnkiCalculateNextDueDate(t *testing.T) {
 	t.Parallel()
 
 	var (
-		testNowTime = time.Now().UTC()
+		testNowTime = time.Now()
 		testNow     = func() time.Time { return testNowTime }
 	)
 
