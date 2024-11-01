@@ -3,13 +3,13 @@ package create_card
 import (
 	"context"
 	"fmt"
-	"github.com/genvmoroz/lale/service/api"
-	"golang.org/x/text/language"
 	"sync"
 	"time"
 
+	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/service/test/stress/loader/internal/core"
 	"github.com/genvmoroz/lale/service/test/stress/loader/internal/repository"
+	"golang.org/x/text/language"
 )
 
 type Builder struct{}
@@ -46,6 +46,9 @@ func (p *Performer) performCardsCreationForUsers(ctx context.Context, users []co
 		return nil
 	}
 
+	innerCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	wg := &sync.WaitGroup{}
 	errChan := make(chan error, len(users))
 
@@ -54,7 +57,7 @@ func (p *Performer) performCardsCreationForUsers(ctx context.Context, users []co
 		go func(user *core.User) {
 			defer wg.Done()
 
-			if err := p.createCards(ctx, user); err != nil {
+			if err := p.createCards(innerCtx, user); err != nil {
 				errChan <- fmt.Errorf("create cards for user %s: %w", user.Name, err)
 			}
 		}(&users[i])
@@ -66,8 +69,8 @@ func (p *Performer) performCardsCreationForUsers(ctx context.Context, users []co
 	}()
 
 	select {
-	case <-ctx.Done():
-		return ctx.Err()
+	case <-innerCtx.Done():
+		return innerCtx.Err()
 	case err, ok := <-errChan:
 		if ok {
 			return err

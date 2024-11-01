@@ -17,7 +17,6 @@ const day = 24 * time.Hour
 
 func (a Anki) CalculateNextDueDate(performance uint32, consecutiveCorrectAnswersNumber uint32) time.Time {
 	next := a.now().
-		UTC().
 		Add(
 			a.calculateShift(
 				float64(performance),

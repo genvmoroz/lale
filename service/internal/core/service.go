@@ -107,6 +107,8 @@ func NewService(
 // Create a new collection with words and their pronunciation.
 // Language + Word - different voices - audio data.
 
+// TODO: try to use for loop with pointers instead of range loop with values to avoid copying, compare the results.
+
 func (s *Service) InspectCard(ctx context.Context, req InspectCardRequest) (entity.Card, error) {
 	if err := s.validator.ValidateInspectCardRequest(req); err != nil {
 		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
