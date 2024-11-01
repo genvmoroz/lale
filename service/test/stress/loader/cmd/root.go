@@ -88,7 +88,7 @@ func run(cmd *cobra.Command) error {
 	}
 
 	if err = loader.Load(ctx, req); err != nil {
-		return fmt.Errorf("load: %w", err)
+		return err
 	}
 
 	return nil
