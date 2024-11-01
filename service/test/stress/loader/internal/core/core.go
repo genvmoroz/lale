@@ -65,12 +65,12 @@ func (l *Loader) perform(ctx context.Context, action Action, cfg PerformerConfig
 		return fmt.Errorf("create performer for action %s: %w", action, err)
 	}
 
-	fmt.Println("Performing action", action)
+	fmt.Println("Performing ", action)
 	now := time.Now()
 	if err = performer.Perform(ctx, env); err != nil {
-		return fmt.Errorf("perform action %s: %w", action, err)
+		return fmt.Errorf("perform %s: %w", action, err)
 	}
-	fmt.Println("Action", action, "completed in", time.Since(now))
+	fmt.Println(action, "completed in", time.Since(now))
 
 	return nil
 }
