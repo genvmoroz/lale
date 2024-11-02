@@ -229,7 +229,7 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 			}
 		}
 
-		if err = client.Send(chatID, fmt.Sprintf("Learn in %s", resp.GetNextDueDate().AsTime().Sub(time.Now().UTC()))); err != nil {
+		if err = client.Send(chatID, fmt.Sprintf("Learn in %s", resp.GetNextDueDate().AsTime().Sub(time.Now()))); err != nil {
 			return err
 		}
 		if err = client.Send(chatID, fmt.Sprintf("At %s", resp.GetNextDueDate().AsTime())); err != nil {
@@ -377,7 +377,7 @@ func (s *State) processFirstReview(
 		}
 	}
 
-	if err = client.Send(chatID, fmt.Sprintf("Learn in %s", resp.GetNextDueDate().AsTime().Sub(time.Now().UTC()))); err != nil {
+	if err = client.Send(chatID, fmt.Sprintf("Learn in %s", resp.GetNextDueDate().AsTime().Sub(time.Now()))); err != nil {
 		return false, err
 	}
 	if err = client.Send(chatID, fmt.Sprintf("At %s", resp.GetNextDueDate().AsTime())); err != nil {

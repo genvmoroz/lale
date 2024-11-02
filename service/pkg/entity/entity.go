@@ -72,12 +72,13 @@ func NewUserSession(userID string) UserSession {
 	return UserSession{
 		ID:      uuid.NewString(),
 		UserID:  userID,
-		Started: time.Now().UTC(),
+		Started: time.Now(),
 	}
 }
 
+// todo: receive an user time zone. time.Now must be replaced with time.Now().In(userTimeZone)
 func (c *Card) NeedToRepeat() bool {
-	return !c.NextDueDate.IsZero() && time.Now().UTC().After(c.NextDueDate.UTC())
+	return !c.NextDueDate.IsZero() && time.Now().After(c.NextDueDate)
 }
 
 func (c *Card) NeedToLearn() bool {
@@ -112,5 +113,5 @@ func (s *UserSession) Close() {
 	if s.IsClosed() {
 		return
 	}
-	s.Closed = lo.ToPtr(time.Now().UTC())
+	s.Closed = lo.ToPtr(time.Now())
 }
