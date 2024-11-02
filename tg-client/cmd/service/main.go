@@ -42,7 +42,7 @@ func main() {
 }
 
 func launch() error {
-	rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
