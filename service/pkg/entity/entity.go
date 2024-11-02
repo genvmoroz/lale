@@ -80,10 +80,11 @@ func NewUserSession(userID string) UserSession {
 	return UserSession{
 		ID:      uuid.NewString(),
 		UserID:  userID,
-		Started: time.Now().UTC(),
+		Started: time.Now(),
 	}
 }
 
+// todo: receive an user time zone. time.Now must be replaced with time.Now().In(userTimeZone)
 func (c *Card) NeedToRepeat() bool {
 	if c.Learnt {
 		return false

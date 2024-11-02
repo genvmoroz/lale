@@ -24,8 +24,8 @@ type (
 	}
 
 	cacheEntry struct {
-		session  entity.UserSession
-		expireAt int64 // unix time
+		session   entity.UserSession
+		expiresAt time.Time
 	}
 )
 
@@ -84,7 +84,7 @@ func (r *Repo) CloseSession(userID string) error {
 }
 
 func (c cache) get(userID string) (cacheEntry, bool) {
-	if entry, ok := c.entries[userID]; ok && entry.expireAt > time.Now().UTC().Unix() {
+	if entry, ok := c.entries[userID]; ok && entry.expiresAt.After(time.Now()) {
 		return entry, true
 	}
 
@@ -93,8 +93,8 @@ func (c cache) get(userID string) (cacheEntry, bool) {
 
 func (c cache) set(session entity.UserSession) {
 	entry := cacheEntry{
-		session:  session,
-		expireAt: time.Now().UTC().Add(c.expireIn).Unix(),
+		session:   session,
+		expiresAt: time.Now().Add(c.expireIn),
 	}
 
 	c.entries[session.UserID] = entry
