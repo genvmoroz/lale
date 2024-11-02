@@ -1,5 +1,5 @@
 FROM golang:1.23 AS builder
-
+#todo: refactor the file to use already built image instead of building from scratch
 WORKDIR /app
 
 COPY . .
@@ -17,4 +17,4 @@ COPY --from=builder /app/bin/svc /svc
 
 EXPOSE 8080
 
-CMD ["./svc"]
+CMD ["sh", "-c", "./svc 2>&1 | tee -a /var/log/service.log"]

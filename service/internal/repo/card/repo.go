@@ -1,4 +1,4 @@
-//nolint:gosec // todo
+//nolint:gosec // will be fixed later
 package card
 
 import (
