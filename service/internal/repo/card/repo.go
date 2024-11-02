@@ -5,16 +5,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/genvmoroz/lale/service/pkg/entity"
+	gracefulmongo "github.com/genvmoroz/lale/service/pkg/mongo"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 type (
@@ -45,11 +44,19 @@ type (
 )
 
 func NewRepo(ctx context.Context, cfg Config) (*Repo, error) {
-	uri := prepareURI(cfg)
-
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	gmCfg := gracefulmongo.Config{
+		Protocol: cfg.Protocol,
+		Host:     cfg.Host,
+		Port:     cfg.Port,
+		Params:   cfg.Params,
+		Creds: gracefulmongo.Creds{
+			User: cfg.Creds.User,
+			Pass: cfg.Creds.Pass,
+		},
+	}
+	client, err := gracefulmongo.NewGracefulClient(ctx, gmCfg)
 	if err != nil {
-		return nil, fmt.Errorf("connect: %w", err)
+		return nil, fmt.Errorf("new graceful client: %w", err)
 	}
 
 	repo := &Repo{
@@ -61,45 +68,7 @@ func NewRepo(ctx context.Context, cfg Config) (*Repo, error) {
 		tr: newTransformer(),
 	}
 
-	if err := repo.Ping(ctx); err != nil {
-		return nil, fmt.Errorf("ping mongo: %w", err)
-	}
-
-	go func() {
-		<-ctx.Done()
-		disconnect(ctx, client)
-	}()
-
 	return repo, nil
-}
-
-func prepareURI(cfg Config) string {
-	uri := strings.Builder{}
-
-	uri.WriteString(fmt.Sprintf("%s://", cfg.Protocol))
-	uri.WriteString(fmt.Sprintf("%s:%s", cfg.Creds.User, cfg.Creds.Pass))
-	uri.WriteString(fmt.Sprintf("@%s", cfg.Host))
-
-	if cfg.Port != nil {
-		uri.WriteString(fmt.Sprintf(":%d", *cfg.Port))
-	}
-
-	uri.WriteString("/")
-
-	if len(cfg.Params) != 0 {
-		uri.WriteString("?")
-
-		firstParam := true
-		for k, v := range cfg.Params {
-			if !firstParam {
-				uri.WriteString("&")
-			}
-			uri.WriteString(fmt.Sprintf("%s=%s", k, v))
-			firstParam = false
-		}
-	}
-
-	return uri.String()
 }
 
 func (r *Repo) GetCardsByWords(ctx context.Context, userID string, words []string) ([]entity.Card, error) {
@@ -244,21 +213,6 @@ func (r *Repo) DeleteCard(ctx context.Context, cardID string) error {
 	}
 
 	return nil
-}
-
-func (r *Repo) Ping(ctx context.Context) error {
-	if err := r.client.Ping(ctx, readpref.Primary()); err != nil {
-		return fmt.Errorf("ping: %w", err)
-	}
-
-	return nil
-}
-
-// todo: make it open and use it from the outside
-func disconnect(ctx context.Context, client *mongo.Client) {
-	if err := client.Disconnect(ctx); err != nil {
-		logrus.Errorf("disconnect: %s", err.Error())
-	}
 }
 
 func abortTransaction(ctx context.Context, sessionContext mongo.SessionContext) {
