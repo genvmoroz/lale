@@ -17,6 +17,17 @@ type (
 		UserID   string
 		Language language.Tag
 
+		//todo: add another one field like "StartedLearningAt" to store the date when the user started learning the word,
+		//	so we can:
+		// 		1. calculate the interval between the current date and the "StartedLearningAt".
+		//		2. sort the words by the "StartedLearningAt" field for the repeat stag,
+		//			later the date is the earlier the word will be repeated.
+
+		//todo: add the "CreatedAt" field to store the date when the card was created.
+		//	so we can:
+		//		1. use this field to sort the words by the "CreatedAt" field for the learning stage,
+		//			later the date is the earlier the word will be learned.
+
 		WordInformationList []WordInformation `yaml:"WordInformationList,omitempty"`
 
 		ConsecutiveCorrectAnswersNumber uint32
