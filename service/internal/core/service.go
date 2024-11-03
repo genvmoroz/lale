@@ -65,6 +65,7 @@ type (
 	}
 )
 
+// todo: implement support for multiple words pronunciations for each word, only british english and american english are supported now.
 func NewService(
 	cardRepo CardRepo,
 	sessionRepo SessionRepo,
