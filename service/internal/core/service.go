@@ -520,6 +520,7 @@ func (s *Service) GetCardsToLearn(ctx context.Context, req GetCardsRequest) (Get
 	return resp, nil
 }
 
+// todo: clean a response up to get rid of any definitions/metadata containing the word to repeat.
 func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
