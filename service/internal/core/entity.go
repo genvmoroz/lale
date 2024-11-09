@@ -26,6 +26,9 @@ type (
 	}
 
 	Parameters struct {
+		//todo: rename as TryToEnrichWordInformationFromDictionary,
+		//	so the service will try to enrich the word information from the dictionary.
+		//	otherwise, the service will use the provided word information only.
 		EnrichWordInformationFromDictionary bool
 	}
 
