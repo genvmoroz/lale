@@ -10,7 +10,6 @@ import (
 )
 
 type (
-
 	// todo: move to core layer
 	Card struct {
 		ID       string
@@ -35,6 +34,11 @@ type (
 
 		Learnt   bool
 		LearntAt time.Time
+
+		//todo: add the bool field "Learnt" to store the information about the word learning status.
+		//	so we can:
+		//		1. use this field analyze the learning progress.
+		//		2. shrink db memory by removing the words explanation but keeping the word itself.
 	}
 
 	WordInformation struct { // todo: rename to Word

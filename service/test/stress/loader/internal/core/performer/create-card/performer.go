@@ -69,8 +69,8 @@ func (p *Performer) performCardsCreationForUsers(ctx context.Context, users []co
 	}()
 
 	select {
-	case <-innerCtx.Done():
-		return innerCtx.Err()
+	case <-ctx.Done():
+		return ctx.Err()
 	case err, ok := <-errChan:
 		if ok {
 			return err
