@@ -10,7 +10,6 @@ import (
 )
 
 type (
-
 	// todo: move to core layer
 	Card struct {
 		ID       string
@@ -32,15 +31,22 @@ type (
 
 		ConsecutiveCorrectAnswersNumber uint32
 		NextDueDate                     time.Time
+
+		//todo: add the bool field "Learnt" to store the information about the word learning status.
+		//	so we can:
+		//		1. use this field analyze the learning progress.
+		//		2. shrink db memory by removing the words explanation but keeping the word itself.
 	}
 
+	//todo: rename it to just Word
 	WordInformation struct {
 		Word        string       `yaml:"Word,omitempty"`
 		Translation *Translation `yaml:"Translation,omitempty"`
-		Origin      string       `yaml:"Origin,omitempty"`
-		Phonetics   []Phonetic   `yaml:"Phonetics,omitempty"`
-		Meanings    []Meaning    `yaml:"Meanings,omitempty"`
-		Audio       []byte       `yaml:"Audio,omitempty"`
+		//todo: move it to the separate struct like "WordDetails"
+		Origin    string     `yaml:"Origin,omitempty"`
+		Phonetics []Phonetic `yaml:"Phonetics,omitempty"`
+		Meanings  []Meaning  `yaml:"Meanings,omitempty"`
+		Audio     []byte     `yaml:"Audio,omitempty"`
 	}
 
 	Translation struct {
