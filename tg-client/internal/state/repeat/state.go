@@ -153,15 +153,15 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 				return nil
 			}
 
-			if correct != nil && !*correct {
+			if correct != nil && *correct {
 				if err = client.Send(chatID, "Correct"); err != nil {
 					return err
 				}
-				isAnswerCorrect = false
 			} else {
 				if err = client.SendWithParseMode(chatID, fmt.Sprintf("Incorrect, inspect word <code>%s</code> first", word.GetWord()), tg.ModeHTML); err != nil {
 					return err
 				}
+				isAnswerCorrect = false
 			}
 			err = client.SendAudio(chatID, "pronunciation", word.GetAudio())
 			if err != nil {
