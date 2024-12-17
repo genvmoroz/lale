@@ -16,17 +16,20 @@ update_deps_and_run_tests() {
   cd - || exit
 }
 
+build_and_push_latest() {
+  echo "Entering directory: $1"
+  cd "$1" || exit
+  echo "Current directory: $(pwd)"
+  make build-linux-amd64
+  make build-docker DOCKER_REGISTRY="$DOCKER_REGISTRY" SERVICE_TAG="$2"
+  make push-docker DOCKER_REGISTRY="$DOCKER_REGISTRY" SERVICE_TAG="$2"
+  cd - || exit
+}
+
 echo "Updating dependencies and running tests"
 update_deps_and_run_tests "service"
 update_deps_and_run_tests "tg-client"
 
 echo "Building and pushing docker images"
-echo "DOCKER_REGISTRY: $DOCKER_REGISTRY"
-
-echo "SERVICE_TAG: $SERVICE_TAG"
-docker build -t "$DOCKER_REGISTRY/$SERVICE_TAG" service
-docker push "$DOCKER_REGISTRY/$SERVICE_TAG"
-
-echo "TG_CLIENT_TAG: $TG_CLIENT_TAG"
-docker build -t "$DOCKER_REGISTRY/$TG_CLIENT_TAG" tg-client
-docker push "$DOCKER_REGISTRY/$TG_CLIENT_TAG"
+build_and_push_latest "service" $SERVICE_TAG
+build_and_push_latest "tg-client" $TG_CLIENT_TAG

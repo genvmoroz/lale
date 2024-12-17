@@ -8,9 +8,8 @@ ARCH = $(shell go env GOARCH)
 CMD_DIR=./cmd/service/.
 ARTIFACT_DIR=./bin
 ARTIFACT=${ARTIFACT_DIR}/svc
-REPO=genvmoroz
-IMAGE_NAME=service
-DOCKER_TAG=development
+DOCKER_REGISTRY=genvmoroz
+SERVICE_TAG=service:development
 
 .PHONY: ci
 ci: lint test vulnerabilities_lookup
@@ -36,13 +35,24 @@ build:
 		-o ${ARTIFACT} \
 		${CMD_DIR}
 
+.PHONY: build-linux-amd64
+build-linux-amd64:
+	GOOS=linux \
+	GOARCH=amd64 \
+		go build \
+		-o ${ARTIFACT}-linux-amd64 \
+		${CMD_DIR}
+
 .PHONY: build-docker
 build-docker:
-	docker build -t "${REPO}/${IMAGE_NAME}:${DOCKER_TAG}" .
+	docker build -t \
+		"${DOCKER_REGISTRY}/${SERVICE_TAG}" \
+		--build-arg ARTIFACT=$(ARTIFACT) \
+		.
 
 .PHONY: push-docker
 push-docker:
-	docker push "${REPO}/${IMAGE_NAME}:${DOCKER_TAG}"
+	docker push "${DOCKER_REGISTRY}/${SERVICE_TAG}"
 
 .PHONY: test_coverage
 test_coverage:
