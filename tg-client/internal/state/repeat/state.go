@@ -79,10 +79,10 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 
 	cards := cardseq.NewCards(ctx, s.laleRepo, resp, 1, 1)
 
-	isAnswerCorrect := true
-
 	for cards.HasNext() {
 		card := cards.Next(ctx)
+
+		isAnswerCorrect := true
 
 		if card.Card.GetNextDueDate().AsTime().Equal(time.Time{}) {
 			if back, err = s.processFirstRepeat(ctx, client, chatID, updateChan, card); err != nil {
