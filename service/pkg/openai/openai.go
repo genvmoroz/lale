@@ -10,7 +10,6 @@ import (
 	"log"
 	basehttp "net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -100,7 +99,12 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 
 	body, err := s.prepareRequestBody(
 		fmt.Sprintf(
-			"Generate %d random sentences with the word \"%s\" in different meanings of the word for %s English level with any topics. Print only sentences.",
+			"Generate %d random sentences with the word \"%s\". "+
+				"Include as much different meanings of this word in the sentence as possible. "+
+				"Also leave an exaplanation of each meaning after the sentence. "+
+				"Try to generate sentence for %s English level with any topics. "+
+				"Format of your output should be a JSON: [{\"sentence\":{\"value\":\"sentence itself\",\"explanations\":[\"explanation_1\",\"explanation_2\"]}}]"+
+				"Also don't use line break for between a sentence and its explanations.",
 			size,
 			strings.TrimSpace(word),
 			complexity.String(),
@@ -148,19 +152,35 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 
 	content := strings.Split(parsedResponse.Choices[0].Message.Content, "\n")
 	var sentences []string
-
+	// todo: optimise it
 	for index := 0; index < len(content); index++ {
-		rq := regexp.MustCompile(`^\d.`)
-		ss := rq.ReplaceAll([]byte(content[index]), []byte{})
-		sentence := strings.TrimSpace(strings.TrimRight(string(ss), "."))
-		if len(sentence) != 0 {
-			sentences = append(sentences, sentence)
+		var generatedSentencesResp []generatedSentencesResponse
+		if err = json.Unmarshal([]byte(content[index]), &generatedSentencesResp); err != nil {
+			return nil, fmt.Errorf("parse response body: %w", err)
 		}
+
+		for _, sentence := range generatedSentencesResp {
+			explanations := ""
+			for _, explanation := range sentence.Sentence.Explanations {
+				explanations += "\n"
+				explanations += explanation
+			}
+
+			sentences = append(sentences, fmt.Sprintf("%s%s", sentence.Sentence.Value, explanations))
+		}
+
 	}
 	if len(sentences) > int(size) {
 		return sentences[:size], nil
 	}
 	return sentences, nil
+}
+
+type generatedSentencesResponse struct {
+	Sentence struct {
+		Value        string   `json:"value"`
+		Explanations []string `json:"explanations"`
+	} `json:"sentence"`
 }
 
 func (s *Scraper) GetFamilyWordsWithTranslation(word string, lang language.Tag) (map[string]string, error) {
