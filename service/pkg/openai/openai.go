@@ -163,7 +163,7 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 			explanations := ""
 			for _, explanation := range sentence.Sentence.Explanations {
 				explanations += "\n"
-				explanations += explanation
+				explanations += "- " + explanation
 			}
 
 			sentences = append(sentences, fmt.Sprintf("%s%s", sentence.Sentence.Value, explanations))
