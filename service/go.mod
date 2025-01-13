@@ -5,7 +5,7 @@ go 1.23
 require (
 	cloud.google.com/go/texttospeech v1.11.0
 	github.com/amarnathcjd/chatgpt v0.0.0-20230811124417-51a04cc13d01
-	github.com/go-playground/validator/v10 v10.23.0
+	github.com/go-playground/validator/v10 v10.24.0
 	github.com/google/uuid v1.6.0
 	github.com/googleapis/gax-go/v2 v2.14.1
 	github.com/hashicorp/go-retryablehttp v0.7.7

@@ -5,7 +5,7 @@ go 1.23
 require (
 	github.com/genvmoroz/bot-engine v1.1.5
 	github.com/genvmoroz/lale/service v1.0.0
-	github.com/go-playground/validator/v10 v10.23.0
+	github.com/go-playground/validator/v10 v10.24.0
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/samber/lo v1.47.0
