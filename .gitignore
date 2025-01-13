@@ -18,3 +18,5 @@
 *.out
 
 ./lale.yml
+
+/tg-client/bin/*
