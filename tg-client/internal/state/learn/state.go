@@ -76,7 +76,7 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 		return err
 	}
 
-	cards := cardseq.NewCards(ctx, s.laleRepo, resp, 1, 5)
+	cards := cardseq.NewCards(ctx, s.laleRepo, resp, 1, 1)
 
 	for cards.HasNext() {
 		card := cards.Next(ctx)
