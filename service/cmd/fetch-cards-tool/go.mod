@@ -1,4 +1,4 @@
-module update-cards-tool
+module fetch-cards-tool
 
 go 1.23.0
 

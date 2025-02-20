@@ -17,8 +17,8 @@ func main() {
 	defer cancel()
 
 	cfg := mongo.Config{
-		Protocol: "mongodb+srv",
-		Host:     "dictionary.zxrao.mongodb.net",
+		Protocol: "mongodb",
+		Host:     "localhost",
 		Params: map[string]string{
 			"retryWrites": "true",
 			"w":           "majority",
@@ -26,8 +26,8 @@ func main() {
 		Database:   "dictionary",
 		Collection: "cards",
 		Creds: mongo.Creds{
-			User: "genvmoroz",
-			Pass: "",
+			User: "root",
+			Pass: "pass",
 		},
 	}
 	repo, err := mongo.NewRepo(ctx, cfg)
@@ -35,7 +35,7 @@ func main() {
 		log.Fatalf("create mongo repo: %v", err)
 	}
 
-	cards, err := repo.GetCardsForUser(ctx, "hennadiimoroz")
+	cards, err := repo.GetCards(ctx)
 	if err != nil {
 		log.Fatalf("get cards for user: %v", err)
 	}
@@ -44,6 +44,7 @@ func main() {
 		return nil
 	}
 
+	// ensure the model is correct
 	if err = updateCards(ctx, updateCard, cards, repo); err != nil {
 		log.Fatalf("update cards: %v", err)
 	}

@@ -84,6 +84,37 @@ func prepareURI(cfg Config) string {
 	return uri.String()
 }
 
+func (r *Repo) GetCards(ctx context.Context) ([]Card, error) {
+	client, err := mongo.Connect(ctx, r.opts)
+	if err != nil {
+		return nil, fmt.Errorf("connect: %w", err)
+	}
+
+	defer func() {
+		disconnect(ctx, client)
+	}()
+
+	cardsCollection := client.
+		Database(r.database).
+		Collection(r.collection)
+
+	query := bson.M{}
+	count, err := cardsCollection.EstimatedDocumentCount(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("estimate document count: %w", err)
+	}
+	const extraSize = 100
+	cursor, err := cardsCollection.Find(ctx, query, options.Find().SetBatchSize(int32(count)+extraSize))
+	if err != nil {
+		return nil, fmt.Errorf("find: %w", err)
+	}
+	defer func() {
+		_ = cursor.Close(context.Background())
+	}()
+
+	return unmarshalCursor(ctx, cursor)
+}
+
 func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]Card, error) {
 	if !utf8.ValidString(userID) {
 		return nil, fmt.Errorf("userID [%s] is invalid utf8 string", userID)

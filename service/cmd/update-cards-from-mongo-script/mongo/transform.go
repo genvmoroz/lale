@@ -23,7 +23,6 @@ type (
 		WordInformationList []WordInformation `yaml:"WordInformationList,omitempty"`
 
 		ConsecutiveCorrectAnswersNumber uint32
-		CorrectAnswers                  uint32 // deprecated
 		NextDueDate                     time.Time
 	}
 
