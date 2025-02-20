@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/liamg/clinch/task"
 	"github.com/liamg/tml"
 	"github.com/samber/lo"
+	"slices"
 )
 
 func main() {
@@ -35,6 +35,19 @@ func main() {
 	}
 
 	log.Println("cards", len(cards))
+
+	// go over all unlearnt cards
+	cards = lo.Filter(cards, func(item *api.Card, index int) bool {
+		return item.GetNextDueDate().AsTime() == time.Time{}
+	})
+	for _, card := range slices.Backward(cards) {
+		fmt.Println()
+		for _, word := range card.WordInformationList {
+			fmt.Println(word.Word)
+		}
+		fmt.Println(card.GetId())
+		fmt.Println("=====================================")
+	}
 
 	// finds duplicates
 	for i := 0; i < len(cards); i++ {

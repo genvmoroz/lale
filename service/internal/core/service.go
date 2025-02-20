@@ -16,6 +16,7 @@ import (
 	"github.com/genvmoroz/lale/service/pkg/speech"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
+	"github.com/samber/lo/mutable"
 	"golang.org/x/exp/maps"
 	"golang.org/x/text/language"
 )
@@ -655,8 +656,9 @@ func (s *Service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (
 	}
 
 	words := mapCardsToWords(cardsForStory)
+	mutable.Shuffle(words)
 
-	story, err := s.aiHelper.GenStory(lo.Shuffle[string](words), req.Language)
+	story, err := s.aiHelper.GenStory(words, req.Language)
 	if err != nil {
 		return GenerateStoryResponse{}, fmt.Errorf("generate story: %w", err)
 	}
