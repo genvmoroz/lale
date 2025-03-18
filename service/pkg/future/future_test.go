@@ -16,7 +16,7 @@ import (
 func TestFutureTaskCorrect(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	run := func(_ context.Context) (string, error) { return "done", nil }
@@ -40,7 +40,7 @@ func TestFutureTaskCorrect(t *testing.T) {
 func TestFutureTaskContextCanceled(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	run := func(ctx context.Context) (string, error) {
@@ -68,7 +68,7 @@ func TestFutureTaskContextCanceled(t *testing.T) {
 func TestFutureTaskTimeoutExpired(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	run := func(ctx context.Context) (string, error) {
@@ -108,7 +108,7 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 func TestFutureTaskRunWithTaskError(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	run := func(_ context.Context) (string, error) { return "", assert.AnError }
@@ -130,7 +130,7 @@ func TestFutureTaskRunWithTaskError(t *testing.T) {
 func TestFutureTaskRunTaskCanceled(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	run := func(_ context.Context) (string, error) {
