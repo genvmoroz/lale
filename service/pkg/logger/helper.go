@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
-
+// todo: use zap logger
 var key = struct { //nolint:gochecknoglobals // it's a context key
 	val string
 }{
