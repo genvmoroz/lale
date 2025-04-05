@@ -8,6 +8,7 @@ import (
 	"github.com/genvmoroz/lale-tg-client/internal/repository"
 	"github.com/genvmoroz/lale/service/api"
 	"github.com/genvmoroz/lale/service/pkg/future"
+	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -113,13 +114,16 @@ func (r *Cards) enrichCardWithSentences(ctx context.Context, i uint32) {
 					return resp.GetSentences(), nil
 				}
 
-				time.Sleep(time.Duration(rand.Intn(10)+5) * time.Second)
+				logrus.Errorf("failed to get sentences for word %s: %v", word.GetWord(), err)
+				sleepDuration := time.Duration(rand.Intn(10)+5) * time.Second
+				logrus.Infof("retrying in %s", sleepDuration)
+				time.Sleep(sleepDuration)
 			}
 
 			return nil, err
 		}
 
-		r.cards[i].Sentences[word.GetWord()] = future.NewTask[[]string](ctx, run)
+		r.cards[i].Sentences[word.GetWord()] = future.NewTask(ctx, run)
 	}
 }
 
