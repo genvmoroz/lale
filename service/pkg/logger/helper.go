@@ -12,14 +12,18 @@ import (
 
 type ctxLoggerKey struct{}
 
-var key ctxLoggerKey
+// getLoggerKey returns a new instance of ctxLoggerKey.
+// This is used as a context key for storing logger entries in the context.
+func getLoggerKey() ctxLoggerKey {
+	return ctxLoggerKey{}
+}
 
 func ContextWithLogger(ctx context.Context, entry *logrus.Entry) context.Context {
-	return context.WithValue(ctx, key, entry)
+	return context.WithValue(ctx, getLoggerKey(), entry)
 }
 
 func FromContext(ctx context.Context) *logrus.Entry {
-	if logger, ok := ctx.Value(key).(*logrus.Entry); ok {
+	if logger, ok := ctx.Value(getLoggerKey()).(*logrus.Entry); ok {
 		return logger
 	}
 	return WithCorrelationID()

@@ -29,3 +29,7 @@ build_and_push:
 	make build-docker DOCKER_REGISTRY=$(DOCKER_REGISTRY) SERVICE_TAG=$(TAG) && \
 	make push-docker DOCKER_REGISTRY=$(DOCKER_REGISTRY) SERVICE_TAG=$(TAG) && \
 	cd -
+
+lint:
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+	golangci-lint run --allow-parallel-runners -c ../.golangci.yml

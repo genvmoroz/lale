@@ -34,7 +34,7 @@ func TestFutureTaskCorrect(t *testing.T) {
 
 	res, err = task.Get(time.Second)
 	require.ErrorContains(t, err, "task is completed")
-	require.Equal(t, "", res)
+	require.Empty(t, res)
 }
 
 func TestFutureTaskContextCanceled(t *testing.T) {
@@ -61,7 +61,7 @@ func TestFutureTaskContextCanceled(t *testing.T) {
 
 	res, err := task.Get(time.Second)
 	require.ErrorContains(t, err, "context closed before the task is completed")
-	require.Equal(t, "", res)
+	require.Empty(t, res)
 	require.False(t, task.IsCompleted())
 }
 
@@ -89,7 +89,7 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 
 	res, err := task.Get(time.Second)
 	require.ErrorContains(t, err, "timeout expired")
-	require.Equal(t, "", res)
+	require.Empty(t, res)
 	require.False(t, task.IsCompleted())
 
 	select {
@@ -122,7 +122,7 @@ func TestFutureTaskRunWithTaskError(t *testing.T) {
 	res, err := task.Get(time.Second)
 	require.ErrorAs(t, err, &future.TaskError{})
 	require.ErrorIs(t, err, assert.AnError)
-	require.Equal(t, "", res)
+	require.Empty(t, res)
 	require.False(t, task.IsCancelled())
 	require.True(t, task.IsCompleted())
 }
@@ -149,7 +149,7 @@ func TestFutureTaskRunTaskCanceled(t *testing.T) {
 
 	res, err := task.Get(time.Second)
 	require.ErrorContains(t, err, "task is canceled")
-	require.Equal(t, "", res)
+	require.Empty(t, res)
 	require.True(t, task.IsCancelled())
 	require.False(t, task.IsCompleted())
 }

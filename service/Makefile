@@ -1,6 +1,6 @@
 #!/bin/sh
 
-include ./local-run.sh
+include ./local-run.sh ../Makefile
 
 OSNAME=$(shell go env GOOS)
 ARCH = $(shell go env GOARCH)
@@ -76,10 +76,6 @@ protoc-gen:
 vulnerabilities_lookup:
 	go install golang.org/x/vuln/cmd/govulncheck@latest
 	govulncheck -test ./...
-
-lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	golangci-lint run --allow-parallel-runners -c ./.golangci.yml
 
 .PHONY: gci
 gci:

@@ -39,7 +39,7 @@ func (Anki) calculateShift(performance float64, correctAnswers float64) time.Dur
 		return durationFromDays(1)
 	}
 
-	difficulty := -0.8 + 0.28*performance + 0.02*math.Pow(performance, 2)
+	difficulty := -0.8 + 0.28*performance + 0.02*performance*performance
 
 	return durationFromDays(6 * math.Pow(difficulty, correctAnswers-1))
 }
