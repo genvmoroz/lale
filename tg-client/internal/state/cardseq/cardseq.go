@@ -94,7 +94,11 @@ func (r *Cards) enrichCardWithSentences(ctx context.Context, i uint32) {
 	}
 	for y, word := range r.cards[i].Words {
 		run := func(innerCtx context.Context) ([]string, error) {
-			time.Sleep(time.Duration(y*20) * time.Second)
+			select {
+			case <-innerCtx.Done():
+				return nil, innerCtx.Err()
+			case <-time.After(time.Duration(y*20) * time.Second):
+			}
 			req := &api.GetSentencesRequest{
 				UserID:         r.cards[i].Card.GetUserID(),
 				Word:           word.GetWord(),
