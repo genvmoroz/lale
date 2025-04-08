@@ -93,9 +93,6 @@ func (r *Cards) enrichCardWithSentences(ctx context.Context, i uint32) {
 		r.cards[i].Sentences = make(map[string]future.Task[[]string])
 	}
 	for y, word := range r.cards[i].Words {
-		y := y
-		word := word
-
 		run := func(innerCtx context.Context) ([]string, error) {
 			time.Sleep(time.Duration(y*20) * time.Second)
 			req := &api.GetSentencesRequest{
@@ -111,6 +108,7 @@ func (r *Cards) enrichCardWithSentences(ctx context.Context, i uint32) {
 			for index := 1; index <= 3; index++ {
 				select {
 				case <-innerCtx.Done():
+					logrus.Infof("context done for word %s when getting sentences", word.GetWord())
 					return nil, innerCtx.Err()
 				default:
 				}
