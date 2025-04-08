@@ -108,7 +108,6 @@ func (r *Cards) enrichCardWithSentences(ctx context.Context, i uint32) {
 			for index := 1; index <= 3; index++ {
 				select {
 				case <-innerCtx.Done():
-					logrus.Infof("context done for word %s when getting sentences", word.GetWord())
 					return nil, innerCtx.Err()
 				default:
 				}

@@ -37,7 +37,7 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 		return err
 	}
 
-	language, userName, back, err := auxl.RequestInput[string](
+	language, userName, back, err := auxl.RequestInput(
 		ctx,
 		isStringNotBlank,
 		chatID,
@@ -120,7 +120,7 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 				}
 			}
 
-			correct, _, back, err := auxl.RequestInput[*bool](
+			correct, _, back, err := auxl.RequestInput(
 				ctx,
 				func(u *bool) bool {
 					return u != nil
@@ -387,7 +387,7 @@ func (s *State) processFirstRepeat(
 		return false, err
 	}
 
-	_, _, back, err := auxl.RequestInput[*bool](
+	_, _, back, err := auxl.RequestInput(
 		ctx,
 		func(s *bool) bool {
 			return s != nil
