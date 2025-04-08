@@ -108,8 +108,12 @@ func (r *Cards) enrichCardWithSentences(ctx context.Context, i uint32) {
 				resp *api.GetSentencesResponse
 				err  error
 			)
-			for index := 1; index <= 10; index++ {
-				// todo: add ctx.Done() check
+			for index := 1; index <= 3; index++ {
+				select {
+				case <-innerCtx.Done():
+					return nil, innerCtx.Err()
+				default:
+				}
 				resp, err = r.laleRepo.Client.GetSentences(innerCtx, req)
 				if err == nil {
 					return resp.GetSentences(), nil
