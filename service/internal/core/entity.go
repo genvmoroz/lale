@@ -72,7 +72,7 @@ type (
 	GetSentencesRequest struct {
 		UserID         string
 		Word           string
-		SentencesCount uint32
+		SentencesCount int
 	}
 
 	GetSentencesResponse struct {

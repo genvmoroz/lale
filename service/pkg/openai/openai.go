@@ -8,13 +8,14 @@ import (
 	"fmt"
 	"io"
 	"log"
-	basehttp "net/http"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
 	"unicode/utf8"
 
-	http "github.com/hashicorp/go-retryablehttp"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/text/language"
 )
 
@@ -23,12 +24,12 @@ type (
 		Addr    string        `envconfig:"APP_OPENAI_ADDR" default:"https://api.openai.com/v1/chat/completions" json:"addr,omitempty"`
 		Token   string        `envconfig:"APP_OPENAI_TOKEN" required:"true" json:"token,omitempty"`
 		Retries uint          `envconfig:"APP_OPENAI_RETRIES" default:"3" json:"retries,omitempty"`
-		Timeout time.Duration `envconfig:"APP_OPENAI_TIMEOUT" default:"3s" json:"timeout,omitempty"`
+		Timeout time.Duration `envconfig:"APP_OPENAI_TIMEOUT" default:"30s" json:"timeout,omitempty"`
 	}
 
 	Scraper struct {
 		addr   string
-		client *basehttp.Client
+		client *http.Client
 		token  string
 	}
 )
@@ -42,9 +43,10 @@ func NewHelper(cfg Config) (*Scraper, error) {
 		return nil, fmt.Errorf("timeout shouldn't be negative [%d]: %w", cfg.Timeout, err)
 	}
 
-	client := http.NewClient()
+	client := retryablehttp.NewClient()
+	client.Logger = logrus.StandardLogger()
 	client.RetryMax = int(cfg.Retries)
-	client.Backoff = http.DefaultBackoff
+	client.Backoff = retryablehttp.DefaultBackoff
 	baseClient := client.StandardClient()
 	baseClient.Timeout = cfg.Timeout
 
@@ -57,44 +59,19 @@ func NewHelper(cfg Config) (*Scraper, error) {
 	return scr, nil
 }
 
-type EnglishComplexity int32
-
-const (
-	Unknown EnglishComplexity = iota
-	Beginner
-	Intermediate
-	Advanced
-)
-
-func (s *Scraper) GenerateSentences(word string, size uint32) ([]string, error) {
-	return s.generateSentencesWithRetry(word, size, Intermediate, 4)
-}
-
-func (s *Scraper) generateSentencesWithRetry(word string, size uint32, complexity EnglishComplexity, retries uint) ([]string, error) {
-	var (
-		sents []string
-		err   error
-	)
-	for retry := 0; retry <= int(retries); retry++ {
-		sents, err = s.generateSentences(word, size, complexity)
-		if err == nil {
-			return sents, nil
-		}
-		time.Sleep(5 * time.Second)
-	}
-
-	return nil, err
-}
-
-func (s *Scraper) generateSentences(word string, size uint32, complexity EnglishComplexity) ([]string, error) {
-	if !utf8.ValidString(word) {
+func (s *Scraper) GenerateSentences(word string, size int) ([]string, error) {
+	switch {
+	case !utf8.ValidString(word):
 		return nil, fmt.Errorf("invalid utf8 string: %s", word)
+	case size < 0:
+		return nil, errors.New("size should be positive")
+	case size == 0:
+		return nil, nil
 	}
-	if len(strings.TrimSpace(word)) == 0 {
+
+	word = strings.TrimSpace(word)
+	if len(word) == 0 {
 		return nil, errors.New("word is blank")
-	}
-	if !complexity.IsValid() {
-		return nil, fmt.Errorf("invalid complexity: %d", int32(complexity))
 	}
 
 	body, err := s.prepareRequestBody(
@@ -102,19 +79,18 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 			"Generate %d random sentences with the word \"%s\". "+
 				"Include as much different meanings of this word in the sentence as possible. "+
 				"Also leave an exaplanation of each meaning after the sentence. "+
-				"Try to generate sentence for %s English level with any topics. "+
+				"Try to generate sentence for Intermediate English level with any topics. "+
 				"Format of your output should be a JSON: [{\"sentence\":{\"value\":\"sentence itself\",\"explanations\":[\"explanation_1\",\"explanation_2\"]}}]"+
 				"Also don't use line break for between a sentence and its explanations.",
 			size,
 			strings.TrimSpace(word),
-			complexity.String(),
 		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("prepare request body: %w", err)
 	}
 
-	req, err := basehttp.NewRequest(basehttp.MethodPost, s.addr, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, s.addr, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -133,7 +109,7 @@ func (s *Scraper) generateSentences(word string, size uint32, complexity English
 		return nil, fmt.Errorf("request execution error: %w", err)
 	}
 
-	if resp.StatusCode != basehttp.StatusOK {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status code: %d", resp.StatusCode)
 	}
 
@@ -184,26 +160,6 @@ type generatedSentencesResponse struct {
 }
 
 func (s *Scraper) GetFamilyWordsWithTranslation(word string, lang language.Tag) (map[string]string, error) {
-	return s.getFamilyWordsWithTranslationWithRetry(word, lang, 4)
-}
-
-func (s *Scraper) getFamilyWordsWithTranslationWithRetry(word string, lang language.Tag, retries uint) (map[string]string, error) {
-	var (
-		words map[string]string
-		err   error
-	)
-	for retry := 0; retry <= int(retries); retry++ {
-		words, err = s.getFamilyWordsWithTranslation(word, lang)
-		if err == nil {
-			return words, nil
-		}
-		time.Sleep(5 * time.Second)
-	}
-
-	return nil, err
-}
-
-func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) (map[string]string, error) {
 	if !utf8.ValidString(word) {
 		return nil, fmt.Errorf("invalid utf8 string: %s", word)
 	}
@@ -227,7 +183,7 @@ func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) 
 		return nil, fmt.Errorf("prepare request body: %w", err)
 	}
 
-	req, err := basehttp.NewRequest(basehttp.MethodPost, s.addr, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, s.addr, bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -246,7 +202,7 @@ func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) 
 		return nil, fmt.Errorf("request execution error: %w", err)
 	}
 
-	if resp.StatusCode != basehttp.StatusOK {
+	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status code: %d", resp.StatusCode)
 	}
 
@@ -277,30 +233,6 @@ func (s *Scraper) getFamilyWordsWithTranslation(word string, lang language.Tag) 
 }
 
 func (s *Scraper) GenStory(words []string, lang language.Tag) (string, error) {
-	if len(words) == 0 {
-		return "", fmt.Errorf("words are missing")
-	}
-
-	return s.genStoryWithRetry(words, lang, 5)
-}
-
-func (s *Scraper) genStoryWithRetry(words []string, lang language.Tag, retries uint32) (string, error) {
-	var (
-		story string
-		err   error
-	)
-	for retry := 0; retry <= int(retries); retry++ {
-		story, err = s.genStory(words, lang)
-		if err == nil {
-			return story, nil
-		}
-		time.Sleep(5 * time.Second)
-	}
-
-	return story, err
-}
-
-func (s *Scraper) genStory(words []string, lang language.Tag) (string, error) {
 	base, _ := lang.Base()
 
 	body, err := s.prepareRequestBody(fmt.Sprintf("Generate a story using words %v in language %s. The story should contain only one word from that list per sentence.", words, base.ISO3()))
@@ -308,7 +240,7 @@ func (s *Scraper) genStory(words []string, lang language.Tag) (string, error) {
 		return "", fmt.Errorf("prepare request body: %w", err)
 	}
 
-	req, err := basehttp.NewRequest(basehttp.MethodPost, s.addr, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, s.addr, bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
@@ -327,7 +259,7 @@ func (s *Scraper) genStory(words []string, lang language.Tag) (string, error) {
 		return "", fmt.Errorf("request execution error: %w", err)
 	}
 
-	if resp.StatusCode != basehttp.StatusOK {
+	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("status code: %d", resp.StatusCode)
 	}
 
@@ -398,28 +330,9 @@ func (s *Scraper) prepareRequestBody(content string) ([]byte, error) {
 	return body, nil
 }
 
-func (s *Scraper) authorizeReq(req *basehttp.Request) {
+func (s *Scraper) authorizeReq(req *http.Request) {
 	req.Header.Set("Cache-Control", "no-cache")
 	req.Header.Set("Accept-Charset", "utf-8")
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.token))
-}
-
-func (c EnglishComplexity) String() string {
-	if val, ok := complexities[c]; ok {
-		return val
-	}
-
-	return fmt.Sprintf("complexity %d", int32(c))
-}
-
-func (c EnglishComplexity) IsValid() bool {
-	_, ok := complexities[c]
-	return ok
-}
-
-var complexities = map[EnglishComplexity]string{ //nolint:gochecknoglobals // it's a map of constants
-	Beginner:     "Beginner",
-	Intermediate: "Intermediate",
-	Advanced:     "Advanced",
 }

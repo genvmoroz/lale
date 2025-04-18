@@ -153,7 +153,7 @@ func (t transformer) ToCoreGetSentencesRequest(req *api.GetSentencesRequest) cor
 	return core.GetSentencesRequest{
 		UserID:         req.GetUserID(),
 		Word:           req.GetWord(),
-		SentencesCount: req.GetSentencesCount(),
+		SentencesCount: int(req.GetSentencesCount()),
 	}
 }
 

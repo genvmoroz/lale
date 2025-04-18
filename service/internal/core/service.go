@@ -38,7 +38,7 @@ type (
 	}
 
 	AIHelper interface {
-		GenerateSentences(word string, size uint32) ([]string, error)
+		GenerateSentences(word string, size int) ([]string, error)
 		GetFamilyWordsWithTranslation(word string, lang language.Tag) (map[string]string, error)
 		GenStory(words []string, lang language.Tag) (string, error)
 	}
@@ -737,7 +737,7 @@ func mapCardsToWords(cards []entity.Card) []string {
 	)
 }
 
-func (s *Service) generateSentences(word string, size uint32) ([]string, error) {
+func (s *Service) generateSentences(word string, size int) ([]string, error) {
 	if len(strings.TrimSpace(word)) == 0 {
 		return nil, nil
 	}
