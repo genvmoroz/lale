@@ -26,7 +26,6 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 
 	var openaiHelper core.AIHelper
 	if cfg.OpenAI.StubEnabled {
-	if cfg.OpenAI.StubEnabled {
 		openaiHelper = &stub.AIHelper{}
 	} else {
 		openaiHelper, err = openai.NewHelper(cfg.OpenAI) // TODO: move it to internal/repo package and name it AI
@@ -45,7 +44,6 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 	}
 
 	var dictionaryRepo core.Dictionary
-	if cfg.Dictionary.StubEnabled {
 	if cfg.Dictionary.StubEnabled {
 		dictionaryRepo = dictionary.NewStub()
 	} else {
