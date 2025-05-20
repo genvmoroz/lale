@@ -1,8 +1,9 @@
 #!/bin/sh
 
+include ../../Makefile
+
 .PHONY: run_stress_test
-run_stress_test:
-	make run_containers
+run_stress_test: run_containers
 	#todo: add health check, implement a health check endpoint in the server
 	echo "Waiting for the server to start..."
 	sleep 5
@@ -29,14 +30,12 @@ run_loader:
         --update-card=true \
         --update-performance=true
 
-.PHONY: build
-build:
-	go build -o ./loader/bin/loader ./loader/.
-
 .PHONY: run_containers
-run_containers: stop_containers
-	docker compose -f ./docker-compose.yml up -d
+run_containers: stop_containers build-linux-amd64
+	docker compose -f ../deployments/docker-compose.yml up -d --build
+	docker compose -f ./docker-compose.yml up -d --build
 
 .PHONY: stop_containers
 stop_containers:
+	docker compose -f ../deployments/docker-compose.yml down --remove-orphans
 	docker compose -f ./docker-compose.yml down --remove-orphans
