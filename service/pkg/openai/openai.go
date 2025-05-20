@@ -21,10 +21,11 @@ import (
 
 type (
 	Config struct {
-		Addr    string        `envconfig:"APP_OPENAI_ADDR" default:"https://api.openai.com/v1/chat/completions" json:"addr,omitempty"`
-		Token   string        `envconfig:"APP_OPENAI_TOKEN" required:"true" json:"token,omitempty"`
-		Retries uint          `envconfig:"APP_OPENAI_RETRIES" default:"3" json:"retries,omitempty"`
-		Timeout time.Duration `envconfig:"APP_OPENAI_TIMEOUT" default:"30s" json:"timeout,omitempty"`
+		Addr        string        `envconfig:"APP_OPENAI_ADDR" default:"https://api.openai.com/v1/chat/completions" json:"addr,omitempty"`
+		Token       string        `envconfig:"APP_OPENAI_TOKEN" json:"token,omitempty"`
+		Retries     uint          `envconfig:"APP_OPENAI_RETRIES" default:"3" json:"retries,omitempty"`
+		Timeout     time.Duration `envconfig:"APP_OPENAI_TIMEOUT" default:"30s" json:"timeout,omitempty"`
+		StubEnabled bool          `envconfig:"APP_OPENAI_STUB_ENABLED" default:"false" json:"stub_enabled,omitempty"`
 	}
 
 	Scraper struct {
@@ -43,6 +44,11 @@ func NewHelper(cfg Config) (*Scraper, error) {
 		return nil, fmt.Errorf("timeout shouldn't be negative [%d]: %w", cfg.Timeout, err)
 	}
 
+	token := strings.TrimSpace(cfg.Token)
+	if token == "" {
+		return nil, errors.New("token is required")
+	}
+
 	client := retryablehttp.NewClient()
 	client.Logger = logrus.StandardLogger()
 	client.RetryMax = int(cfg.Retries)
@@ -53,7 +59,7 @@ func NewHelper(cfg Config) (*Scraper, error) {
 	scr := &Scraper{
 		client: baseClient,
 		addr:   cfg.Addr,
-		token:  cfg.Token,
+		token:  token,
 	}
 
 	return scr, nil

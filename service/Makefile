@@ -1,12 +1,13 @@
 #!/bin/sh
 
-include ./local-run.sh ../Makefile
+SERVICE_MAKEFILE_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+include $(SERVICE_MAKEFILE_DIR)local-run.sh $(SERVICE_MAKEFILE_DIR)../Makefile
 
 OSNAME=$(shell go env GOOS)
 ARCH = $(shell go env GOARCH)
 
-CMD_DIR=./cmd/service/.
-ARTIFACT_DIR=./bin
+CMD_DIR=$(SERVICE_MAKEFILE_DIR)cmd/service/.
+ARTIFACT_DIR=$(SERVICE_MAKEFILE_DIR)bin
 ARTIFACT=${ARTIFACT_DIR}/svc
 DOCKER_REGISTRY=genvmoroz
 SERVICE_TAG=service:development
@@ -27,7 +28,6 @@ test:
 bench:
 	go test ./... -bench=. -benchmem -run=^#
 
-# The Linux build uses UPX to reduce the final binary size by ~70%
 .PHONY: build
 build:
 	GOOS=${OSNAME} \

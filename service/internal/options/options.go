@@ -24,9 +24,10 @@ type (
 	}
 
 	DictionaryConfig struct {
-		Host    string        `envconfig:"APP_DICTIONARY_HOST" required:"true"`
-		Retries uint16        `envconfig:"APP_DICTIONARY_RETRIES" default:"3"`
-		Timeout time.Duration `envconfig:"APP_DICTIONARY_TIMEOUT" default:"5s"`
+		Host        string        `envconfig:"APP_DICTIONARY_HOST"`
+		Retries     uint16        `envconfig:"APP_DICTIONARY_RETRIES" default:"3"`
+		Timeout     time.Duration `envconfig:"APP_DICTIONARY_TIMEOUT" default:"5s"`
+		StubEnabled bool          `envconfig:"APP_DICTIONARY_STUB_ENABLED" default:"false"`
 	}
 )
 
