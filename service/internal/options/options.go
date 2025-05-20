@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/genvmoroz/lale/service/internal/infrastructure"
 	"github.com/genvmoroz/lale/service/internal/repo/card"
 	"github.com/genvmoroz/lale/service/pkg/openai"
 	"github.com/genvmoroz/lale/service/pkg/speech/google"
@@ -14,9 +15,9 @@ import (
 
 type (
 	Config struct {
-		GRPCPort int          `envconfig:"APP_GRPC_PORT" required:"true"`
-		LogLevel logrus.Level `envconfig:"APP_LOG_LEVEL" required:"true"`
-
+		GRPCPort   int          `envconfig:"APP_GRPC_PORT" required:"true"`
+		LogLevel   logrus.Level `envconfig:"APP_LOG_LEVEL" required:"true"`
+		Infra      infrastructure.Config
 		OpenAI     openai.Config
 		CardRepo   card.Config
 		Dictionary DictionaryConfig

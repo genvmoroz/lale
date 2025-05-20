@@ -7,7 +7,10 @@ import (
 	"strconv"
 
 	"github.com/genvmoroz/lale/service/api"
+	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 )
 
@@ -18,14 +21,34 @@ type Server struct {
 
 const network = "tcp"
 
-func NewServer(port int, resolver api.LaleServiceServer) *Server {
-	srv := grpc.NewServer()
+func NewServer(port int, resolver api.LaleServiceServer) (*Server, error) {
+	srvMetrics := grpcprom.NewServerMetrics(
+		grpcprom.WithServerHandlingTimeHistogram(
+			grpcprom.WithHistogramBuckets([]float64{0.001, 0.01, 0.1, 0.3, 0.6, 1, 3, 6, 9, 20, 30, 60, 90, 120}),
+		),
+	)
+
+	reg := prometheus.DefaultRegisterer
+
+	if err := reg.Register(srvMetrics); err != nil {
+		return nil, fmt.Errorf("registering grpc metrics: %w", err)
+	}
+
+	srv := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		grpc.ChainUnaryInterceptor(
+			srvMetrics.UnaryServerInterceptor(),
+		),
+	)
+
 	api.RegisterLaleServiceServer(srv, resolver)
+
+	srvMetrics.InitializeMetrics(srv)
 
 	return &Server{
 		port: port,
 		srv:  srv,
-	}
+	}, nil
 }
 
 func (s *Server) Run(ctx context.Context) error {

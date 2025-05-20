@@ -9,6 +9,7 @@ import (
 
 	"github.com/genvmoroz/lale/service/internal/dependency"
 	"github.com/genvmoroz/lale/service/internal/grpc"
+	"github.com/genvmoroz/lale/service/internal/infrastructure"
 	"github.com/genvmoroz/lale/service/internal/options"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -48,10 +49,22 @@ func run() error {
 		return fmt.Errorf("create gRPC service: %w", err)
 	}
 
-	grpcServer := grpc.NewServer(cfg.GRPCPort, resolver)
+	grpcServer, err := grpc.NewServer(cfg.GRPCPort, resolver)
+	if err != nil {
+		return fmt.Errorf("create gRPC service: %w", err)
+	}
+
+	infoServer, err := infrastructure.NewServer(cfg.Infra, logrus.StandardLogger())
+	if err != nil {
+		return fmt.Errorf("create info server: %w", err)
+	}
 
 	errGroup.Go(func() error {
 		return grpcServer.Run(ctx)
+	})
+
+	errGroup.Go(func() error {
+		return infoServer.Run(ctx)
 	})
 
 	logrus.Info("service started")

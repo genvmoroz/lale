@@ -11,6 +11,7 @@ import (
 	"github.com/genvmoroz/lale/service/internal/repo/card"
 	"github.com/genvmoroz/lale/service/internal/repo/dictionary"
 	"github.com/genvmoroz/lale/service/internal/repo/session"
+	"github.com/genvmoroz/lale/service/internal/repo/stub"
 	"github.com/genvmoroz/lale/service/pkg/openai"
 	"github.com/genvmoroz/lale/service/pkg/speech"
 	"github.com/genvmoroz/lale/service/pkg/speech/google"
@@ -60,9 +61,9 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 
 	var textToSpeechRepo core.TextToSpeechRepo
 	if cfg.Google.StubEnabled {
-		textToSpeechRepo = &stub.SpeachStub{}
+		textToSpeechRepo = google.NewStub()
 	} else {
-		googleTextToSpeechClient, err := google.NewTextToSpeechClient(ctx, cfg.Google)
+		googleTextToSpeechClient, err := google.NewTextToSpeechClient(ctx, cfg.Google) //nolint:govet // todo: remove this
 		if err != nil {
 			return nil, fmt.Errorf("new google text-to-speech client: %w", err)
 		}
