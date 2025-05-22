@@ -1,14 +1,14 @@
-package infrastructure //todo: rewrite using standard library
+package infrastructure
 
 import (
 	"context"
 	"fmt"
 	"net"
-	"net/http"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/labstack/echo-contrib/echoprometheus"
+	"github.com/labstack/echo-contrib/pprof"
+	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,57 +17,46 @@ type Config struct {
 }
 
 type Server struct {
-	cfg Config
-	srv *http.Server
+	cfg    Config
+	echo   *echo.Echo
+	logger logrus.FieldLogger
 }
 
 func NewServer(cfg Config, logger logrus.FieldLogger) (*Server, error) {
-	if cfg.ServerPort < 1 {
-		return nil, fmt.Errorf("server port must be greater than 0")
-	}
 	if logger == nil {
 		return nil, fmt.Errorf("logger is nil")
 	}
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.ServerPort))
-	if err != nil {
+	if cfg.ServerPort < 1 {
+		return nil, fmt.Errorf("server port should be greater than 0")
+	}
+
+	if err := tryToListen(cfg.ServerPort); err != nil {
 		return nil, fmt.Errorf("can't listen on port %d: %w", cfg.ServerPort, err)
 	}
 
-	if err = ln.Close(); err != nil {
-		return nil, fmt.Errorf("can't close listener: %w", err)
-	}
-
 	server := &Server{
-		cfg: cfg,
+		echo:   echo.New(),
+		logger: logger,
+		cfg:    cfg,
 	}
 
-	httpSrv := &http.Server{
-		Addr:              fmt.Sprintf(":%d", cfg.ServerPort),
-		ReadHeaderTimeout: time.Second * 10, //nolint:mnd // 10 seconds is a reasonable timeout
-	}
-	m := http.NewServeMux()
-	// Create HTTP handler for Prometheus metrics.
-	m.Handle("/metrics", promhttp.HandlerFor(
-		prometheus.DefaultGatherer,
-		promhttp.HandlerOpts{
-			// Opt into OpenMetrics e.g. to support exemplars.
-			EnableOpenMetrics: true,
-		},
-	))
-	httpSrv.Handler = m
-	logger.Info("starting HTTP server", "addr", httpSrv.Addr)
+	server.echo.HideBanner = true
+	server.echo.HidePort = true
 
-	server.srv = httpSrv
+	// register prometheus and pprof handlers
+	server.echo.GET("/metrics", echoprometheus.NewHandler())
+	pprof.Register(server.echo)
 
 	return server, nil
 }
 
+// Run starts the server and listens for incoming requests.
+// The server will be stopped when the context is canceled.
 func (s *Server) Run(ctx context.Context) error {
 	errChan := make(chan error, 1)
-	defer close(errChan)
-
 	go func(ch chan error) {
-		ch <- s.srv.ListenAndServe()
+		s.logger.Debug("starting infra http server")
+		ch <- s.echo.Start(fmt.Sprintf(":%d", s.cfg.ServerPort))
 	}(errChan)
 
 	select {
@@ -77,22 +66,26 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 
 	const shutdownTimeout = 2 * time.Second
-
-	timeout, cancel := context.WithTimeout(context.Background(), shutdownTimeout) //nolint:contextcheck,lll // false-positive: https://github.com/kkHAIKE/contextcheck/issues/2
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout) //nolint:contextcheck // false-positive: https://github.com/kkHAIKE/contextcheck/issues/2
 	defer cancel()
 
-	if err := s.srv.Shutdown(timeout); err != nil {
+	if err := s.echo.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("shutdown infra http server: %w", err)
 	}
+	s.logger.Debug("infra http server stopped")
 
 	return nil
 }
 
-func (s *Server) Close() error {
-	if s != nil && s.srv != nil {
-		if err := s.srv.Close(); err != nil {
-			return fmt.Errorf("close infra http server: %w", err)
-		}
+func tryToListen(port uint) error {
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return fmt.Errorf("can't listen on port %d: %w", port, err)
 	}
+
+	if err = ln.Close(); err != nil {
+		return fmt.Errorf("can't close listener: %w", err)
+	}
+
 	return nil
 }

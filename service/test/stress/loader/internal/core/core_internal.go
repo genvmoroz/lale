@@ -3,6 +3,8 @@ package core
 import (
 	"fmt"
 	"sync"
+
+	faker "github.com/brianvoe/gofakeit/v7"
 )
 
 func enabledActions(req LoadRequest) []Action {
@@ -83,7 +85,7 @@ func generateUsers(workerID uint32, usersNumber uint32, cardsNumber uint32, word
 
 func generateUser(workerID uint32, n uint32, cardsNumber uint32, wordsNumber uint32) User {
 	return User{
-		Name:  fmt.Sprintf("W-%d-U-%d", workerID, n),
+		Name:  fmt.Sprintf("W-%d-U-%d-(faked-%s)", workerID, n, faker.FirstName()),
 		Cards: generateCards(cardsNumber, wordsNumber),
 	}
 }
@@ -112,7 +114,15 @@ func generateWords(cardN uint32, wordsNumber uint32) []Word {
 
 func generateWord(cardN uint32, n uint32) Word {
 	return Word{
-		Word:        fmt.Sprintf("C-%d-W-%d", cardN, n),
-		Translation: []string{"1", "2"},
+		Word:        fmt.Sprintf("C-%d-W-%d-(faked-%s)", cardN, n, faker.Word()),
+		Translation: generateTranslations(10),
 	}
+}
+
+func generateTranslations(n uint32) []string {
+	translations := make([]string, 0, n)
+	for range n {
+		translations = append(translations, faker.Word())
+	}
+	return translations
 }

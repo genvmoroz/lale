@@ -24,6 +24,7 @@ import (
 type (
 	CardRepo interface {
 		GetCardsByWords(ctx context.Context, userID string, words []string) ([]entity.Card, error)
+		WordsExist(ctx context.Context, userID string, words []string) (bool, error)
 		GetCardsForUser(ctx context.Context, userID string) ([]entity.Card, error)
 		SaveCards(ctx context.Context, cards []entity.Card) error
 		DeleteCard(ctx context.Context, cardID string) error
@@ -232,16 +233,16 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 	defer closeSession()
 
 	logger.FromContext(ctx).
-		Debug("get all cards containing words for user")
-	cards, err := s.cardRepo.GetCardsByWords(ctx, req.UserID, extractWords(req.WordInformationList))
+		Debug("check if words already exist")
+	exist, err := s.cardRepo.WordsExist(ctx, req.UserID, extractWords(req.WordInformationList))
 	if err != nil {
 		return entity.Card{}, logAndReturnError(
 			ctx,
-			fmt.Sprintf("get cards by words: %s", err.Error()),
+			fmt.Sprintf("check if words already exist: %s", err.Error()),
 			map[string]interface{}{"UserID": req.UserID},
 		)
 	}
-	if len(cards) > 0 {
+	if exist {
 		logger.FromContext(ctx).
 			Debug("cards with words already exist")
 		return entity.Card{}, fmt.Errorf("%w: words %v", NewAlreadyExistsError(), extractWords(req.WordInformationList))

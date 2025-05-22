@@ -18,12 +18,13 @@ import (
 
 type (
 	Config struct {
-		Protocol   string            `envconfig:"APP_MONGO_CARD_PROTOCOL" required:"true"`
-		Host       string            `envconfig:"APP_MONGO_CARD_HOST" required:"true"`
-		Port       *int              `envconfig:"APP_MONGO_CARD_PORT"`
-		Params     map[string]string `envconfig:"APP_MONGO_CARD_URI_PARAMS" required:"true"`
-		Database   string            `envconfig:"APP_MONGO_CARD_DATABASE" required:"true"`
-		Collection string            `envconfig:"APP_MONGO_CARD_COLLECTION" required:"true"`
+		Protocol    string            `envconfig:"APP_MONGO_CARD_PROTOCOL" required:"true"`
+		Host        string            `envconfig:"APP_MONGO_CARD_HOST" required:"true"`
+		Port        *int              `envconfig:"APP_MONGO_CARD_PORT"`
+		Params      map[string]string `envconfig:"APP_MONGO_CARD_URI_PARAMS" required:"true"`
+		Database    string            `envconfig:"APP_MONGO_CARD_DATABASE" required:"true"`
+		Collection  string            `envconfig:"APP_MONGO_CARD_COLLECTION" required:"true"`
+		MaxPoolSize uint64            `envconfig:"APP_MONGO_CARD_MAX_POOL_SIZE" default:"0"`
 
 		Creds Creds
 	}
@@ -45,10 +46,11 @@ type (
 
 func NewRepo(ctx context.Context, cfg Config) (*Repo, error) {
 	gmCfg := gracefulmongo.Config{
-		Protocol: cfg.Protocol,
-		Host:     cfg.Host,
-		Port:     cfg.Port,
-		Params:   cfg.Params,
+		Protocol:    cfg.Protocol,
+		Host:        cfg.Host,
+		Port:        cfg.Port,
+		Params:      cfg.Params,
+		MaxPoolSize: cfg.MaxPoolSize,
 		Creds: gracefulmongo.Creds{
 			User: cfg.Creds.User,
 			Pass: cfg.Creds.Pass,
@@ -100,6 +102,41 @@ func (r *Repo) GetCardsByWords(ctx context.Context, userID string, words []strin
 	}()
 
 	return r.tr.unmarshalCursor(ctx, cursor)
+}
+
+func (r *Repo) WordsExist(ctx context.Context, userID string, words []string) (bool, error) {
+	if !utf8.ValidString(userID) {
+		return false, fmt.Errorf("userID [%s] is invalid utf8 string", userID)
+	}
+
+	filter := bson.M{
+		"userid": userID,
+		"wordinformationlist": bson.M{
+			"$elemMatch": bson.M{
+				"word": bson.M{"$in": words},
+			},
+		},
+	}
+
+	collection := r.client.
+		Database(r.database).
+		Collection(r.collection)
+
+	result := collection.FindOne(ctx, filter)
+	switch {
+	case errors.Is(result.Err(), mongo.ErrNoDocuments):
+		return false, nil
+	case result.Err() != nil:
+		return false, fmt.Errorf("find one: %w", result.Err())
+	default:
+		return true, nil
+	} //todo: check which is faster
+	// count, err := collection.CountDocuments(ctx, filter, options.Count().SetLimit(1))
+	// if err != nil {
+	// 	return false, fmt.Errorf("count documents: %w", err)
+	// }
+
+	// return count > 0, nil
 }
 
 func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Card, error) {

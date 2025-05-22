@@ -16,8 +16,8 @@ run_loader:
 		--host=localhost \
 		--port=8080 \
 		--users=10000 \
-		--cards-per-user=2 \
-		--words-per-card=1 \
+		--cards-per-user=10 \
+		--words-per-card=19 \
 		--create-card=true \
         --delete-card=true \
         --generate-story=true \
