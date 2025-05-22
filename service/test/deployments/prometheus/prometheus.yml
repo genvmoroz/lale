@@ -6,3 +6,8 @@ scrape_configs:
   - job_name: "lale-service-local"
     static_configs:
       - targets: ['host.docker.internal:8888']
+  - job_name: "mongodb"
+    scrape_interval: 2s
+    scrape_timeout: 2s
+    static_configs:
+      - targets: ['host.docker.internal:9216']

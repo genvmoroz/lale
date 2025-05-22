@@ -22,6 +22,7 @@ services:
       APP_MONGO_PASS: ${MONGO_DB_PASSWORD}
       APP_MONGO_CARD_DATABASE: ${SERVICE_APP_MONGO_CARD_DATABASE}
       APP_MONGO_CARD_COLLECTION: ${SERVICE_APP_MONGO_CARD_COLLECTION}
+      APP_MONGO_CARD_MAX_POOL_SIZE: ${SERVICE_APP_MONGO_CARD_MAX_POOL_SIZE}
       APP_USER_SESSION_EXPIRATION: ${SERVICE_APP_USER_SESSION_EXPIRATION}
       APP_USER_SESSION_KEY_PREFIX: ${SERVICE_APP_USER_SESSION_KEY_PREFIX}
 
@@ -34,3 +35,16 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_DB_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_PASSWORD}
+
+  mongo-exporter:
+    image: percona/mongodb_exporter:0.44.0
+    command:
+      - --collect-all
+      - --collector.exporter-metrics=false
+    restart: always
+    ports:
+      - ${MONGO_EXPORTER_PORT}:${MONGO_EXPORTER_PORT}
+    depends_on:
+      - mongo
+    environment:
+      MONGODB_URI: mongodb://${MONGO_DB_USERNAME}:${MONGO_DB_PASSWORD}@${SERVICE_APP_MONGO_CARD_HOST}:${MONGO_DB_PORT}

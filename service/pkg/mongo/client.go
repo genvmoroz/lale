@@ -15,10 +15,11 @@ import (
 
 type (
 	Config struct {
-		Protocol string
-		Host     string
-		Port     *int
-		Params   map[string]string
+		Protocol    string
+		Host        string
+		Port        *int
+		Params      map[string]string
+		MaxPoolSize uint64
 
 		Creds Creds
 	}
@@ -34,7 +35,11 @@ func NewGracefulClient(ctx context.Context, cfg Config) (*mongo.Client, error) {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(constructURI(cfg)))
+	client, err := mongo.Connect(ctx,
+		options.Client().
+			ApplyURI(constructURI(cfg)).
+			SetMaxPoolSize(cfg.MaxPoolSize),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("connect: %w", err)
 	}
