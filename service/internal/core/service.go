@@ -1,4 +1,4 @@
-//nolint:dupl,copyloopvar // it's ok
+//nolint:copyloopvar // it's ok
 package core
 
 import (
@@ -547,12 +547,11 @@ func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (Ge
 		return GetCardsResponse{}, err
 	}
 
-	var newCards []entity.Card
-	for _, card := range resp.Cards {
-		// for _, card := range slices.Backward(resp.Cards) { //todo: uncomment this line
-		newCards = append(newCards, card)
-	}
-	resp.Cards = newCards
+	// var newCards []entity.Card
+	// for _, card := range slices.Backward(resp.Cards) { //todo: uncomment this line
+	// 	newCards = append(newCards, card)
+	// }
+	// resp.Cards = newCards
 
 	return resp, nil
 }
