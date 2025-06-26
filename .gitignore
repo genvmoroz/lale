@@ -1,5 +1,7 @@
 # IDEA's config files
 /.idea/
+# VSCode's config files
+/.vscode/
 
 # Mac OS X files
 .DS_Store

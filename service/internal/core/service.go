@@ -69,7 +69,8 @@ func NewService(
 	aiHelper AIHelper,
 	anki AnkiAlgo,
 	dictionary Dictionary,
-	textToSpeechRepo TextToSpeechRepo) (*Service, error) {
+	textToSpeechRepo TextToSpeechRepo,
+) (*Service, error) {
 	if lo.IsNil(cardRepo) {
 		return nil, errors.New("card repo is required")
 	}
@@ -547,7 +548,8 @@ func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (Ge
 	}
 
 	var newCards []entity.Card
-	for _, card := range slices.Backward(resp.Cards) {
+	for _, card := range resp.Cards {
+		// for _, card := range slices.Backward(resp.Cards) { //todo: uncomment this line
 		newCards = append(newCards, card)
 	}
 	resp.Cards = newCards
