@@ -1,4 +1,4 @@
-package infrastructure //todo: rewrite using standard library
+package infrastructure // todo: rewrite using standard library
 
 import (
 	"context"
@@ -21,14 +21,19 @@ type Server struct {
 	srv *http.Server
 }
 
-func NewServer(cfg Config, logger logrus.FieldLogger) (*Server, error) {
+func NewServer(ctx context.Context, cfg Config, logger logrus.FieldLogger) (*Server, error) {
 	if cfg.ServerPort < 1 {
 		return nil, fmt.Errorf("server port must be greater than 0")
 	}
 	if logger == nil {
 		return nil, fmt.Errorf("logger is nil")
 	}
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.ServerPort))
+
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second) //nolint:mnd // It's ok to have a timeout here
+	defer cancel()
+
+	lc := net.ListenConfig{}
+	ln, err := lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", cfg.ServerPort))
 	if err != nil {
 		return nil, fmt.Errorf("can't listen on port %d: %w", cfg.ServerPort, err)
 	}

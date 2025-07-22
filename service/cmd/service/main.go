@@ -54,7 +54,7 @@ func run() error {
 		return fmt.Errorf("create gRPC service: %w", err)
 	}
 
-	infoServer, err := infrastructure.NewServer(cfg.Infra, logrus.StandardLogger())
+	infoServer, err := infrastructure.NewServer(ctx, cfg.Infra, logrus.StandardLogger())
 	if err != nil {
 		return fmt.Errorf("create info server: %w", err)
 	}
