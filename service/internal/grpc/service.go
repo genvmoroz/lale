@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"time"
 
 	"github.com/genvmoroz/lale/service/api"
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
@@ -54,9 +53,6 @@ func NewServer(port int, resolver api.LaleServiceServer) (*Server, error) {
 
 func (s *Server) Run(ctx context.Context) error {
 	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(s.port))
-
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second) //nolint:mnd // It's ok to have a timeout here
-	defer cancel()
 
 	lc := net.ListenConfig{}
 	lis, err := lc.Listen(ctx, network, addr)

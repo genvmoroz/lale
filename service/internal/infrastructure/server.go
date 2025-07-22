@@ -29,9 +29,6 @@ func NewServer(ctx context.Context, cfg Config, logger logrus.FieldLogger) (*Ser
 		return nil, fmt.Errorf("logger is nil")
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second) //nolint:mnd // It's ok to have a timeout here
-	defer cancel()
-
 	lc := net.ListenConfig{}
 	ln, err := lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", cfg.ServerPort))
 	if err != nil {
