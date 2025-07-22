@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"reflect"
 	"slices"
 	"strings"
@@ -16,7 +17,6 @@ import (
 	"github.com/genvmoroz/lale/service/pkg/speech"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
-	"github.com/samber/lo/mutable"
 	"golang.org/x/exp/maps"
 	"golang.org/x/text/language"
 )
@@ -547,11 +547,9 @@ func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (Ge
 		return GetCardsResponse{}, err
 	}
 
-	// var newCards []entity.Card
-	// for _, card := range slices.Backward(resp.Cards) { //todo: uncomment this line
-	// 	newCards = append(newCards, card)
-	// }
-	// resp.Cards = newCards
+	rand.Shuffle(len(resp.Cards), func(i, j int) {
+		resp.Cards[i], resp.Cards[j] = resp.Cards[j], resp.Cards[i]
+	})
 
 	return resp, nil
 }
@@ -657,7 +655,10 @@ func (s *Service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (
 	}
 
 	words := mapCardsToWords(cardsForStory)
-	mutable.Shuffle(words)
+
+	rand.Shuffle(len(words), func(i, j int) {
+		words[i], words[j] = words[j], words[i]
+	})
 
 	story, err := s.aiHelper.GenStory(words, req.Language)
 	if err != nil {
