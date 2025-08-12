@@ -548,9 +548,7 @@ func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (Ge
 		return GetCardsResponse{}, err
 	}
 
-	// rand.Shuffle(len(resp.Cards), func(i, j int) {
-	// 	resp.Cards[i], resp.Cards[j] = resp.Cards[j], resp.Cards[i]
-	// })
+	sortByConsecutiveCorrectAnswersAndShuffleInChunks(resp.Cards, 5) //nolint:mnd // it's ok, will be removed later
 
 	return resp, nil
 }
@@ -883,9 +881,9 @@ func createContextWithCorrelationLogger(ctx context.Context, fields map[string]a
 }
 
 // sortByConsecutiveCorrectAnswersAndShuffleInChunks sorts cards by consecutive correct answers number (desc)
-// and shuffles items within consecutive chunks of size chunkSize using the provided RNG.
+// and shuffles items within consecutive chunks of size chunkSize.
 // todo: reimplement this to determine the chunk size based on the similarity of the consecutive correct answers numberю
-func sortByConsecutiveCorrectAnswersAndShuffleInChunks(cards []entity.Card, chunkSize uint8, rng *rand.Rand) {
+func sortByConsecutiveCorrectAnswersAndShuffleInChunks(cards []entity.Card, chunkSize uint8) {
 	if chunkSize < 1 {
 		chunkSize = 1
 	}
@@ -896,11 +894,11 @@ func sortByConsecutiveCorrectAnswersAndShuffleInChunks(cards []entity.Card, chun
 	})
 
 	for chunk := range slices.Chunk(cards, int(chunkSize)) {
-		if len(chunk) < 2 {
+		if len(chunk) <= 1 {
 			continue
 		}
 
-        rng.Shuffle(len(chunk), func(i, j int) {
+		rand.Shuffle(len(chunk), func(i, j int) {
 			chunk[i], chunk[j] = chunk[j], chunk[i]
 		})
 	}
