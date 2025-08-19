@@ -550,6 +550,8 @@ func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (Ge
 
 	sortByConsecutiveCorrectAnswersAndShuffleInChunks(resp.Cards, 5) //nolint:mnd // it's ok, will be removed later
 
+	shuffleWordsInCards(resp.Cards)
+
 	return resp, nil
 }
 
@@ -900,6 +902,17 @@ func sortByConsecutiveCorrectAnswersAndShuffleInChunks(cards []entity.Card, chun
 
 		rand.Shuffle(len(chunk), func(i, j int) {
 			chunk[i], chunk[j] = chunk[j], chunk[i]
+		})
+	}
+}
+
+// shuffleWordsInCards shuffles words in each card in the list.
+// It's needed to avoid the same words to be shown in the same order each time.
+// User shouldn't be accustomed to the same order of words.
+func shuffleWordsInCards(cards []entity.Card) {
+	for idx := range cards {
+		rand.Shuffle(len(cards[idx].WordInformationList), func(i, j int) {
+			cards[idx].WordInformationList[i], cards[idx].WordInformationList[j] = cards[idx].WordInformationList[j], cards[idx].WordInformationList[i] //nolint:lll // it's ok
 		})
 	}
 }
