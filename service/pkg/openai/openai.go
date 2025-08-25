@@ -177,11 +177,33 @@ func (s *Scraper) GetFamilyWordsWithTranslation(word string, lang language.Tag) 
 
 	body, err := s.prepareRequestBody(
 		fmt.Sprintf(
-			"Write all words which are in the one family with word \"%s\" and in use pretty often. "+
-				"Include \"%s\" into beginning of your list. After each word write \"-\" and most common translations in a format [verb: translation, noun: translation, adjective: translation, etc.] in %s language. "+
-				"Write only words in your response.",
+			`
+Generate a list of commonly used words that belong to the same word family as "%s".
+
+Requirements:
+- Always include "%s" as the first item.
+- List ONLY dictionary headwords (lemmas). Do NOT include inflected forms (e.g., past tense, participles, gerunds) as separate words.
+  - Examples to EXCLUDE as separate words: declined, declining. (Include such forms only if they are established lemmas with a different POS, e.g., “declining” as an adjective.)
+- For each word, output ONLY the parts of speech that truly apply to that lemma. Do NOT invent parts of speech.
+- Use ONLY these parts of speech: verb, noun, adjective, adverb — and write these labels in %s language.
+- Provide translations in %s language.
+- Translations MUST match the labeled part of speech and be in base/lemma form:
+  - verb → infinitive/base form only
+  - noun → nominative singular (dictionary form)
+  - adjective → positive degree, base form
+  - adverb → base form
+- Provide 1–3 common translations per part of speech, separated by " | ".
+- If unsure about POS or translation, SKIP the word.
+- Do not duplicate the same word on multiple lines; if a word has multiple valid POS, list them on the SAME line.
+- One item per line. No commentary.
+
+Format (exactly one line per word):
+word - translated_POS_label_1: translation_1 | translation_2, translated_POS_label_2: translation_1
+`,
+
 			strings.TrimSpace(word),
 			strings.TrimSpace(word),
+			base.ISO3(),
 			base.ISO3(),
 		),
 	)

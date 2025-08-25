@@ -1,6 +1,8 @@
 module github.com/genvmoroz/lale-tg-client
 
-go 1.24
+go 1.24.0
+
+toolchain go1.24.5
 
 require (
 	github.com/genvmoroz/bot-engine v1.1.5
@@ -29,3 +31,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 )
+
+replace github.com/genvmoroz/lale/service => ../service
