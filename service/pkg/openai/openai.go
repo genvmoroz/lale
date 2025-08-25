@@ -178,7 +178,7 @@ func (s *Scraper) GetFamilyWordsWithTranslation(word string, lang language.Tag) 
 	body, err := s.prepareRequestBody(
 		fmt.Sprintf(
 			"Write all words which are in the one family with word \"%s\" and in use pretty often. "+
-				"Include \"%s\" into beginning of your list. After each word write \"-\" and translation in %s language. "+
+				"Include \"%s\" into beginning of your list. After each word write \"-\" and most common translations in a format [verb: translation, noun: translation, adjective: translation, etc.] in %s language. "+
 				"Write only words in your response.",
 			strings.TrimSpace(word),
 			strings.TrimSpace(word),
