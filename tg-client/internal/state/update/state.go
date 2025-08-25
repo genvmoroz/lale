@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/genvmoroz/bot-engine/processor"
@@ -11,7 +12,6 @@ import (
 	"github.com/genvmoroz/lale-tg-client/internal/auxl"
 	"github.com/genvmoroz/lale-tg-client/internal/repository"
 	"github.com/genvmoroz/lale/service/api"
-	"slices"
 )
 
 type State struct {
@@ -134,46 +134,6 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 				Translations: s.parseTranslations(word[1]),
 			},
 		})
-	}
-
-	enrichWithAdditionalInformation, _, back, err := auxl.RequestInput[*bool](
-		ctx,
-		func(s *bool) bool {
-			return s != nil
-		},
-		chatID,
-		"Do you want the service to enrich your Card with additional word information? [<code>yes</code>|<code>no</code>]",
-		func(input string, chatID int64, client processor.Client) (*bool, error) {
-			text := strings.ToLower(strings.TrimSpace(input))
-			switch text {
-			case "/back":
-				return nil, client.Send(chatID, "Back to previous state")
-			case "":
-				return nil, client.Send(chatID, "Empty value is not allowed")
-			case "yes":
-				t := true
-				return &t, nil
-			case "no":
-				t := false
-				return &t, nil
-			default:
-				return nil, client.SendWithParseMode(chatID, fmt.Sprintf("Invalid value <code>%s</code>, enter [<code>yes</code>|<code>no</code>] or <code>/back</code> to go to the previous state", text), tg.ModeHTML)
-			}
-		},
-		client,
-		updateChan,
-	)
-	if err != nil {
-		return fmt.Errorf("request enrich with additional information: %w", err)
-	}
-	if back {
-		return nil
-	}
-
-	if enrichWithAdditionalInformation != nil {
-		req.Params = &api.Parameters{
-			EnrichWordInformationFromDictionary: *enrichWithAdditionalInformation,
-		}
 	}
 
 	resp, err := s.laleRepo.Client.UpdateCard(ctx, req)
