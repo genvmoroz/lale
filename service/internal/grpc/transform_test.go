@@ -432,7 +432,6 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 							},
 						},
 					},
-					Params: &api.Parameters{EnrichWordInformationFromDictionary: true},
 				},
 			},
 			want: want{
@@ -537,7 +536,6 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 							},
 						},
 					},
-					Params: core.Parameters{EnrichWordInformationFromDictionary: true},
 				},
 			},
 		},
@@ -546,14 +544,12 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 				req: &api.CreateCardRequest{
 					UserID:   "UserID",
 					Language: language.English.String(),
-					Params:   &api.Parameters{EnrichWordInformationFromDictionary: true},
 				},
 			},
 			want: want{
 				req: core.CreateCardRequest{
 					UserID:   "UserID",
 					Language: language.English,
-					Params:   core.Parameters{EnrichWordInformationFromDictionary: true},
 				},
 			},
 		},
@@ -568,7 +564,6 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 				req: core.CreateCardRequest{
 					UserID:   "UserID",
 					Language: language.English,
-					Params:   core.Parameters{EnrichWordInformationFromDictionary: false},
 				},
 			},
 		},
@@ -761,7 +756,7 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 								},
 							},
 							ConsecutiveCorrectAnswersNumber: 1,
-							NextDueDate:                     time.Date(2022, 01, 01, 01, 00, 00, 00, time.UTC),
+							NextDueDate:                     time.Date(2022, 0o1, 0o1, 0o1, 0o0, 0o0, 0o0, time.UTC),
 						},
 						{
 							ID:       "ID_2",
@@ -818,7 +813,7 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 								},
 							},
 							ConsecutiveCorrectAnswersNumber: 1,
-							NextDueDate:                     time.Date(2022, 01, 02, 01, 00, 00, 00, time.UTC),
+							NextDueDate:                     time.Date(2022, 0o1, 0o2, 0o1, 0o0, 0o0, 0o0, time.UTC),
 						},
 					},
 				},
@@ -883,7 +878,7 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 								},
 							},
 							ConsecutiveCorrectAnswersNumber: 1,
-							NextDueDate:                     timestamppb.New(time.Date(2022, 01, 01, 01, 00, 00, 00, time.UTC)),
+							NextDueDate:                     timestamppb.New(time.Date(2022, 0o1, 0o1, 0o1, 0o0, 0o0, 0o0, time.UTC)),
 						},
 						{
 							Id:       "ID_2",
@@ -940,7 +935,7 @@ func TestTransformerToAPIGetCardsResponse(t *testing.T) {
 								},
 							},
 							ConsecutiveCorrectAnswersNumber: 1,
-							NextDueDate:                     timestamppb.New(time.Date(2022, 01, 02, 01, 00, 00, 00, time.UTC)),
+							NextDueDate:                     timestamppb.New(time.Date(2022, 0o1, 0o2, 0o1, 0o0, 0o0, 0o0, time.UTC)),
 						},
 					},
 				},

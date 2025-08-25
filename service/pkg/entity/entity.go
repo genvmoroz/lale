@@ -21,13 +21,18 @@ type (
 		NextDueDate                     time.Time
 	}
 
-	WordInformation struct {
+	WordInformation struct { // todo: rename to Word
 		Word        string       `yaml:"Word,omitempty"`
 		Translation *Translation `yaml:"Translation,omitempty"`
 		Origin      string       `yaml:"Origin,omitempty"`
 		Phonetics   []Phonetic   `yaml:"Phonetics,omitempty"`
 		Meanings    []Meaning    `yaml:"Meanings,omitempty"`
 		Audio       []byte       `yaml:"Audio,omitempty"`
+
+		// todo: add details field with the following fields:
+		// Origin      string       `yaml:"Origin,omitempty"`
+		// Phonetics   []Phonetic   `yaml:"Phonetics,omitempty"`
+		// Meanings    []Meaning    `yaml:"Meanings,omitempty"`
 	}
 
 	Translation struct {

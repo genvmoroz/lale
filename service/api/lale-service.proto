@@ -62,22 +62,16 @@ message GetCardsRequest {
   string language = 2;
 }
 
-message Parameters {
-  bool enrichWordInformationFromDictionary = 1;
-}
-
 message CreateCardRequest {
   string userID = 1;
   string language = 2;
   repeated WordInformation wordInformationList = 3;
-  Parameters params = 4;
 }
 
 message UpdateCardRequest {
   string userID = 1;
   string cardID = 2;
   repeated WordInformation wordInformationList = 4;
-  Parameters params = 5;
 }
 
 message InspectCardRequest {

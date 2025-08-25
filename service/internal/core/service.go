@@ -194,7 +194,7 @@ func (s *Service) PromptCard(ctx context.Context, req PromptCardRequest) (Prompt
 		Debug("filter not found words out")
 	maps.DeleteFunc(wordsWithTranslationMap, s.notFoundInDictionary(req.WordLanguage))
 
-	wordsWithTranslationSlice := lo.MapToSlice[string, string](
+	wordsWithTranslationSlice := lo.MapToSlice(
 		wordsWithTranslationMap,
 		func(key string, value string) string {
 			return fmt.Sprintf("%s - %s", key, value)
@@ -258,25 +258,21 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 		WordInformationList: req.WordInformationList,
 	}
 
-	if req.Params.EnrichWordInformationFromDictionary {
-		logger.FromContext(ctx).
-			Debug("enrich card with info from dictionary")
-		var enriched []entity.WordInformation
-		enriched, err = s.enrichWordInformationListFromDictionary(card.Language, card.WordInformationList)
-		if err != nil {
-			return entity.Card{}, logAndReturnError(
-				ctx,
-				fmt.Sprintf("get words from dictionary: %s", err.Error()),
-				map[string]interface{}{"UserID": req.UserID},
-			)
-		}
-		card.WordInformationList = enriched
+	logger.FromContext(ctx).
+		Debug("enrich words details from dictionary")
+	err = s.enrichWordsDetailsFromDictionary(card.Language, card.WordInformationList)
+	if err != nil {
+		return entity.Card{}, logAndReturnError(
+			ctx,
+			fmt.Sprintf("enrich words details from dictionary: %s", err.Error()),
+			map[string]interface{}{"UserID": req.UserID},
+		)
 	}
 
 	logger.FromContext(ctx).
 		Debug("enrich card with audio")
-	if err = s.enrichWordInformationListWithAudio(ctx, card.Language, card.WordInformationList); err != nil {
-		return entity.Card{}, fmt.Errorf("enrich card with audio: %w", err)
+	if err = s.enrichWordsWithAudio(ctx, card.Language, card.WordInformationList); err != nil {
+		return entity.Card{}, fmt.Errorf("enrich words with audio: %w", err)
 	}
 
 	logger.
@@ -464,18 +460,14 @@ func (s *Service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity
 			Debug("card not found")
 		return entity.Card{}, fmt.Errorf("%w: card ID %s", NewNotFoundError(), req.CardID)
 	}
-
 	card.WordInformationList = req.WordInformationList
-	if req.Params.EnrichWordInformationFromDictionary {
-		err = s.enrichCardFromDictionary(&card)
-		if err != nil {
-			return entity.Card{}, fmt.Errorf("enrich card words from dictionary: %w", err)
-		}
+
+	if err = s.enrichWordsDetailsFromDictionary(card.Language, card.WordInformationList); err != nil {
+		return entity.Card{}, fmt.Errorf("enrich words details from dictionary: %w", err)
 	}
 
-	err = s.enrichCardWithAudio(ctx, &card)
-	if err != nil {
-		return entity.Card{}, fmt.Errorf("enrich card with audio: %w", err)
+	if err = s.enrichWordsWithAudio(ctx, card.Language, card.WordInformationList); err != nil {
+		return entity.Card{}, fmt.Errorf("enrich words with audio: %w", err)
 	}
 
 	logger.FromContext(ctx).
@@ -791,65 +783,32 @@ func (s *Service) createUserSession(ctx context.Context, userID string) (func(),
 	}, nil
 }
 
-func (s *Service) enrichCardFromDictionary(card *entity.Card) error {
-	if card == nil {
-		return fmt.Errorf("card is nil")
-	}
-
-	enriched, err := s.enrichWordInformationListFromDictionary(card.Language, card.WordInformationList)
-	if err != nil {
-		return fmt.Errorf("enrich word information list from dictionary: %w", err)
-	}
-
-	card.WordInformationList = enriched
-
-	return nil
-}
-
-func (s *Service) enrichWordInformationListFromDictionary(
-	language language.Tag,
-	wordInformationLists []entity.WordInformation,
-) ([]entity.WordInformation, error) {
-	var enrichedWords []entity.WordInformation
-	for _, wordInfo := range wordInformationLists {
-		enrichedWordInfo, err := s.dictionary.GetWordInformation(wordInfo.Word, language)
-		if err != nil {
-			return nil, fmt.Errorf("request word [%s] from dictionary: %w", wordInfo.Word, err)
+func (s *Service) enrichWordsDetailsFromDictionary(language language.Tag, words []entity.WordInformation) error {
+	for i := range words {
+		enrichedWordInfo, err := s.dictionary.GetWordInformation(words[i].Word, language)
+		if err == nil {
+			words[i].Origin = enrichedWordInfo.Origin
+			words[i].Phonetics = enrichedWordInfo.Phonetics
+			words[i].Meanings = enrichedWordInfo.Meanings
+		} else if !errors.Is(err, dictionary.ErrNotFound) {
+			return fmt.Errorf("request word [%s] from dictionary: %w", words[i].Word, err)
 		}
-
-		enrichedWordInfo.Word = wordInfo.Word
-		enrichedWordInfo.Translation = wordInfo.Translation
-
-		enrichedWords = append(enrichedWords, enrichedWordInfo)
-	}
-
-	return enrichedWords, nil
-}
-
-func (s *Service) enrichCardWithAudio(ctx context.Context, card *entity.Card) error {
-	if card == nil {
-		return fmt.Errorf("card is nil")
-	}
-
-	err := s.enrichWordInformationListWithAudio(ctx, card.Language, card.WordInformationList)
-	if err != nil {
-		return fmt.Errorf("enrich words with audio: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Service) enrichWordInformationListWithAudio(
+func (s *Service) enrichWordsWithAudio(
 	ctx context.Context,
 	_ language.Tag,
-	infoList []entity.WordInformation,
+	words []entity.WordInformation,
 ) error {
-	for i := 0; i < len(infoList); i++ {
-		audio, err := s.textToAudio(ctx, infoList[i].Word)
+	for i := range words {
+		audio, err := s.textToAudio(ctx, words[i].Word)
 		if err != nil {
-			return fmt.Errorf("text (%s) to speech: %w", infoList[i].Word, err)
+			return fmt.Errorf("text (%s) to speech: %w", words[i].Word, err)
 		}
-		infoList[i].Audio = audio
+		words[i].Audio = audio
 	}
 
 	return nil

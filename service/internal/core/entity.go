@@ -25,15 +25,10 @@ type (
 		Words []string
 	}
 
-	Parameters struct {
-		EnrichWordInformationFromDictionary bool
-	}
-
 	CreateCardRequest struct {
 		UserID              string
 		Language            language.Tag
 		WordInformationList []entity.WordInformation
-		Params              Parameters
 	}
 
 	DeleteCardRequest struct {
@@ -56,7 +51,6 @@ type (
 		UserID              string
 		CardID              string
 		WordInformationList []entity.WordInformation
-		Params              Parameters
 	}
 
 	UpdateCardPerformanceRequest struct {

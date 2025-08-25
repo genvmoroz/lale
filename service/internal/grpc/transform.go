@@ -97,7 +97,6 @@ func (t transformer) ToCoreCreateCardRequest(req *api.CreateCardRequest) (core.C
 		UserID:              req.GetUserID(),
 		Language:            lang,
 		WordInformationList: words,
-		Params:              t.toCoreCreateCardParameters(req.GetParams()),
 	}, nil
 }
 
@@ -189,7 +188,6 @@ func (t transformer) ToCoreUpdateCardRequest(req *api.UpdateCardRequest) (core.U
 		UserID:              req.GetUserID(),
 		CardID:              req.GetCardID(),
 		WordInformationList: words,
-		Params:              t.toCoreCreateCardParameters(req.GetParams()),
 	}, nil
 }
 
@@ -214,12 +212,6 @@ func (t transformer) ToAPICard(card entity.Card) *api.Card {
 		WordInformationList:             t.toAPIWordInformationList(card.WordInformationList),
 		ConsecutiveCorrectAnswersNumber: card.ConsecutiveCorrectAnswersNumber,
 		NextDueDate:                     timestamppb.New(card.NextDueDate),
-	}
-}
-
-func (t transformer) toCoreCreateCardParameters(p *api.Parameters) core.Parameters {
-	return core.Parameters{
-		EnrichWordInformationFromDictionary: p.GetEnrichWordInformationFromDictionary(),
 	}
 }
 
