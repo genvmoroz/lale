@@ -185,7 +185,7 @@ Requirements:
 - List ONLY dictionary headwords (lemmas). Do NOT include inflected forms (e.g., past tense, participles, gerunds) as separate words.
   - Examples to EXCLUDE as separate words: declined, declining. (Include such forms only if they are established lemmas with a different POS, e.g., “declining” as an adjective.)
 - For each word, output ONLY the parts of speech that truly apply to that lemma. Do NOT invent parts of speech.
-- Use ONLY these parts of speech: verb, noun, adjective, adverb — and write these labels in %s language.
+- Use ONLY these parts of speech: verb, noun, adjective, adverb — and write these labels fully in %s language (not abbreviated).
 - Provide translations in %s language.
 - Translations MUST match the labeled part of speech and be in base/lemma form:
   - verb → infinitive/base form only
@@ -197,8 +197,8 @@ Requirements:
 - Do not duplicate the same word on multiple lines; if a word has multiple valid POS, list them on the SAME line.
 - One item per line. No commentary.
 
-Format (exactly one line per word):
-word - translated_POS_label_1: translation_1 | translation_2, translated_POS_label_2: translation_1
+Format (exactly one line per word, no extra spaces before/after colon):
+word - translated_POS_label_1: translation_1 | translation_2, translated_POS_label_2: translation_1 | translation_2, translated_POS_label_3: translation_1
 `,
 
 			strings.TrimSpace(word),
