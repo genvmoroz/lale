@@ -185,21 +185,22 @@ Requirements:
 - List ONLY dictionary headwords (lemmas). Do NOT include inflected forms (e.g., past tense, participles, gerunds) as separate words.
   - Examples to EXCLUDE as separate words: declined, declining. (Include such forms only if they are established lemmas with a different POS, e.g., “declining” as an adjective.)
 - For each word, output ONLY the parts of speech that truly apply to that lemma. Do NOT invent parts of speech.
-- Use ONLY these parts of speech: verb, noun, adjective, adverb — and write these labels fully in %s language (not abbreviated).
-- Provide translations in %s language.
+- Use ONLY these parts of speech: verb, noun, adjective, adverb — and write these labels fully in %s language (no abbreviations).
+- Provide translations in %s language only.
 - Translations MUST match the labeled part of speech and be in base/lemma form:
   - verb → infinitive/base form only
   - noun → nominative singular (dictionary form)
   - adjective → positive degree, base form
   - adverb → base form
-- Provide 1–3 common translations per part of speech, separated by " | ".
-- If unsure about POS or translation, SKIP the word.
+- Provide 1–3 accurate and common translations per part of speech, separated by " | ".
+- If unsure about POS or translation, SKIP the word completely.
 - Do not duplicate the same word on multiple lines; if a word has multiple valid POS, list them on the SAME line.
+- Do not invent rare or non-standard words.
 - One item per line. No commentary.
 
 Format (exactly one line per word, no extra spaces before/after colon):
-word - translated_POS_label_1: translation_1 | translation_2, translated_POS_label_2: translation_1 | translation_2, translated_POS_label_3: translation_1
-`,
+word - POS_label_in_1: translation_1 | translation_2, POS_label_in_2: translation_1 | translation_2, POS_label_in_3: translation_1
+			`,
 
 			strings.TrimSpace(word),
 			strings.TrimSpace(word),
