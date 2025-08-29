@@ -104,7 +104,11 @@ func fetchCardsTask(ctx context.Context, conn api.LaleServiceClient) ([]*api.Car
 	return cards, nil
 }
 
-func updateCardsTask(ctx context.Context, cardCh <-chan *api.Card, conn api.LaleServiceClient) error {
+func updateCardsTask(
+	ctx context.Context,
+	cardCh <-chan *api.Card,
+	conn api.LaleServiceClient,
+) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -133,7 +137,7 @@ func updateCardsTask(ctx context.Context, cardCh <-chan *api.Card, conn api.Lale
 				"update card",
 				fmt.Sprintf("with ID %s", card.GetId()),
 				func(t *task.Task) error {
-					return tryToUpdateCard(ctx, card, conn)
+					return updateCard(ctx, card, conn)
 				},
 			)
 
@@ -179,7 +183,7 @@ func askToChangeWordTranslations(ctx context.Context, card *api.Card) (bool, err
 	return changed, nil
 }
 
-func tryToUpdateCard(ctx context.Context, card *api.Card, conn api.LaleServiceClient) error {
+func updateCard(ctx context.Context, card *api.Card, conn api.LaleServiceClient) error {
 	if card == nil {
 		return nil
 	}
@@ -188,20 +192,10 @@ func tryToUpdateCard(ctx context.Context, card *api.Card, conn api.LaleServiceCl
 		UserID:              card.GetUserID(),
 		CardID:              card.GetId(),
 		WordInformationList: card.GetWordInformationList(),
-		Params: &api.Parameters{
-			EnrichWordInformationFromDictionary: true,
-		},
 	}
 	_, err := conn.UpdateCard(ctx, req)
 	if err != nil {
-		if !strings.Contains(err.Error(), "enrich card words from dictionary") {
-			return fmt.Errorf("update card with the param to enrich word from dictionary: %w", err)
-		}
-		req.Params.EnrichWordInformationFromDictionary = false
-		_, err = conn.UpdateCard(ctx, req)
-		if err != nil {
-			return fmt.Errorf("update card without the param to enrich word from dictionary: %w", err)
-		}
+		return fmt.Errorf("update card (ID: %s): %w", card.GetId(), err)
 	}
 
 	return nil
