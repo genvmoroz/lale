@@ -798,28 +798,56 @@ func (s *Service) enrichWordsDetailsFromDictionary(language language.Tag, words 
 	return nil
 }
 
+// todo: make it parallel, each voice should be in a separate goroutine
 func (s *Service) enrichWordsWithAudio(
 	ctx context.Context,
 	_ language.Tag,
 	words []entity.WordInformation,
 ) error {
+	// todo: make it configurable
+	const (
+		gbLanguage = "en-GB"
+		usLanguage = "en-US"
+		auLanguage = "en-AU"
+
+		gbVoice = "en-GB-Standard-C"
+		usVoice = "en-US-Standard-C"
+		auVoice = "en-AU-Standard-C"
+	)
+
 	for i := range words {
-		audio, err := s.textToAudio(ctx, words[i].Word)
+		if words[i].AudioByLanguage == nil {
+			words[i].AudioByLanguage = make(map[string][]byte)
+		}
+
+		audio, err := s.textToAudio(ctx, words[i].Word, gbLanguage, gbVoice)
 		if err != nil {
 			return fmt.Errorf("text (%s) to speech: %w", words[i].Word, err)
 		}
-		words[i].Audio = audio
+		words[i].AudioByLanguage[gbLanguage] = audio
+
+		audio, err = s.textToAudio(ctx, words[i].Word, usLanguage, usVoice)
+		if err != nil {
+			return fmt.Errorf("text (%s) to speech: %w", words[i].Word, err)
+		}
+		words[i].AudioByLanguage[usLanguage] = audio
+
+		audio, err = s.textToAudio(ctx, words[i].Word, auLanguage, auVoice)
+		if err != nil {
+			return fmt.Errorf("text (%s) to speech: %w", words[i].Word, err)
+		}
+		words[i].AudioByLanguage[auLanguage] = audio
 	}
 
 	return nil
 }
 
-func (s *Service) textToAudio(ctx context.Context, text string) ([]byte, error) {
+func (s *Service) textToAudio(ctx context.Context, text string, voiceLanguage, voiceName string) ([]byte, error) {
 	req := speech.ToSpeechRequest{
 		Input: text,
 		Voice: speech.VoiceSelectionParams{
-			Language:             "en-GB",
-			Name:                 "en-GB-Standard-C",
+			Language:             voiceLanguage,
+			Name:                 voiceName,
 			PreferredVoiceGender: speech.Female,
 		},
 		AudioConfig: speech.AudioConfig{AudioEncoding: speech.Mp3},

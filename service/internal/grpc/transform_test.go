@@ -109,6 +109,11 @@ func TestTransformerToAPICard(t *testing.T) {
 					{Text: "Text_11"},
 					{Text: "Text_12"},
 				},
+
+				AudioByLanguage: map[string][]byte{
+					"en": []byte("audio_en_1"),
+					"uk": []byte("audio_uk_1"),
+				},
 				Meanings: []entity.Meaning{
 					{
 						PartOfSpeech: "PartOfSpeech_11",
@@ -156,6 +161,11 @@ func TestTransformerToAPICard(t *testing.T) {
 				Phonetics: []entity.Phonetic{
 					{Text: "Text_21"},
 					{Text: "Text_22"},
+				},
+
+				AudioByLanguage: map[string][]byte{
+					"en": []byte("audio_en_2"),
+					"fr": []byte("audio_fr_2"),
 				},
 				Meanings: []entity.Meaning{
 					{
@@ -215,6 +225,11 @@ func TestTransformerToAPICard(t *testing.T) {
 					{Text: "Text_11"},
 					{Text: "Text_12"},
 				},
+
+				AudioByLanguage: map[string][]byte{
+					"en": []byte("audio_en_1"),
+					"uk": []byte("audio_uk_1"),
+				},
 				Meanings: []*api.Meaning{
 					{
 						PartOfSpeech: "PartOfSpeech_11",
@@ -262,6 +277,11 @@ func TestTransformerToAPICard(t *testing.T) {
 				Phonetics: []*api.Phonetic{
 					{Text: "Text_21"},
 					{Text: "Text_22"},
+				},
+
+				AudioByLanguage: map[string][]byte{
+					"en": []byte("audio_en_2"),
+					"fr": []byte("audio_fr_2"),
 				},
 				Meanings: []*api.Meaning{
 					{
@@ -345,6 +365,11 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 								{Text: "Text_11"},
 								{Text: "Text_12"},
 							},
+
+							AudioByLanguage: map[string][]byte{
+								"en": []byte("test_en_1"),
+								"de": []byte("test_de_1"),
+							},
 							Meanings: []*api.Meaning{
 								{
 									PartOfSpeech: "PartOfSpeech_11",
@@ -393,6 +418,11 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 							Phonetics: []*api.Phonetic{
 								{Text: "Text_21"},
 								{Text: "Text_22"},
+							},
+
+							AudioByLanguage: map[string][]byte{
+								"en": []byte("test_en_2"),
+								"es": []byte("test_es_2"),
 							},
 							Meanings: []*api.Meaning{
 								{
@@ -450,6 +480,11 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 								{Text: "Text_11"},
 								{Text: "Text_12"},
 							},
+
+							AudioByLanguage: map[string][]byte{
+								"en": []byte("test_en_1"),
+								"de": []byte("test_de_1"),
+							},
 							Meanings: []entity.Meaning{
 								{
 									PartOfSpeech: "PartOfSpeech_11",
@@ -497,6 +532,10 @@ func TestTransformerToCoreCreateCardRequest(t *testing.T) {
 							Phonetics: []entity.Phonetic{
 								{Text: "Text_21"},
 								{Text: "Text_22"},
+							},
+							AudioByLanguage: map[string][]byte{
+								"en": []byte("test_en_2"),
+								"es": []byte("test_es_2"),
 							},
 							Meanings: []entity.Meaning{
 								{

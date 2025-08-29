@@ -117,12 +117,12 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 				}
 			}
 
-			err = client.SendAudio(chatID, "pronunciation", word.GetAudio())
+			err = auxl.SendAudioByLanguage(chatID, client, word.GetAudioByLanguage())
 			if err != nil {
 				if err = client.Send(chatID, fmt.Sprintf("sending audio error: %v", err.Error())); err != nil {
 					return err
 				}
-				//return fmt.Errorf("upload audio file: %w", err)
+				// return fmt.Errorf("upload audio file: %w", err)
 			}
 
 			correct, _, back, err := auxl.RequestInput[*bool](
@@ -307,12 +307,12 @@ func (s *State) processFirstReview(
 			}
 		}
 
-		err := client.SendAudio(chatID, "pronunciation", word.GetAudio())
+		err := auxl.SendAudioByLanguage(chatID, client, word.GetAudioByLanguage())
 		if err != nil {
 			if err = client.Send(chatID, fmt.Sprintf("sending audio error: %v", err.Error())); err != nil {
 				return false, err
 			}
-			//return false, fmt.Errorf("upload audio file: %w", err)
+			// return false, fmt.Errorf("upload audio file: %w", err)
 		}
 
 		task := card.Sentences[word.GetWord()]

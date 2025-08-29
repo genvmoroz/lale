@@ -265,22 +265,22 @@ func (transformer) toCoreTranslation(t *api.Translation) (*entity.Translation, e
 
 func (t transformer) toAPIWordInformation(info entity.WordInformation) *api.WordInformation {
 	return &api.WordInformation{
-		Word:        info.Word,
-		Translation: t.toAPITranslation(info.Translation),
-		Origin:      info.Origin,
-		Phonetics:   t.toAPIPhonetics(info.Phonetics),
-		Meanings:    t.toAPIMeanings(info.Meanings),
-		Audio:       info.Audio,
+		Word:            info.Word,
+		Translation:     t.toAPITranslation(info.Translation),
+		Origin:          info.Origin,
+		Phonetics:       t.toAPIPhonetics(info.Phonetics),
+		Meanings:        t.toAPIMeanings(info.Meanings),
+		AudioByLanguage: info.AudioByLanguage,
 	}
 }
 
 func (t transformer) toCoreWordInformation(info *api.WordInformation) (entity.WordInformation, error) {
 	out := entity.WordInformation{
-		Word:      info.Word,
-		Origin:    info.Origin,
-		Phonetics: t.toCorePhonetics(info.Phonetics),
-		Meanings:  t.toCoreMeanings(info.Meanings),
-		Audio:     info.GetAudio(),
+		Word:            info.Word,
+		Origin:          info.Origin,
+		Phonetics:       t.toCorePhonetics(info.Phonetics),
+		Meanings:        t.toCoreMeanings(info.Meanings),
+		AudioByLanguage: info.GetAudioByLanguage(),
 	}
 
 	if info.Translation != nil {

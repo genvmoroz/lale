@@ -107,15 +107,15 @@ func (x *Card) GetNextDueDate() *timestamppb.Timestamp {
 }
 
 type WordInformation struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Word          string                 `protobuf:"bytes,1,opt,name=word,proto3" json:"word,omitempty"`
-	Translation   *Translation           `protobuf:"bytes,2,opt,name=Translation,proto3" json:"Translation,omitempty"`
-	Origin        string                 `protobuf:"bytes,3,opt,name=origin,proto3" json:"origin,omitempty"`
-	Phonetics     []*Phonetic            `protobuf:"bytes,4,rep,name=phonetics,proto3" json:"phonetics,omitempty"`
-	Meanings      []*Meaning             `protobuf:"bytes,5,rep,name=meanings,proto3" json:"meanings,omitempty"`
-	Audio         []byte                 `protobuf:"bytes,6,opt,name=audio,proto3" json:"audio,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Word            string                 `protobuf:"bytes,1,opt,name=word,proto3" json:"word,omitempty"`
+	Translation     *Translation           `protobuf:"bytes,2,opt,name=Translation,proto3" json:"Translation,omitempty"`
+	Origin          string                 `protobuf:"bytes,3,opt,name=origin,proto3" json:"origin,omitempty"`
+	Phonetics       []*Phonetic            `protobuf:"bytes,4,rep,name=phonetics,proto3" json:"phonetics,omitempty"`
+	Meanings        []*Meaning             `protobuf:"bytes,5,rep,name=meanings,proto3" json:"meanings,omitempty"`
+	AudioByLanguage map[string][]byte      `protobuf:"bytes,6,rep,name=audioByLanguage,proto3" json:"audioByLanguage,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *WordInformation) Reset() {
@@ -183,9 +183,9 @@ func (x *WordInformation) GetMeanings() []*Meaning {
 	return nil
 }
 
-func (x *WordInformation) GetAudio() []byte {
+func (x *WordInformation) GetAudioByLanguage() map[string][]byte {
 	if x != nil {
-		return x.Audio
+		return x.AudioByLanguage
 	}
 	return nil
 }
@@ -1177,14 +1177,17 @@ const file_api_lale_service_proto_rawDesc = "" +
 	"\blanguage\x18\x03 \x01(\tR\blanguage\x12F\n" +
 	"\x13wordInformationList\x18\x04 \x03(\v2\x14.api.WordInformationR\x13wordInformationList\x12H\n" +
 	"\x1fconsecutiveCorrectAnswersNumber\x18\x05 \x01(\rR\x1fconsecutiveCorrectAnswersNumber\x12<\n" +
-	"\vnextDueDate\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vnextDueDate\"\xde\x01\n" +
+	"\vnextDueDate\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\vnextDueDate\"\xe1\x02\n" +
 	"\x0fWordInformation\x12\x12\n" +
 	"\x04word\x18\x01 \x01(\tR\x04word\x122\n" +
 	"\vTranslation\x18\x02 \x01(\v2\x10.api.TranslationR\vTranslation\x12\x16\n" +
 	"\x06origin\x18\x03 \x01(\tR\x06origin\x12+\n" +
 	"\tphonetics\x18\x04 \x03(\v2\r.api.PhoneticR\tphonetics\x12(\n" +
-	"\bmeanings\x18\x05 \x03(\v2\f.api.MeaningR\bmeanings\x12\x14\n" +
-	"\x05audio\x18\x06 \x01(\fR\x05audio\"M\n" +
+	"\bmeanings\x18\x05 \x03(\v2\f.api.MeaningR\bmeanings\x12S\n" +
+	"\x0faudioByLanguage\x18\x06 \x03(\v2).api.WordInformation.AudioByLanguageEntryR\x0faudioByLanguage\x1aB\n" +
+	"\x14AudioByLanguageEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value:\x028\x01\"M\n" +
 	"\vTranslation\x12\x1a\n" +
 	"\blanguage\x18\x01 \x01(\tR\blanguage\x12\"\n" +
 	"\fTranslations\x18\x02 \x03(\tR\fTranslations\"\x1e\n" +
@@ -1276,7 +1279,7 @@ func file_api_lale_service_proto_rawDescGZIP() []byte {
 	return file_api_lale_service_proto_rawDescData
 }
 
-var file_api_lale_service_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_api_lale_service_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_api_lale_service_proto_goTypes = []any{
 	(*Card)(nil),                          // 0: api.Card
 	(*WordInformation)(nil),               // 1: api.WordInformation
@@ -1298,46 +1301,48 @@ var file_api_lale_service_proto_goTypes = []any{
 	(*GenerateStoryRequest)(nil),          // 17: api.GenerateStoryRequest
 	(*GenerateStoryResponse)(nil),         // 18: api.GenerateStoryResponse
 	(*DeleteCardRequest)(nil),             // 19: api.DeleteCardRequest
-	(*timestamppb.Timestamp)(nil),         // 20: google.protobuf.Timestamp
+	nil,                                   // 20: api.WordInformation.AudioByLanguageEntry
+	(*timestamppb.Timestamp)(nil),         // 21: google.protobuf.Timestamp
 }
 var file_api_lale_service_proto_depIdxs = []int32{
 	1,  // 0: api.Card.wordInformationList:type_name -> api.WordInformation
-	20, // 1: api.Card.nextDueDate:type_name -> google.protobuf.Timestamp
+	21, // 1: api.Card.nextDueDate:type_name -> google.protobuf.Timestamp
 	2,  // 2: api.WordInformation.Translation:type_name -> api.Translation
 	3,  // 3: api.WordInformation.phonetics:type_name -> api.Phonetic
 	4,  // 4: api.WordInformation.meanings:type_name -> api.Meaning
-	5,  // 5: api.Meaning.Definitions:type_name -> api.Definition
-	1,  // 6: api.CreateCardRequest.wordInformationList:type_name -> api.WordInformation
-	1,  // 7: api.UpdateCardRequest.wordInformationList:type_name -> api.WordInformation
-	0,  // 8: api.GetCardsResponse.cards:type_name -> api.Card
-	20, // 9: api.UpdateCardPerformanceResponse.nextDueDate:type_name -> google.protobuf.Timestamp
-	9,  // 10: api.LaleService.InspectCard:input_type -> api.InspectCardRequest
-	10, // 11: api.LaleService.PromptCard:input_type -> api.PromptCardRequest
-	7,  // 12: api.LaleService.CreateCard:input_type -> api.CreateCardRequest
-	6,  // 13: api.LaleService.GetAllCards:input_type -> api.GetCardsRequest
-	8,  // 14: api.LaleService.UpdateCard:input_type -> api.UpdateCardRequest
-	13, // 15: api.LaleService.UpdateCardPerformance:input_type -> api.UpdateCardPerformanceRequest
-	6,  // 16: api.LaleService.GetCardsToRepeat:input_type -> api.GetCardsRequest
-	6,  // 17: api.LaleService.GetCardsToLearn:input_type -> api.GetCardsRequest
-	15, // 18: api.LaleService.GetSentences:input_type -> api.GetSentencesRequest
-	17, // 19: api.LaleService.GenerateStory:input_type -> api.GenerateStoryRequest
-	19, // 20: api.LaleService.DeleteCard:input_type -> api.DeleteCardRequest
-	0,  // 21: api.LaleService.InspectCard:output_type -> api.Card
-	11, // 22: api.LaleService.PromptCard:output_type -> api.PromptCardResponse
-	0,  // 23: api.LaleService.CreateCard:output_type -> api.Card
-	12, // 24: api.LaleService.GetAllCards:output_type -> api.GetCardsResponse
-	0,  // 25: api.LaleService.UpdateCard:output_type -> api.Card
-	14, // 26: api.LaleService.UpdateCardPerformance:output_type -> api.UpdateCardPerformanceResponse
-	12, // 27: api.LaleService.GetCardsToRepeat:output_type -> api.GetCardsResponse
-	12, // 28: api.LaleService.GetCardsToLearn:output_type -> api.GetCardsResponse
-	16, // 29: api.LaleService.GetSentences:output_type -> api.GetSentencesResponse
-	18, // 30: api.LaleService.GenerateStory:output_type -> api.GenerateStoryResponse
-	0,  // 31: api.LaleService.DeleteCard:output_type -> api.Card
-	21, // [21:32] is the sub-list for method output_type
-	10, // [10:21] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	20, // 5: api.WordInformation.audioByLanguage:type_name -> api.WordInformation.AudioByLanguageEntry
+	5,  // 6: api.Meaning.Definitions:type_name -> api.Definition
+	1,  // 7: api.CreateCardRequest.wordInformationList:type_name -> api.WordInformation
+	1,  // 8: api.UpdateCardRequest.wordInformationList:type_name -> api.WordInformation
+	0,  // 9: api.GetCardsResponse.cards:type_name -> api.Card
+	21, // 10: api.UpdateCardPerformanceResponse.nextDueDate:type_name -> google.protobuf.Timestamp
+	9,  // 11: api.LaleService.InspectCard:input_type -> api.InspectCardRequest
+	10, // 12: api.LaleService.PromptCard:input_type -> api.PromptCardRequest
+	7,  // 13: api.LaleService.CreateCard:input_type -> api.CreateCardRequest
+	6,  // 14: api.LaleService.GetAllCards:input_type -> api.GetCardsRequest
+	8,  // 15: api.LaleService.UpdateCard:input_type -> api.UpdateCardRequest
+	13, // 16: api.LaleService.UpdateCardPerformance:input_type -> api.UpdateCardPerformanceRequest
+	6,  // 17: api.LaleService.GetCardsToRepeat:input_type -> api.GetCardsRequest
+	6,  // 18: api.LaleService.GetCardsToLearn:input_type -> api.GetCardsRequest
+	15, // 19: api.LaleService.GetSentences:input_type -> api.GetSentencesRequest
+	17, // 20: api.LaleService.GenerateStory:input_type -> api.GenerateStoryRequest
+	19, // 21: api.LaleService.DeleteCard:input_type -> api.DeleteCardRequest
+	0,  // 22: api.LaleService.InspectCard:output_type -> api.Card
+	11, // 23: api.LaleService.PromptCard:output_type -> api.PromptCardResponse
+	0,  // 24: api.LaleService.CreateCard:output_type -> api.Card
+	12, // 25: api.LaleService.GetAllCards:output_type -> api.GetCardsResponse
+	0,  // 26: api.LaleService.UpdateCard:output_type -> api.Card
+	14, // 27: api.LaleService.UpdateCardPerformance:output_type -> api.UpdateCardPerformanceResponse
+	12, // 28: api.LaleService.GetCardsToRepeat:output_type -> api.GetCardsResponse
+	12, // 29: api.LaleService.GetCardsToLearn:output_type -> api.GetCardsResponse
+	16, // 30: api.LaleService.GetSentences:output_type -> api.GetSentencesResponse
+	18, // 31: api.LaleService.GenerateStory:output_type -> api.GenerateStoryResponse
+	0,  // 32: api.LaleService.DeleteCard:output_type -> api.Card
+	22, // [22:33] is the sub-list for method output_type
+	11, // [11:22] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_api_lale_service_proto_init() }
@@ -1351,7 +1356,7 @@ func file_api_lale_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_lale_service_proto_rawDesc), len(file_api_lale_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

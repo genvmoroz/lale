@@ -163,7 +163,7 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 				}
 				isAnswerCorrect = false
 			}
-			err = client.SendAudio(chatID, "pronunciation", word.GetAudio())
+			err = auxl.SendAudioByLanguage(chatID, client, word.GetAudioByLanguage())
 			if err != nil {
 				if err = client.Send(chatID, fmt.Sprintf("sending audio error: %v", err.Error())); err != nil {
 					return err
@@ -311,7 +311,7 @@ func (s *State) processFirstRepeat(
 			}
 		}
 
-		err := client.SendAudio(chatID, "pronunciation", word.GetAudio())
+		err := auxl.SendAudioByLanguage(chatID, client, word.GetAudioByLanguage())
 		if err != nil {
 			if err = client.Send(chatID, fmt.Sprintf("sending audio error: %v", err.Error())); err != nil {
 				return false, err
