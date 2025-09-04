@@ -34,11 +34,11 @@ type (
 		CloseSession(userID string) error
 	}
 
-	AnkiAlgo interface {
+	AnkiAlgo interface { // todo: rename it, the name should not be pointing to the Anki algorithm
 		CalculateNextDueDate(performance uint32, consecutiveCorrectAnswersNumber uint32) time.Time
 	}
 
-	AIHelper interface {
+	AIHelper interface { // todo: rename it, the name should not contain "Helper"
 		GenerateSentences(word string, size int) ([]string, error)
 		GetFamilyWordsWithTranslation(word string, lang language.Tag) (map[string]string, error)
 		GenStory(words []string, lang language.Tag) (string, error)
