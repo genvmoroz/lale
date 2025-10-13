@@ -445,19 +445,34 @@ func (s *State) Description() string {
 	return "Repeat Card"
 }
 
-// shuffleLetters shuffles all letters in a word randomly
+// shuffleLetters shuffles pairs of letters in a word randomly
 func shuffleLetters(word string) string {
 	runes := []rune(word)
-	shuffled := make([]rune, len(runes))
-	copy(shuffled, runes)
 
-	// Fisher-Yates shuffle
-	for i := len(shuffled) - 1; i > 0; i-- {
-		j := rand.Intn(i + 1)
-		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+	// Split into pairs of letters
+	var pairs [][]rune
+	for i := 0; i < len(runes); i += 2 {
+		if i+1 < len(runes) {
+			pairs = append(pairs, []rune{runes[i], runes[i+1]})
+		} else {
+			// Handle odd-length word: keep last letter as single-rune pair
+			pairs = append(pairs, []rune{runes[i]})
+		}
 	}
 
-	return string(shuffled)
+	// Fisher-Yates shuffle on pairs
+	for i := len(pairs) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		pairs[i], pairs[j] = pairs[j], pairs[i]
+	}
+
+	// Reconstruct the word from shuffled pairs
+	var result []rune
+	for _, pair := range pairs {
+		result = append(result, pair...)
+	}
+
+	return string(result)
 }
 
 // maskWord replaces some letters with asterisks based on consecutive correct answers.
