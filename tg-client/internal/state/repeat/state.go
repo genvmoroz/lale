@@ -461,9 +461,10 @@ func shuffleLetters(word string) string {
 }
 
 // maskWord replaces some letters with asterisks based on consecutive correct answers.
-// The fewer consecutive correct answers, the fewer letters are masked (more help for struggling learners).
-// The more consecutive correct answers, the more letters are masked (more challenge for advanced learners).
-// At minimum, half of the word is masked.
+// Progressive masking from level 3 to 8:
+// - Level 3: shows half the word (masks half)
+// - Level 8: shows only 2 letters (masks the rest)
+// - Levels 4-7: linear progression between these two points
 func maskWord(word string, consecutiveCorrectAnswers uint32) string {
 	if word == "" {
 		return ""
@@ -472,34 +473,45 @@ func maskWord(word string, consecutiveCorrectAnswers uint32) string {
 	runes := []rune(word)
 	wordLen := len(runes)
 
-	// Calculate minimum number of letters to mask (at least half)
-	minMasked := wordLen / 2
-	if wordLen%2 != 0 {
-		minMasked = (wordLen + 1) / 2
+	// Calculate how many letters to reveal based on consecutive correct answers
+	var visible int
+
+	// At level 3: show half the word (rounded up)
+	visibleAtLevel3 := (wordLen + 1) / 2
+	// At level 8: show only 2 letters (or all if word is shorter)
+	visibleAtLevel8 := 2
+	if wordLen < 2 {
+		visibleAtLevel8 = wordLen
 	}
 
-	// Calculate how many letters to mask based on consecutive correct answers
-	// Fewer correct answers = fewer letters masked (more revealed to help)
-	// More correct answers = more letters masked (less revealed to challenge)
-	var masked int
-	if consecutiveCorrectAnswers <= 0 {
-		// No correct answers yet: mask only the minimum (reveal maximum)
-		masked = minMasked
+	// Handle edge case: if word is too short for progressive masking
+	if visibleAtLevel8 >= visibleAtLevel3 {
+		// Word is too short (e.g., 2-4 letters), just show half
+		visible = visibleAtLevel3
 	} else {
-		// Start with minimum masked and add one more masked letter per correct answer
-		masked = minMasked + int(consecutiveCorrectAnswers)
-		// Cap at masking all letters
-		if masked > wordLen {
-			masked = wordLen
+		// Linear interpolation between level 3 and level 8
+		// visible = visibleAtLevel3 - (level - 3) * (visibleAtLevel3 - visibleAtLevel8) / 5
+		level := int(consecutiveCorrectAnswers)
+		if level < 3 {
+			level = 3
+		} else if level > 8 {
+			level = 8
+		}
+
+		visible = visibleAtLevel3 - (level-3)*(visibleAtLevel3-visibleAtLevel8)/5
+
+		// Ensure we don't reveal more than available or less than minimum
+		if visible > wordLen {
+			visible = wordLen
+		} else if visible < visibleAtLevel8 {
+			visible = visibleAtLevel8
 		}
 	}
 
-	// Ensure at least minimum is masked
-	if masked < minMasked {
-		masked = minMasked
-	}
+	// Calculate how many letters to mask
+	masked := wordLen - visible
 
-	// If we need to reveal all or more letters, return the word as-is
+	// If nothing to mask, return the word as-is
 	if masked <= 0 {
 		return word
 	}
