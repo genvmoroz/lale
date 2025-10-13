@@ -3,6 +3,7 @@ package repeat
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -116,6 +117,20 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 			}
 			for _, meaning := range word.GetMeanings() {
 				if err = client.Send(chatID, pretty.MeaningWithoutExamples(meaning)); err != nil {
+					return err
+				}
+			}
+
+			// todo: implement hinting on the server side
+			if card.Card.ConsecutiveCorrectAnswersNumber <= 8 {
+				hint := ""
+				switch card.Card.ConsecutiveCorrectAnswersNumber {
+				case 0, 1, 2:
+					hint = shuffleLetters(word.GetWord())
+				default:
+					hint = maskWord(word.GetWord(), card.Card.ConsecutiveCorrectAnswersNumber)
+				}
+				if err = client.Send(chatID, "Hint: "+hint); err != nil {
 					return err
 				}
 			}
@@ -428,4 +443,94 @@ func (s *State) Command() string {
 
 func (s *State) Description() string {
 	return "Repeat Card"
+}
+
+// shuffleLetters shuffles all letters in a word randomly
+func shuffleLetters(word string) string {
+	runes := []rune(word)
+	shuffled := make([]rune, len(runes))
+	copy(shuffled, runes)
+
+	// Fisher-Yates shuffle
+	for i := len(shuffled) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+	}
+
+	return string(shuffled)
+}
+
+// maskWord replaces some letters with asterisks based on consecutive correct answers.
+// The fewer consecutive correct answers, the fewer letters are masked (more help for struggling learners).
+// The more consecutive correct answers, the more letters are masked (more challenge for advanced learners).
+// At minimum, half of the word is masked.
+func maskWord(word string, consecutiveCorrectAnswers uint32) string {
+	if word == "" {
+		return ""
+	}
+
+	runes := []rune(word)
+	wordLen := len(runes)
+
+	// Calculate minimum number of letters to mask (at least half)
+	minMasked := wordLen / 2
+	if wordLen%2 != 0 {
+		minMasked = (wordLen + 1) / 2
+	}
+
+	// Calculate how many letters to mask based on consecutive correct answers
+	// Fewer correct answers = fewer letters masked (more revealed to help)
+	// More correct answers = more letters masked (less revealed to challenge)
+	var masked int
+	if consecutiveCorrectAnswers <= 0 {
+		// No correct answers yet: mask only the minimum (reveal maximum)
+		masked = minMasked
+	} else {
+		// Start with minimum masked and add one more masked letter per correct answer
+		masked = minMasked + int(consecutiveCorrectAnswers)
+		// Cap at masking all letters
+		if masked > wordLen {
+			masked = wordLen
+		}
+	}
+
+	// Ensure at least minimum is masked
+	if masked < minMasked {
+		masked = minMasked
+	}
+
+	// If we need to reveal all or more letters, return the word as-is
+	if masked <= 0 {
+		return word
+	}
+
+	// Create a slice to track which positions to mask
+	positions := make([]int, wordLen)
+	for i := range positions {
+		positions[i] = i
+	}
+
+	// Shuffle positions using Fisher-Yates
+	for i := len(positions) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		positions[i], positions[j] = positions[j], positions[i]
+	}
+
+	// Mark first 'masked' positions for masking
+	maskSet := make(map[int]bool)
+	for i := 0; i < masked; i++ {
+		maskSet[positions[i]] = true
+	}
+
+	// Build result
+	result := make([]rune, wordLen)
+	for i, r := range runes {
+		if maskSet[i] {
+			result[i] = '*'
+		} else {
+			result[i] = r
+		}
+	}
+
+	return string(result)
 }

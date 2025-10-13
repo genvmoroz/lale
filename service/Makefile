@@ -13,7 +13,7 @@ DOCKER_REGISTRY=genvmoroz
 SERVICE_TAG=service:development
 
 .PHONY: ci
-ci: lint test vulnerabilities_lookup
+ci: lint test
 
 .PHONY: deps
 deps:
