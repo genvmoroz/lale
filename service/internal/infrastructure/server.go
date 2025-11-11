@@ -22,7 +22,7 @@ type Server struct {
 	logger logrus.FieldLogger
 }
 
-func NewServer(cfg Config, logger logrus.FieldLogger) (*Server, error) {
+func NewServer(ctx context.Context, cfg Config, logger logrus.FieldLogger) (*Server, error) {
 	if logger == nil {
 		return nil, fmt.Errorf("logger is nil")
 	}
