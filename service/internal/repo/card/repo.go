@@ -1,3 +1,5 @@
+// Package card provides MongoDB-based repository for card entities.
+//
 //nolint:gosec // will be fixed later
 package card
 
@@ -7,12 +9,13 @@ import (
 	"fmt"
 	"unicode/utf8"
 
+	mongometrics "github.com/genvmoroz/lale/service/internal/observability/mongo"
 	"github.com/genvmoroz/lale/service/pkg/entity"
-	gracefulmongo "github.com/genvmoroz/lale/service/pkg/mongo"
+	"github.com/genvmoroz/lale/service/pkg/gracefulmongo"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	mongo "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -44,7 +47,7 @@ type (
 	}
 )
 
-func NewRepo(ctx context.Context, cfg Config) (*Repo, error) {
+func NewRepo(ctx context.Context, cfg Config, metrics *mongometrics.Metrics) (*Repo, error) {
 	gmCfg := gracefulmongo.Config{
 		Protocol:    cfg.Protocol,
 		Host:        cfg.Host,
@@ -56,7 +59,8 @@ func NewRepo(ctx context.Context, cfg Config) (*Repo, error) {
 			Pass: cfg.Creds.Pass,
 		},
 	}
-	client, err := gracefulmongo.NewGracefulClient(ctx, gmCfg)
+
+	client, err := gracefulmongo.NewClient(ctx, gmCfg, gracefulmongo.WithMonitor(metrics.CommandMonitor()))
 	if err != nil {
 		return nil, fmt.Errorf("new graceful client: %w", err)
 	}
@@ -130,13 +134,7 @@ func (r *Repo) WordsExist(ctx context.Context, userID string, words []string) (b
 		return false, fmt.Errorf("find one: %w", result.Err())
 	default:
 		return true, nil
-	} // todo: check which is faster
-	// count, err := collection.CountDocuments(ctx, filter, options.Count().SetLimit(1))
-	// if err != nil {
-	// 	return false, fmt.Errorf("count documents: %w", err)
-	// }
-
-	// return count > 0, nil
+	}
 }
 
 func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Card, error) {
@@ -165,6 +163,8 @@ func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Car
 	return r.tr.unmarshalCursor(ctx, cursor)
 }
 
+//todo: different functions for create and update cards
+
 // TODO: implement search card by name on Repo side
 // func (r *Repo) FindCardsByWord(ctx context.Context, userID, word string) ([]entity.Card, error) {
 //	return nil, errors.New("not implemented yet")
@@ -176,7 +176,7 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 		return nil
 	}
 
-	dupls := lo.FindDuplicatesBy[entity.Card, string](cards,
+	dupls := lo.FindDuplicatesBy(cards,
 		func(item entity.Card) string {
 			return item.ID
 		},
@@ -189,11 +189,7 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 		Database(r.database).
 		Collection(r.collection)
 
-	if err := r.client.UseSession(ctx, func(sessionContext mongo.SessionContext) error {
-		if err := sessionContext.StartTransaction(); err != nil {
-			return err
-		}
-
+	return r.transaction(ctx, func() error {
 		for _, card := range cards {
 			var doc []byte
 			doc, err := r.tr.cardToDoc(card)
@@ -208,30 +204,23 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 					// since card does not exist do insert
 					_, err = cardsCollection.InsertOne(ctx, doc)
 					if err != nil {
-						abortTransaction(ctx, sessionContext)
 						return fmt.Errorf("insert: %w", err)
 					}
 				} else {
 					// checking existence failed with an unpredictable error
-					abortTransaction(ctx, sessionContext)
 					return fmt.Errorf("check card existence: %w", err)
 				}
 			} else {
 				// since card already exists do replacement
 				_, err = cardsCollection.ReplaceOne(ctx, filter, doc)
 				if err != nil {
-					abortTransaction(ctx, sessionContext)
 					return fmt.Errorf("replace card: %w", err)
 				}
 			}
 		}
 
-		return sessionContext.CommitTransaction(ctx)
-	}); err != nil {
-		return fmt.Errorf("perform transaction: %w", err)
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func (r *Repo) DeleteCard(ctx context.Context, cardID string) error {
@@ -252,8 +241,27 @@ func (r *Repo) DeleteCard(ctx context.Context, cardID string) error {
 	return nil
 }
 
+func (r *Repo) transaction(ctx context.Context, operation func() error) error {
+	if err := r.client.UseSession(ctx, func(sessionContext mongo.SessionContext) error {
+		if err := sessionContext.StartTransaction(); err != nil {
+			return err
+		}
+
+		if err := operation(); err != nil {
+			abortTransaction(ctx, sessionContext)
+			return err
+		}
+
+		return sessionContext.CommitTransaction(ctx)
+	}); err != nil {
+		return fmt.Errorf("perform transaction: %w", err)
+	}
+
+	return nil
+}
+
 func abortTransaction(ctx context.Context, sessionContext mongo.SessionContext) {
 	if err := sessionContext.AbortTransaction(ctx); err != nil {
-		logrus.Errorf("abort transaction: %s", err.Error())
+		logrus.Errorf("failed to abort transaction: %s", err.Error())
 	}
 }

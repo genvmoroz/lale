@@ -32,9 +32,13 @@ services:
     restart: always
     ports:
       - ${MONGO_DB_PORT}:${MONGO_DB_PORT}
+    volumes:
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_DB_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_PASSWORD}
+      SERVICE_APP_MONGO_CARD_DATABASE: ${SERVICE_APP_MONGO_CARD_DATABASE}
+      SERVICE_APP_MONGO_CARD_COLLECTION: ${SERVICE_APP_MONGO_CARD_COLLECTION}
 
   mongo-exporter:
     image: percona/mongodb_exporter:0.44.0
