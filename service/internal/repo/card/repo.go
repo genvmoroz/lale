@@ -24,7 +24,7 @@ type (
 		Params      map[string]string `envconfig:"APP_MONGO_CARD_URI_PARAMS" required:"true"`
 		Database    string            `envconfig:"APP_MONGO_CARD_DATABASE" required:"true"`
 		Collection  string            `envconfig:"APP_MONGO_CARD_COLLECTION" required:"true"`
-		MaxPoolSize uint64            `envconfig:"APP_MONGO_CARD_MAX_POOL_SIZE" default:"0"`
+		MaxPoolSize uint64            `envconfig:"APP_MONGO_CARD_MAX_POOL_SIZE" default:"100"`
 
 		Creds Creds
 	}
@@ -130,7 +130,7 @@ func (r *Repo) WordsExist(ctx context.Context, userID string, words []string) (b
 		return false, fmt.Errorf("find one: %w", result.Err())
 	default:
 		return true, nil
-	} //todo: check which is faster
+	} // todo: check which is faster
 	// count, err := collection.CountDocuments(ctx, filter, options.Count().SetLimit(1))
 	// if err != nil {
 	// 	return false, fmt.Errorf("count documents: %w", err)
