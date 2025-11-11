@@ -1,3 +1,4 @@
+// Package dependency provides application dependency injection and initialization.
 package dependency
 
 import (
@@ -7,6 +8,7 @@ import (
 
 	"github.com/genvmoroz/lale/service/internal/algo"
 	"github.com/genvmoroz/lale/service/internal/core"
+	"github.com/genvmoroz/lale/service/internal/observability"
 	"github.com/genvmoroz/lale/service/internal/options"
 	"github.com/genvmoroz/lale/service/internal/repo/card"
 	"github.com/genvmoroz/lale/service/internal/repo/dictionary"
@@ -15,6 +17,7 @@ import (
 	"github.com/genvmoroz/lale/service/pkg/openai"
 	"github.com/genvmoroz/lale/service/pkg/speech"
 	"github.com/genvmoroz/lale/service/pkg/speech/google"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Dependency struct {
@@ -38,7 +41,14 @@ func NewDependency(ctx context.Context, cfg options.Config) (*Dependency, error)
 	if err != nil {
 		return nil, fmt.Errorf("create user session client: %w", err)
 	}
-	cardRepo, err := card.NewRepo(ctx, cfg.CardRepo)
+
+	// Create and register observability metrics
+	metrics := observability.NewMetrics(observability.DefaultConfig())
+	if err = metrics.Register(prometheus.DefaultRegisterer); err != nil {
+		return nil, fmt.Errorf("register observability metrics: %w", err)
+	}
+
+	cardRepo, err := card.NewRepo(ctx, cfg.CardRepo, metrics.Mongo)
 	if err != nil {
 		return nil, fmt.Errorf("create card repo: %w", err)
 	}
