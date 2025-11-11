@@ -1,4 +1,4 @@
-package mongo
+package gracefulmongo
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -28,18 +29,43 @@ type (
 		User string
 		Pass string
 	}
+
+	// Option is a functional option for configuring the MongoDB client.
+	Option func(*clientOptions)
+
+	clientOptions struct {
+		monitor *event.CommandMonitor
+	}
 )
 
-func NewGracefulClient(ctx context.Context, cfg Config) (*mongo.Client, error) {
+// WithMonitor sets a monitor for tracking MongoDB operations.
+func WithMonitor(monitor *event.CommandMonitor) Option {
+	return func(opts *clientOptions) {
+		opts.monitor = monitor
+	}
+}
+
+func NewClient(ctx context.Context, cfg Config, opts ...Option) (*mongo.Client, error) {
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
 
-	client, err := mongo.Connect(ctx,
-		options.Client().
-			ApplyURI(constructURI(cfg)).
-			SetMaxPoolSize(cfg.MaxPoolSize),
-	)
+	// Apply options
+	clientOpts := &clientOptions{}
+	for _, opt := range opts {
+		opt(clientOpts)
+	}
+
+	mongoOpts := options.Client().
+		ApplyURI(constructURI(cfg)).
+		SetMaxPoolSize(cfg.MaxPoolSize)
+
+	// Attach monitor if provided
+	if clientOpts.monitor != nil {
+		mongoOpts.SetMonitor(clientOpts.monitor)
+	}
+
+	client, err := mongo.Connect(ctx, mongoOpts)
 	if err != nil {
 		return nil, fmt.Errorf("connect: %w", err)
 	}
@@ -56,7 +82,7 @@ func NewGracefulClient(ctx context.Context, cfg Config) (*mongo.Client, error) {
 		defer cancel()
 
 		if err := client.Disconnect(shutdownCtx); err != nil {
-			logrus.Errorf("graceful disconnect: %s", err)
+			logrus.Errorf("failed to disconnect mongodb client gracefully: %s", err)
 		}
 	}()
 

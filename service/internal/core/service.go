@@ -240,7 +240,7 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("check if words already exist: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{"UserID": req.UserID},
 		)
 	}
 	if exist {
@@ -280,7 +280,7 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("save card: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{"UserID": req.UserID},
 		)
 	}
 
