@@ -15,8 +15,8 @@ run_loader:
 	go run ./loader/main.go \
 		--host=localhost \
 		--port=8080 \
-		--users=100000 \
-		--cards-per-user=100 \
+		--users=10000 \
+		--cards-per-user=20 \
 		--words-per-card=20 \
 		--create-card=true \
         --delete-card=true \
