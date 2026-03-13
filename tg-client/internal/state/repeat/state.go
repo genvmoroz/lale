@@ -135,6 +135,23 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 				}
 			}
 
+			checkWord := func(input string, chtID int64, cl processor.Client) (*bool, error) {
+				text := strings.ToLower(strings.TrimSpace(input))
+				switch text {
+				case "/back":
+					return nil, cl.Send(chtID, "Back to previous state")
+				case "":
+					return nil, cl.Send(chtID, "Empty value is not allowed")
+				default:
+					if strings.EqualFold(text, word.GetWord()) {
+						t := true
+						return &t, nil
+					}
+					t := false
+					return &t, nil
+				}
+			}
+
 			correct, _, back, err := auxl.RequestInput(
 				ctx,
 				func(u *bool) bool {
@@ -142,27 +159,12 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 				},
 				chatID,
 				"Send the Word",
-				func(input string, chatID int64, client processor.Client) (*bool, error) {
-					text := strings.ToLower(strings.TrimSpace(input))
-					switch text {
-					case "/back":
-						return nil, client.Send(chatID, "Back to previous state")
-					case "":
-						return nil, client.Send(chatID, "Empty value is not allowed")
-					default:
-						if strings.EqualFold(text, word.GetWord()) {
-							t := true
-							return &t, nil
-						}
-						t := false
-						return &t, nil
-					}
-				},
+				checkWord,
 				client,
 				updateChan,
 			)
 			if err != nil {
-				return fmt.Errorf("request easiness level: %w", err)
+				return fmt.Errorf("request word: %w", err)
 			}
 			if back {
 				return nil
@@ -173,10 +175,36 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 					return err
 				}
 			} else {
-				if err = client.SendWithParseMode(chatID, fmt.Sprintf("Incorrect, inspect word <code>%s</code> first", word.GetWord()), tg.ModeHTML); err != nil {
+				if err = client.Send(chatID, "Incorrect, try again"); err != nil {
 					return err
 				}
-				isAnswerCorrect = false
+				correct, _, back, err = auxl.RequestInput(
+					ctx,
+					func(u *bool) bool {
+						return u != nil
+					},
+					chatID,
+					"Send the Word (second attempt)",
+					checkWord,
+					client,
+					updateChan,
+				)
+				if err != nil {
+					return fmt.Errorf("request word second attempt: %w", err)
+				}
+				if back {
+					return nil
+				}
+				if correct != nil && *correct {
+					if err = client.Send(chatID, "Correct"); err != nil {
+						return err
+					}
+				} else {
+					if err = client.SendWithParseMode(chatID, fmt.Sprintf("Incorrect, inspect word <code>%s</code> first", word.GetWord()), tg.ModeHTML); err != nil {
+						return err
+					}
+					isAnswerCorrect = false
+				}
 			}
 			err = auxl.SendAudioByLanguage(chatID, client, word.GetAudioByLanguage())
 			if err != nil {
