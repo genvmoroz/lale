@@ -135,6 +135,7 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 				}
 			}
 
+			var lastIncorrectInput string
 			checkWord := func(input string, chtID int64, cl processor.Client) (*bool, error) {
 				text := strings.ToLower(strings.TrimSpace(input))
 				switch text {
@@ -147,10 +148,13 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 						t := true
 						return &t, nil
 					}
+					lastIncorrectInput = text
 					t := false
 					return &t, nil
 				}
 			}
+
+			const secondAttemptErrorThresholdPct = 20 // give second attempt only if error < 20%
 
 			correct, _, back, err := auxl.RequestInput(
 				ctx,
@@ -175,35 +179,43 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 					return err
 				}
 			} else {
-				if err = client.Send(chatID, "Incorrect, try again"); err != nil {
-					return err
-				}
-				correct, _, back, err = auxl.RequestInput(
-					ctx,
-					func(u *bool) bool {
-						return u != nil
-					},
-					chatID,
-					"Send the Word (second attempt)",
-					checkWord,
-					client,
-					updateChan,
-				)
-				if err != nil {
-					return fmt.Errorf("request word second attempt: %w", err)
-				}
-				if back {
-					return nil
-				}
-				if correct != nil && *correct {
-					if err = client.Send(chatID, "Correct"); err != nil {
-						return err
-					}
-				} else {
+				errorPct := wordErrorPercent(lastIncorrectInput, word.GetWord())
+				if errorPct >= secondAttemptErrorThresholdPct {
 					if err = client.SendWithParseMode(chatID, fmt.Sprintf("Incorrect, inspect word <code>%s</code> first", word.GetWord()), tg.ModeHTML); err != nil {
 						return err
 					}
 					isAnswerCorrect = false
+				} else {
+					if err = client.Send(chatID, "Incorrect, try again"); err != nil {
+						return err
+					}
+					correct, _, back, err = auxl.RequestInput(
+						ctx,
+						func(u *bool) bool {
+							return u != nil
+						},
+						chatID,
+						"Send the Word (second attempt)",
+						checkWord,
+						client,
+						updateChan,
+					)
+					if err != nil {
+						return fmt.Errorf("request word second attempt: %w", err)
+					}
+					if back {
+						return nil
+					}
+					if correct != nil && *correct {
+						if err = client.Send(chatID, "Correct"); err != nil {
+							return err
+						}
+					} else {
+						if err = client.SendWithParseMode(chatID, fmt.Sprintf("Incorrect, inspect word <code>%s</code> first", word.GetWord()), tg.ModeHTML); err != nil {
+							return err
+						}
+						isAnswerCorrect = false
+					}
 				}
 			}
 			err = auxl.SendAudioByLanguage(chatID, client, word.GetAudioByLanguage())
@@ -471,6 +483,51 @@ func (s *State) Command() string {
 
 func (s *State) Description() string {
 	return "Repeat Card"
+}
+
+// wordErrorPercent returns how much the input differs from the correct word as 0–100.
+// Uses Levenshtein distance; 0 = exact match, 100 = maximally different.
+// Used to decide if a wrong answer is "close enough" to allow a second attempt.
+func wordErrorPercent(input, correct string) float64 {
+	a, b := []rune(strings.ToLower(input)), []rune(strings.ToLower(correct))
+	if len(a) == 0 && len(b) == 0 {
+		return 0
+	}
+	maxLen := len(a)
+	if len(b) > maxLen {
+		maxLen = len(b)
+	}
+	if maxLen == 0 {
+		return 0
+	}
+	d := levenshteinDistance(a, b)
+	return float64(d) / float64(maxLen) * 100
+}
+
+func levenshteinDistance(a, b []rune) int {
+	if len(a) == 0 {
+		return len(b)
+	}
+	if len(b) == 0 {
+		return len(a)
+	}
+	prev := make([]int, len(b)+1)
+	curr := make([]int, len(b)+1)
+	for j := 0; j <= len(b); j++ {
+		prev[j] = j
+	}
+	for i := 1; i <= len(a); i++ {
+		curr[0] = i
+		for j := 1; j <= len(b); j++ {
+			cost := 1
+			if a[i-1] == b[j-1] {
+				cost = 0
+			}
+			curr[j] = min(curr[j-1]+1, min(prev[j]+1, prev[j-1]+cost))
+		}
+		prev, curr = curr, prev
+	}
+	return prev[len(b)]
 }
 
 // shuffleLetters shuffles pairs of letters in a word randomly
