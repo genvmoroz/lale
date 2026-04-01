@@ -1,154 +1,142 @@
+// Package future provides a small abstraction for starting work now and reading
+// its single result later with timeout and cancellation support.
 package future
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
-
-	"github.com/samber/lo"
 )
 
 type (
-	Task[R any] interface {
-		Get(duration time.Duration) (R, error)
-		IsCompleted() bool
-		IsCancelled() bool
-		Cancel()
+	taskResult[R any] struct {
+		val R
+		err error
 	}
 
-	// todo: improve it
-	task[R any] struct {
-		completed bool
-		canceled  bool
-		closed    bool
+	// Task represents one background operation started with `NewTask`.
+	// It exists to decouple when work begins from when the caller needs the result.
+	Task[R any] struct {
+		mu       sync.Mutex
+		consumed bool // true after Get successfully reads the result
+		canceled bool // true after an explicit Cancel() call
 
-		resultChan chan R
-		errChan    chan error
+		// resultCh stores the task outcome until a caller retrieves it with `Get`.
+		resultCh chan taskResult[R]
 
 		ctx    context.Context
-		cancel func()
+		cancel context.CancelFunc
 	}
 
 	runFunc[R any] func(context.Context) (R, error)
 )
-
-func NewTask[R any](ctx context.Context, run runFunc[R]) Task[R] {
-	ctx, cancel := context.WithCancel(ctx)
-
-	task := &task[R]{
-		completed:  false,
-		canceled:   false,
-		resultChan: make(chan R, 1),
-		errChan:    make(chan error, 1),
-		ctx:        ctx,
-		cancel:     cancel,
-	}
-
-	task.run(ctx, run)
-
-	return task
-}
-
-func (t *task[R]) Get(timeout time.Duration) (R, error) {
-	switch {
-	case t.canceled:
-		return lo.Empty[R](), errors.New("task is canceled")
-	case t.closed:
-		return lo.Empty[R](), errors.New("task is completed")
-	}
-
-	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	res, err := t.wait(ctxWithTimeout)
-	if err != nil && !errors.As(err, &TaskError{}) {
-		return lo.Empty[R](), err
-	}
-
-	t.close()
-
-	return res, err
-}
 
 var (
 	ErrContextClosed  = errors.New("context closed before the task is completed")
 	ErrTimeoutExpired = errors.New("timeout expired")
 )
 
+// TaskError wraps an error returned by the task function itself.
+// This lets callers distinguish task execution failures from waiting failures
+// such as timeout, cancellation, or context closure.
 type TaskError struct{ baseErr error }
 
 func (e TaskError) Error() string { return fmt.Sprintf("task error: %s", e.baseErr.Error()) }
 func (e TaskError) Unwrap() error { return e.baseErr }
 
-func newTaskError(err error) error { return TaskError{baseErr: err} }
+// NewTask starts `run` in the background and returns a handle for waiting,
+// cancellation, and simple state checks.
+func NewTask[R any](ctx context.Context, run runFunc[R]) *Task[R] {
+	ctx, cancel := context.WithCancel(ctx)
 
-func (t *task[R]) wait(ctx context.Context) (R, error) {
-	var empty R
-	for {
-		select {
-		case <-t.ctx.Done():
-			return empty, ErrContextClosed
-		case <-ctx.Done():
-			return empty, ErrTimeoutExpired
-		case err := <-t.errChan:
-			return empty, newTaskError(err)
-		case res := <-t.resultChan:
-			return res, nil
+	t := &Task[R]{
+		resultCh: make(chan taskResult[R], 1),
+		ctx:      ctx,
+		cancel:   cancel,
+	}
+
+	go func() {
+		// Bail out early if the context was already done before we started.
+		if ctx.Err() != nil {
+			return
 		}
+		val, err := run(ctx)
+		// resultCh is buffered(1) and the producer is the sole sender, so this
+		// send never blocks regardless of whether the result is ever consumed.
+		t.resultCh <- taskResult[R]{val: val, err: err}
+	}()
+
+	return t
+}
+
+// Get waits up to `timeout` for the task result.
+// Use it at the point where the caller actually needs the computed value.
+func (t *Task[R]) Get(timeout time.Duration) (R, error) {
+	var empty R
+
+	t.mu.Lock()
+	switch {
+	case t.canceled:
+		t.mu.Unlock()
+		return empty, errors.New("task is canceled")
+	case t.consumed:
+		t.mu.Unlock()
+		return empty, errors.New("task is completed")
+	}
+	t.mu.Unlock()
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	select {
+	case res := <-t.resultCh:
+		t.mu.Lock()
+		t.consumed = true
+		t.mu.Unlock()
+		t.cancel() // release context resources now that the result is consumed
+		if res.err != nil {
+			return empty, TaskError{baseErr: res.err}
+		}
+		return res.val, nil
+
+	case <-t.ctx.Done():
+		t.mu.Lock()
+		isCanceled := t.canceled
+		t.mu.Unlock()
+		if isCanceled {
+			return empty, errors.New("task is canceled")
+		}
+		return empty, ErrContextClosed
+
+	case <-timer.C:
+		return empty, ErrTimeoutExpired
 	}
 }
 
-func (t *task[R]) run(ctx context.Context, run runFunc[R]) {
-	go func(t *task[R]) {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			res, err := run(ctx)
-			if err != nil {
-				t.errChan <- err
-			} else {
-				t.resultChan <- res
-			}
-			t.complete()
-		}
-	}(t)
+// IsCompleted reports whether the task result has already been retrieved.
+func (t *Task[R]) IsCompleted() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.consumed
 }
 
-func (t *task[R]) IsCompleted() bool {
-	return t.completed
-}
-
-func (t *task[R]) IsCancelled() bool {
+// IsCancelled reports whether the task was explicitly cancelled.
+func (t *Task[R]) IsCancelled() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	return t.canceled
 }
 
-func (t *task[R]) Cancel() {
-	if t.canceled || t.completed {
+// Cancel marks the task as cancelled and closes its context for the running work.
+func (t *Task[R]) Cancel() {
+	t.mu.Lock()
+	if t.canceled || t.consumed {
+		t.mu.Unlock()
 		return
 	}
 	t.canceled = true
-
-	t.close()
-}
-
-func (t *task[R]) complete() {
-	if t.canceled || t.completed {
-		return
-	}
-	t.completed = true
-}
-
-func (t *task[R]) close() {
-	if t.closed {
-		return
-	}
-
+	t.mu.Unlock()
 	t.cancel()
-
-	close(t.resultChan)
-	close(t.errChan)
-
-	t.closed = true
 }

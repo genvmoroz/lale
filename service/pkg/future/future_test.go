@@ -11,8 +11,6 @@ import (
 	"go.uber.org/goleak"
 )
 
-// TODO: improve testing, add new testcases
-
 func TestFutureTaskCorrect(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
@@ -21,7 +19,7 @@ func TestFutureTaskCorrect(t *testing.T) {
 
 	run := func(_ context.Context) (string, error) { return "done", nil }
 
-	task := future.NewTask[string](ctx, run)
+	task := future.NewTask(ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
@@ -53,7 +51,7 @@ func TestFutureTaskContextCanceled(t *testing.T) {
 		}
 	}
 
-	task := future.NewTask[string](ctx, run)
+	task := future.NewTask(ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
@@ -81,7 +79,7 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 		}
 	}
 
-	task := future.NewTask[string](ctx, run)
+	task := future.NewTask(ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
@@ -113,7 +111,7 @@ func TestFutureTaskRunWithTaskError(t *testing.T) {
 
 	run := func(_ context.Context) (string, error) { return "", assert.AnError }
 
-	task := future.NewTask[string](ctx, run)
+	task := future.NewTask(ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
@@ -133,12 +131,16 @@ func TestFutureTaskRunTaskCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	run := func(_ context.Context) (string, error) {
-		time.Sleep(time.Second)
-		return "done", nil
+	run := func(ctx context.Context) (string, error) {
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(time.Second):
+			return "done", nil
+		}
 	}
 
-	task := future.NewTask[string](ctx, run)
+	task := future.NewTask(ctx, run)
 	require.NotNil(t, task)
 
 	require.False(t, task.IsCancelled())
@@ -152,4 +154,83 @@ func TestFutureTaskRunTaskCanceled(t *testing.T) {
 	require.Empty(t, res)
 	require.True(t, task.IsCancelled())
 	require.False(t, task.IsCompleted())
+}
+
+func TestFutureTaskConcurrency(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
+	type testCase struct {
+		name string
+		run  func(ctx context.Context) (string, error)
+		test func(t *testing.T, task *future.Task[string], ctx context.Context)
+	}
+
+	testCases := []testCase{
+		{
+			name: "cancel races with completion may panic on send to closed channel",
+			run: func(ctx context.Context) (string, error) {
+				// Give Cancel enough time to run close() before we send.
+				time.Sleep(50 * time.Millisecond)
+				select {
+				case <-ctx.Done():
+					return "", ctx.Err()
+				default:
+					return "done", nil
+				}
+			},
+			test: func(t *testing.T, task *future.Task[string], _ context.Context) {
+				// If implementation closes channels inside Cancel while the producer
+				// goroutine is still running, this sequence can trigger a
+				// "send on closed channel" panic in the producer.
+				task.Cancel()
+
+				// Wait longer than the run func sleeps so that any panic in the
+				// producer goroutine is likely to manifest during this test.
+				time.Sleep(200 * time.Millisecond)
+			},
+		},
+		{
+			name: "concurrent get and cancel exercise data races",
+			run: func(ctx context.Context) (string, error) {
+				select {
+				case <-ctx.Done():
+					return "", ctx.Err()
+				case <-time.After(200 * time.Millisecond):
+					return "done", nil
+				}
+			},
+			test: func(t *testing.T, task *future.Task[string], _ context.Context) {
+				const workers = 10
+				errCh := make(chan error, workers)
+
+				for range workers {
+					go func() {
+						_, _ = task.Get(500 * time.Millisecond)
+						errCh <- nil
+					}()
+				}
+
+				// Race Cancel against concurrent Get calls.
+				go task.Cancel()
+
+				for range workers {
+					require.NoError(t, <-errCh)
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
+			task := future.NewTask(ctx, tc.run)
+			require.NotNil(t, task)
+
+			tc.test(t, task, ctx)
+		})
+	}
 }
