@@ -62,14 +62,14 @@ func NewRepo(ctx context.Context, cfg Config) (*Repo, error) {
 }
 
 func prepareURI(cfg Config) string {
-	uri := strings.Builder{}
+	var uri strings.Builder
 
-	uri.WriteString(fmt.Sprintf("%s://", cfg.Protocol))
-	uri.WriteString(fmt.Sprintf("%s:%s", cfg.Creds.User, cfg.Creds.Pass))
-	uri.WriteString(fmt.Sprintf("@%s", cfg.Host))
+	_, _ = fmt.Fprintf(&uri, "%s://", cfg.Protocol)
+	_, _ = fmt.Fprintf(&uri, "%s:%s", cfg.Creds.User, cfg.Creds.Pass)
+	_, _ = fmt.Fprintf(&uri, "@%s", cfg.Host)
 
 	if cfg.Port != nil {
-		uri.WriteString(fmt.Sprintf(":%d", *cfg.Port))
+		_, _ = fmt.Fprintf(&uri, ":%d", *cfg.Port)
 	}
 
 	uri.WriteString("/")
@@ -82,7 +82,7 @@ func prepareURI(cfg Config) string {
 			if !firstParam {
 				uri.WriteString("&")
 			}
-			uri.WriteString(fmt.Sprintf("%s=%s", k, v))
+			_, _ = fmt.Fprintf(&uri, "%s=%s", k, v)
 			firstParam = false
 		}
 	}
@@ -136,7 +136,7 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 		return nil
 	}
 
-	dupls := lo.FindDuplicatesBy[entity.Card, string](
+	dupls := lo.FindDuplicatesBy(
 		cards,
 		func(item entity.Card) string {
 			return item.ID
