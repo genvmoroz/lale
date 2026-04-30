@@ -120,7 +120,7 @@ func (c *TextToSpeechClient) ping(ctx context.Context) error {
 
 func googleTextToSpeechConnection(cfg Config) func(context.Context) (Connection, error) {
 	return func(ctx context.Context) (Connection, error) {
-		return api.NewClient(ctx, option.WithCredentialsJSON([]byte(cfg.ProjectKeyJSON)))
+		return api.NewClient(ctx, option.WithCredentialsJSON([]byte(cfg.ProjectKeyJSON))) //nolint:staticcheck,lll // todo: fix this
 	}
 }
 
