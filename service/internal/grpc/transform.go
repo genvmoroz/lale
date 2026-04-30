@@ -27,6 +27,7 @@ type (
 		ToCoreGenerateStoryRequest(req *api.GenerateStoryRequest) (core.GenerateStoryRequest, error)
 		ToAPIGenerateStoryResponse(resp core.GenerateStoryResponse) *api.GenerateStoryResponse
 		ToCoreDeleteCardRequest(req *api.DeleteCardRequest) core.DeleteCardRequest
+		ToCoreMarkCardLearntRequest(req *api.MarkCardLearntRequest) core.MarkCardLearntRequest
 	}
 
 	transformer struct{}
@@ -148,6 +149,16 @@ func (transformer) ToCoreDeleteCardRequest(req *api.DeleteCardRequest) core.Dele
 	}
 }
 
+func (transformer) ToCoreMarkCardLearntRequest(req *api.MarkCardLearntRequest) core.MarkCardLearntRequest {
+	if req == nil {
+		return core.MarkCardLearntRequest{}
+	}
+	return core.MarkCardLearntRequest{
+		UserID: req.GetUserID(),
+		CardID: req.GetCardID(),
+	}
+}
+
 func (t transformer) ToCoreGetSentencesRequest(req *api.GetSentencesRequest) core.GetSentencesRequest {
 	return core.GetSentencesRequest{
 		UserID:         req.GetUserID(),
@@ -205,14 +216,19 @@ func (t transformer) toAPICards(cards []entity.Card) []*api.Card {
 }
 
 func (t transformer) ToAPICard(card entity.Card) *api.Card {
-	return &api.Card{
+	out := &api.Card{
 		Id:                              card.ID,
 		UserID:                          card.UserID,
 		Language:                        card.Language.String(),
 		WordInformationList:             t.toAPIWordInformationList(card.WordInformationList),
 		ConsecutiveCorrectAnswersNumber: card.ConsecutiveCorrectAnswersNumber,
 		NextDueDate:                     timestamppb.New(card.NextDueDate),
+		Learnt:                          card.Learnt,
 	}
+	if !card.LearntAt.IsZero() {
+		out.LearntAt = timestamppb.New(card.LearntAt)
+	}
+	return out
 }
 
 func (t transformer) toAPIWordInformationList(list []entity.WordInformation) []*api.WordInformation {

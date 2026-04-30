@@ -24,6 +24,7 @@ type Service interface {
 	GetSentences(ctx context.Context, req core.GetSentencesRequest) (core.GetSentencesResponse, error)
 	GenerateStory(ctx context.Context, req core.GenerateStoryRequest) (core.GenerateStoryResponse, error)
 	DeleteCard(ctx context.Context, req core.DeleteCardRequest) (entity.Card, error)
+	MarkCardLearnt(ctx context.Context, req core.MarkCardLearntRequest) (entity.Card, error)
 }
 
 type Resolver struct {
@@ -45,12 +46,7 @@ func NewResolver(service Service, transformer Transformer) (*Resolver, error) {
 }
 
 func (r *Resolver) InspectCard(ctx context.Context, req *api.InspectCardRequest) (*api.Card, error) {
-	return genericResolver[
-		api.InspectCardRequest,
-		core.InspectCardRequest,
-		api.Card,
-		entity.Card,
-	](
+	return genericResolver(
 		ctx,
 		req,
 		r.transformer.ToCoreInspectCardRequest,
@@ -60,12 +56,7 @@ func (r *Resolver) InspectCard(ctx context.Context, req *api.InspectCardRequest)
 }
 
 func (r *Resolver) PromptCard(ctx context.Context, req *api.PromptCardRequest) (*api.PromptCardResponse, error) {
-	return genericResolver[
-		api.PromptCardRequest,
-		core.PromptCardRequest,
-		api.PromptCardResponse,
-		core.PromptCardResponse,
-	](
+	return genericResolver(
 		ctx,
 		req,
 		r.transformer.ToCorePromptCardRequest,
@@ -75,12 +66,7 @@ func (r *Resolver) PromptCard(ctx context.Context, req *api.PromptCardRequest) (
 }
 
 func (r *Resolver) CreateCard(ctx context.Context, req *api.CreateCardRequest) (*api.Card, error) {
-	return genericResolver[
-		api.CreateCardRequest,
-		core.CreateCardRequest,
-		api.Card,
-		entity.Card,
-	](
+	return genericResolver(
 		ctx,
 		req,
 		r.transformer.ToCoreCreateCardRequest,
@@ -90,12 +76,7 @@ func (r *Resolver) CreateCard(ctx context.Context, req *api.CreateCardRequest) (
 }
 
 func (r *Resolver) GetAllCards(ctx context.Context, req *api.GetCardsRequest) (*api.GetCardsResponse, error) {
-	return genericResolver[
-		api.GetCardsRequest,
-		core.GetCardsRequest,
-		api.GetCardsResponse,
-		core.GetCardsResponse,
-	](
+	return genericResolver(
 		ctx,
 		req,
 		r.transformer.ToCoreGetCardsRequest,
@@ -108,12 +89,7 @@ func (r *Resolver) UpdateCardPerformance(
 	ctx context.Context,
 	req *api.UpdateCardPerformanceRequest,
 ) (*api.UpdateCardPerformanceResponse, error) {
-	return genericResolver[
-		api.UpdateCardPerformanceRequest,
-		core.UpdateCardPerformanceRequest,
-		api.UpdateCardPerformanceResponse,
-		core.UpdateCardPerformanceResponse,
-	](
+	return genericResolver(
 		ctx,
 		req,
 		func(req *api.UpdateCardPerformanceRequest) (core.UpdateCardPerformanceRequest, error) {
@@ -125,12 +101,7 @@ func (r *Resolver) UpdateCardPerformance(
 }
 
 func (r *Resolver) UpdateCard(ctx context.Context, req *api.UpdateCardRequest) (*api.Card, error) {
-	return genericResolver[
-		api.UpdateCardRequest,
-		core.UpdateCardRequest,
-		api.Card,
-		entity.Card,
-	](
+	return genericResolver(
 		ctx,
 		req,
 		r.transformer.ToCoreUpdateCardRequest,
@@ -140,12 +111,7 @@ func (r *Resolver) UpdateCard(ctx context.Context, req *api.UpdateCardRequest) (
 }
 
 func (r *Resolver) GetCardsToLearn(ctx context.Context, req *api.GetCardsRequest) (*api.GetCardsResponse, error) {
-	return genericResolver[
-		api.GetCardsRequest,
-		core.GetCardsRequest,
-		api.GetCardsResponse,
-		core.GetCardsResponse,
-	](
+	return genericResolver(
 		ctx,
 		req,
 		r.transformer.ToCoreGetCardsRequest,
@@ -155,12 +121,7 @@ func (r *Resolver) GetCardsToLearn(ctx context.Context, req *api.GetCardsRequest
 }
 
 func (r *Resolver) GetCardsToRepeat(ctx context.Context, req *api.GetCardsRequest) (*api.GetCardsResponse, error) {
-	return genericResolver[
-		api.GetCardsRequest,
-		core.GetCardsRequest,
-		api.GetCardsResponse,
-		core.GetCardsResponse,
-	](
+	return genericResolver(
 		ctx,
 		req,
 		r.transformer.ToCoreGetCardsRequest,
@@ -170,12 +131,7 @@ func (r *Resolver) GetCardsToRepeat(ctx context.Context, req *api.GetCardsReques
 }
 
 func (r *Resolver) GetSentences(ctx context.Context, req *api.GetSentencesRequest) (*api.GetSentencesResponse, error) {
-	return genericResolver[
-		api.GetSentencesRequest,
-		core.GetSentencesRequest,
-		api.GetSentencesResponse,
-		core.GetSentencesResponse,
-	](
+	return genericResolver(
 		ctx,
 		req,
 		func(req *api.GetSentencesRequest) (core.GetSentencesRequest, error) {
@@ -190,12 +146,7 @@ func (r *Resolver) GenerateStory(
 	ctx context.Context,
 	req *api.GenerateStoryRequest,
 ) (*api.GenerateStoryResponse, error) {
-	return genericResolver[
-		api.GenerateStoryRequest,
-		core.GenerateStoryRequest,
-		api.GenerateStoryResponse,
-		core.GenerateStoryResponse,
-	](
+	return genericResolver(
 		ctx,
 		req,
 		r.transformer.ToCoreGenerateStoryRequest,
@@ -205,18 +156,25 @@ func (r *Resolver) GenerateStory(
 }
 
 func (r *Resolver) DeleteCard(ctx context.Context, req *api.DeleteCardRequest) (*api.Card, error) {
-	return genericResolver[
-		api.DeleteCardRequest,
-		core.DeleteCardRequest,
-		api.Card,
-		entity.Card,
-	](
+	return genericResolver(
 		ctx,
 		req,
 		func(req *api.DeleteCardRequest) (core.DeleteCardRequest, error) {
 			return r.transformer.ToCoreDeleteCardRequest(req), nil
 		},
 		r.service.DeleteCard,
+		r.transformer.ToAPICard,
+	)
+}
+
+func (r *Resolver) MarkCardLearnt(ctx context.Context, req *api.MarkCardLearntRequest) (*api.Card, error) {
+	return genericResolver(
+		ctx,
+		req,
+		func(req *api.MarkCardLearntRequest) (core.MarkCardLearntRequest, error) {
+			return r.transformer.ToCoreMarkCardLearntRequest(req), nil
+		},
+		r.service.MarkCardLearnt,
 		r.transformer.ToAPICard,
 	)
 }
@@ -231,9 +189,10 @@ func genericResolver[
 	req *APIRequest,
 	toCoreReq func(*APIRequest) (CoreRequest, error),
 	serviceCall func(context.Context, CoreRequest) (CoreResponse, error),
-	toAPIResp func(CoreResponse) *APIResponse) (*APIResponse, error) {
+	toAPIResp func(CoreResponse) *APIResponse,
+) (*APIResponse, error) {
 	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("nullable request (%T)", req))
+		return nil, status.Error(codes.InvalidArgument, "request must not be nil")
 	}
 
 	coreReq, err := toCoreReq(req)
@@ -254,12 +213,18 @@ func genericResolver[
 
 func resolveCoreError(err error) error {
 	switch {
+	case errors.Is(err, context.Canceled):
+		return status.Error(codes.Canceled, context.Canceled.Error())
+	case errors.Is(err, context.DeadlineExceeded):
+		return status.Error(codes.DeadlineExceeded, context.DeadlineExceeded.Error())
 	case core.IsValidationError(err):
 		return status.Error(codes.InvalidArgument, err.Error())
 	case core.IsNotFoundError(err):
 		return status.Error(codes.NotFound, err.Error())
 	case core.IsAlreadyExistsError(err):
 		return status.Error(codes.AlreadyExists, err.Error())
+	case core.IsFailedPreconditionError(err):
+		return status.Error(codes.FailedPrecondition, err.Error())
 	default:
 		return status.Error(codes.Internal, err.Error())
 	}

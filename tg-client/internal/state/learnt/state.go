@@ -1,4 +1,4 @@
-package delete
+package learnt
 
 import (
 	"context"
@@ -16,25 +16,28 @@ type State struct {
 	laleRepo *repository.LaleRepo
 }
 
-const Command = "/delete"
+const Command = "/learnt"
 
 func NewState(laleRepo *repository.LaleRepo) *State {
 	return &State{laleRepo: laleRepo}
 }
 
 const initialMessage = `
-Delete Card State
+Mark card learnt
 `
+
+const promptCardID = "Send the card ID to mark as learnt. " +
+	"It remains stored for statistics and is removed from learn/repeat queues."
 
 func (s *State) Process(ctx context.Context, client processor.Client, chatID int64, updateChan tg.UpdatesChannel) error {
 	if err := client.Send(chatID, initialMessage); err != nil {
 		return err
 	}
 
-	var req *api.DeleteCardRequest
+	var req *api.MarkCardLearntRequest
 
 	for req == nil {
-		if err := client.Send(chatID, "Send the ID of the Card you want to be deleted"); err != nil {
+		if err := client.Send(chatID, promptCardID); err != nil {
 			return err
 		}
 
@@ -45,8 +48,8 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 			if !ok {
 				return errors.New("updateChan is closed")
 			}
-			text := strings.ToLower(strings.TrimSpace(update.Message.Text))
-			switch text {
+			raw := strings.TrimSpace(update.Message.Text)
+			switch strings.ToLower(raw) {
 			case "/back":
 				return client.Send(chatID, "Back to previous state")
 			case "":
@@ -54,26 +57,28 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 					return err
 				}
 			default:
-				req = &api.DeleteCardRequest{
+				req = &api.MarkCardLearntRequest{
 					UserID: strings.TrimSpace(update.Message.From.UserName),
-					CardID: text,
+					CardID: raw,
 				}
 			}
 		}
 	}
 
-	resp, err := s.laleRepo.Client.DeleteCard(ctx, req)
+	resp, err := s.laleRepo.Client.MarkCardLearnt(ctx, req)
 	if err != nil {
-		if err = client.SendWithParseMode(chatID, fmt.Sprintf("<code>grpc [DeleteCard] err: %s</code>", err.Error()), tg.ModeHTML); err != nil {
-			return err
-		}
+		return client.SendWithParseMode(
+			chatID,
+			fmt.Sprintf("<code>grpc [MarkCardLearnt] err: %s</code>", err.Error()),
+			tg.ModeHTML,
+		)
 	}
 
-	if err = client.SendWithParseMode(chatID, fmt.Sprintf("Card with ID <code>%s</code> deleted", resp.GetId()), tg.ModeHTML); err != nil {
-		return err
-	}
-
-	return nil
+	return client.SendWithParseMode(
+		chatID,
+		fmt.Sprintf("Card <code>%s</code> marked as learnt", resp.GetId()),
+		tg.ModeHTML,
+	)
 }
 
 func (s *State) Command() string {
@@ -81,5 +86,5 @@ func (s *State) Command() string {
 }
 
 func (s *State) Description() string {
-	return "Delete Card"
+	return "Mark card learnt"
 }

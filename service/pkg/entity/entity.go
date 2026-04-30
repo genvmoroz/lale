@@ -19,6 +19,9 @@ type (
 
 		ConsecutiveCorrectAnswersNumber uint32
 		NextDueDate                     time.Time
+
+		Learnt   bool
+		LearntAt time.Time
 	}
 
 	WordInformation struct { // todo: rename to Word
@@ -80,11 +83,17 @@ func NewUserSession(userID string) UserSession {
 }
 
 func (c *Card) NeedToRepeat() bool {
-	return !c.NextDueDate.IsZero() && time.Now().UTC().After(c.NextDueDate.UTC())
+	if c.Learnt {
+		return false
+	}
+	if c.NextDueDate.IsZero() {
+		return false
+	}
+	return time.Now().UTC().After(c.NextDueDate.UTC())
 }
 
 func (c *Card) NeedToLearn() bool {
-	return c.NextDueDate.IsZero()
+	return !c.Learnt && c.NextDueDate.IsZero()
 }
 
 func (c *Card) AddAnswer(correct bool) {

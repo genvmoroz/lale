@@ -18,11 +18,11 @@ import (
 	"github.com/genvmoroz/lale-tg-client/internal/options"
 	"github.com/genvmoroz/lale-tg-client/internal/repository"
 	createstate "github.com/genvmoroz/lale-tg-client/internal/state/create"
-	deletestate "github.com/genvmoroz/lale-tg-client/internal/state/delete"
 	getallstate "github.com/genvmoroz/lale-tg-client/internal/state/getall"
 	helpstate "github.com/genvmoroz/lale-tg-client/internal/state/help"
 	inspectstate "github.com/genvmoroz/lale-tg-client/internal/state/inspect"
 	"github.com/genvmoroz/lale-tg-client/internal/state/learn"
+	learntstate "github.com/genvmoroz/lale-tg-client/internal/state/learnt"
 	"github.com/genvmoroz/lale-tg-client/internal/state/repeat"
 	"github.com/genvmoroz/lale-tg-client/internal/state/story"
 	"github.com/genvmoroz/lale-tg-client/internal/state/update"
@@ -73,7 +73,7 @@ func launch() error {
 		createstate.Command:  createstate.NewState(laleRepo),
 		inspectstate.Command: inspectstate.NewState(laleRepo),
 		getallstate.Command:  getallstate.NewState(laleRepo),
-		deletestate.Command:  deletestate.NewState(laleRepo),
+		learntstate.Command:  learntstate.NewState(laleRepo),
 		repeat.Command:       repeat.NewState(laleRepo),
 		story.Command:        story.NewState(laleRepo),
 		learn.Command:        learn.NewState(laleRepo),
@@ -82,7 +82,7 @@ func launch() error {
 			&createstate.State{},
 			&inspectstate.State{},
 			&getallstate.State{},
-			&deletestate.State{},
+			&learntstate.State{},
 			&helpstate.State{},
 			&repeat.State{},
 			&story.State{},

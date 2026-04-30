@@ -207,6 +207,7 @@ func TestTransformerToAPICard(t *testing.T) {
 		},
 		ConsecutiveCorrectAnswersNumber: 1,
 		NextDueDate:                     nextDueDate,
+		Learnt:                          false,
 	}
 
 	expCard := &api.Card{
@@ -323,6 +324,7 @@ func TestTransformerToAPICard(t *testing.T) {
 		},
 		ConsecutiveCorrectAnswersNumber: 1,
 		NextDueDate:                     timestamppb.New(nextDueDate),
+		Learnt:                          false,
 	}
 
 	tr := grpc.DefaultTransformer()
@@ -1099,6 +1101,44 @@ func TestTransformerToAPIUpdateCardPerformanceResponse(t *testing.T) {
 			tr := grpc.DefaultTransformer()
 			if got := tr.ToAPIUpdateCardPerformanceResponse(testcase.input.resp); !reflect.DeepEqual(got, testcase.want.resp) {
 				t.Fatalf("ToAPIUpdateCardPerformanceResponse() = %v, want %v", got, testcase.want.resp)
+			}
+		})
+	}
+}
+
+func TestTransformerToCoreMarkCardLearntRequest(t *testing.T) {
+	t.Parallel()
+
+	type (
+		input struct{ req *api.MarkCardLearntRequest }
+		want  struct{ req core.MarkCardLearntRequest }
+	)
+
+	tests := []struct {
+		name string
+		input
+		want
+	}{
+		{
+			name:  "nil request",
+			input: input{req: nil},
+			want:  want{req: core.MarkCardLearntRequest{}},
+		},
+		{
+			name:  "happy path",
+			input: input{req: &api.MarkCardLearntRequest{UserID: "UserID", CardID: "CardID"}},
+			want:  want{req: core.MarkCardLearntRequest{UserID: "UserID", CardID: "CardID"}},
+		},
+	}
+
+	tr := grpc.DefaultTransformer()
+
+	for _, testcase := range tests {
+		t.Run(testcase.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := tr.ToCoreMarkCardLearntRequest(testcase.input.req); !reflect.DeepEqual(got, testcase.want.req) {
+				t.Fatalf("ToCoreMarkCardLearntRequest() = %v, want %v", got, testcase.want.req)
 			}
 		})
 	}

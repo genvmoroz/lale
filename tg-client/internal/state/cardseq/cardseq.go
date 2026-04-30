@@ -25,7 +25,7 @@ type (
 	Card struct {
 		Card      *api.Card
 		Words     []*api.WordInformation
-		Sentences map[string]future.Task[[]string]
+		Sentences map[string]*future.Task[[]string]
 	}
 )
 
@@ -45,7 +45,7 @@ func NewCards(
 			Card{
 				Card:      c,
 				Words:     c.GetWordInformationList(),
-				Sentences: make(map[string]future.Task[[]string]),
+				Sentences: make(map[string]*future.Task[[]string]),
 			},
 		)
 	}
@@ -86,13 +86,22 @@ func (r *Cards) enrichCardsWithSentences(ctx context.Context) {
 }
 
 func (r *Cards) enrichCardWithSentences(ctx context.Context, i uint32) {
-	if i >= uint32(len(r.cards)) || len(r.cards[i].Sentences) != 0 {
+	outOfRange := i >= uint32(len(r.cards))
+	if outOfRange {
 		return
 	}
-	if r.cards[i].Sentences == nil {
-		r.cards[i].Sentences = make(map[string]future.Task[[]string])
+
+	card := &r.cards[i]
+	sentenceTasksAlreadyStarted := len(card.Sentences) != 0
+	if sentenceTasksAlreadyStarted {
+		return
 	}
-	for y, word := range r.cards[i].Words {
+
+	if card.Sentences == nil {
+		card.Sentences = make(map[string]*future.Task[[]string])
+	}
+
+	for y, word := range card.Words {
 		run := func(innerCtx context.Context) ([]string, error) {
 			select {
 			case <-innerCtx.Done():
@@ -100,7 +109,7 @@ func (r *Cards) enrichCardWithSentences(ctx context.Context, i uint32) {
 			case <-time.After(time.Duration(y*20) * time.Second):
 			}
 			req := &api.GetSentencesRequest{
-				UserID:         r.cards[i].Card.GetUserID(),
+				UserID:         card.Card.GetUserID(),
 				Word:           word.GetWord(),
 				SentencesCount: r.sentencesCount,
 			}
@@ -120,7 +129,7 @@ func (r *Cards) enrichCardWithSentences(ctx context.Context, i uint32) {
 					return resp.GetSentences(), nil
 				}
 
-				logrus.Errorf("failed to get sentences for word %s: %v", word.GetWord(), err)
+				logrus.Errorf("failed to get sentences for word %q: %v", word.GetWord(), err)
 				sleepDuration := time.Duration(rand.Intn(10)+5) * time.Second
 				logrus.Infof("retrying in %s", sleepDuration)
 				time.Sleep(sleepDuration)
@@ -129,7 +138,7 @@ func (r *Cards) enrichCardWithSentences(ctx context.Context, i uint32) {
 			return nil, err
 		}
 
-		r.cards[i].Sentences[word.GetWord()] = future.NewTask(ctx, run)
+		card.Sentences[word.GetWord()] = future.NewTask(ctx, run)
 	}
 }
 

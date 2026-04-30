@@ -104,7 +104,9 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 }
 
 func TestFutureTaskRunWithTaskError(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	t.Cleanup(func() {
+		goleak.VerifyNone(t)
+	})
 
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -126,7 +128,9 @@ func TestFutureTaskRunWithTaskError(t *testing.T) {
 }
 
 func TestFutureTaskRunTaskCanceled(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	t.Cleanup(func() {
+		goleak.VerifyNone(t)
+	})
 
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
@@ -156,8 +160,11 @@ func TestFutureTaskRunTaskCanceled(t *testing.T) {
 	require.False(t, task.IsCompleted())
 }
 
+//nolint:tparallel // VerifyNone is currently incompatible with t.Parallel
 func TestFutureTaskConcurrency(t *testing.T) {
-	defer goleak.VerifyNone(t)
+	t.Cleanup(func() {
+		goleak.VerifyNone(t)
+	})
 
 	type testCase struct {
 		name string
@@ -178,7 +185,7 @@ func TestFutureTaskConcurrency(t *testing.T) {
 					return "done", nil
 				}
 			},
-			test: func(t *testing.T, task *future.Task[string], _ context.Context) {
+			test: func(_ *testing.T, task *future.Task[string], _ context.Context) {
 				// If implementation closes channels inside Cancel while the producer
 				// goroutine is still running, this sequence can trigger a
 				// "send on closed channel" panic in the producer.

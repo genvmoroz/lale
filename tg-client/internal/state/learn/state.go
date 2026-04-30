@@ -92,7 +92,7 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 		}
 
 		if len(card.Words) == 0 {
-			if err = client.SendWithParseMode(chatID, fmt.Sprintf("No words for Card <code>%s</code>. Inspect the Card and delete if empty", card.Card.GetId()), tg.ModeHTML); err != nil {
+			if err = client.SendWithParseMode(chatID, fmt.Sprintf("No words for Card <code>%s</code>. Inspect the card if it has no words", card.Card.GetId()), tg.ModeHTML); err != nil {
 				return err
 			}
 			continue
@@ -172,6 +172,9 @@ func (s *State) Process(ctx context.Context, client processor.Client, chatID int
 			}
 
 			task := card.Sentences[word.GetWord()]
+			if task == nil {
+				return fmt.Errorf("sentences task missing for word %q", word.GetWord())
+			}
 			sentences, err := task.Get(time.Minute)
 			if err != nil {
 				if sendErr := client.Send(chatID, fmt.Sprintf("getting sentences error: %s", err.Error())); sendErr != nil {
@@ -285,7 +288,7 @@ func (s *State) processFirstReview(
 	card cardseq.Card,
 ) (bool, error) {
 	if len(card.Words) == 0 {
-		return false, client.SendWithParseMode(chatID, fmt.Sprintf("No words for Card <code>%s</code>. Inspect the Card and delete if empty", card.Card.GetId()), tg.ModeHTML)
+		return false, client.SendWithParseMode(chatID, fmt.Sprintf("No words for Card <code>%s</code>. Inspect the card if it has no words", card.Card.GetId()), tg.ModeHTML)
 	}
 
 	for _, msg := range pretty.Card(card.Card, false) {
@@ -316,6 +319,9 @@ func (s *State) processFirstReview(
 		}
 
 		task := card.Sentences[word.GetWord()]
+		if task == nil {
+			return false, fmt.Errorf("sentences task missing for word %q", word.GetWord())
+		}
 		sentences, err := task.Get(time.Minute)
 		if err != nil {
 			if sendErr := client.Send(chatID, fmt.Sprintf("getting sentences error: %s", err.Error())); sendErr != nil {

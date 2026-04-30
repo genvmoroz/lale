@@ -36,6 +36,11 @@ type (
 		CardID string
 	}
 
+	MarkCardLearntRequest struct {
+		UserID string
+		CardID string
+	}
+
 	GetCardsRequest struct {
 		UserID   string
 		Language language.Tag

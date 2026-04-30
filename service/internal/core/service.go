@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
-	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -388,6 +387,12 @@ func (s *Service) UpdateCardPerformance(
 		return UpdateCardPerformanceResponse{}, fmt.Errorf("%w: card ID %s", NewNotFoundError(), req.CardID)
 	}
 
+	if card.Learnt {
+		logger.FromContext(ctx).
+			Debug("card already learnt")
+		return UpdateCardPerformanceResponse{}, fmt.Errorf("%w: card already learnt", NewFailedPreconditionError())
+	}
+
 	logger.FromContext(ctx).
 		Debug("calculate next due date")
 
@@ -561,14 +566,14 @@ func (s *Service) getCardsByFilter(
 		return GetCardsResponse{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("get cards: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{"UserID": req.UserID},
 		)
 	}
 
 	// todo: add iter package here to iterate over cards with a custom iterator
 	logger.FromContext(ctx).
 		Debug("filter cards out")
-	filtered := lo.Filter[entity.Card](cards,
+	filtered := lo.Filter(cards,
 		func(item entity.Card, _ int) bool {
 			return filter(item)
 		},
@@ -641,8 +646,10 @@ func (s *Service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (
 		Debug("filter cards out by next due date")
 	cardsForStory := make([]entity.Card, 0, len(cards))
 	for _, card := range cards {
-		if strings.EqualFold(card.Language.String(), req.Language.String()) &&
-			!reflect.DeepEqual(card.NextDueDate, time.Time{}) {
+		sameLanguage := strings.EqualFold(card.Language.String(), req.Language.String())
+		hasReviewSchedule := !card.NextDueDate.IsZero()
+		includeInStory := sameLanguage && hasReviewSchedule && !card.Learnt
+		if includeInStory {
 			cardsForStory = append(cardsForStory, card)
 		}
 	}
@@ -718,11 +725,77 @@ func (s *Service) DeleteCard(ctx context.Context, req DeleteCardRequest) (entity
 	return card, nil
 }
 
+func (s *Service) MarkCardLearnt(ctx context.Context, req MarkCardLearntRequest) (entity.Card, error) {
+	if err := s.validator.ValidateMarkCardLearntRequest(req); err != nil {
+		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
+	}
+
+	ctx = createContextWithCorrelationLogger(ctx,
+		map[string]any{
+			"UserID":  req.UserID,
+			"CardID":  req.CardID,
+			"Request": "MarkCardLearnt",
+		},
+	)
+
+	closeSession, err := s.createUserSession(ctx, req.UserID)
+	if err != nil {
+		return entity.Card{}, fmt.Errorf("create user session: %w", err)
+	}
+	defer closeSession()
+
+	logger.FromContext(ctx).
+		Debug("get all cards for user")
+	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
+	if err != nil {
+		return entity.Card{}, logAndReturnError(
+			ctx,
+			fmt.Sprintf("get cards: %s", err.Error()),
+			map[string]any{"UserID": req.UserID},
+		)
+	}
+
+	card, found := lo.Find(cards,
+		func(item entity.Card) bool {
+			return item.ID == req.CardID
+		},
+	)
+	if !found {
+		logger.FromContext(ctx).
+			Debug("card not found")
+		return entity.Card{}, fmt.Errorf("%w: card ID %s", NewNotFoundError(), req.CardID)
+	}
+
+	if card.Learnt {
+		logger.FromContext(ctx).
+			Debug("card already marked learnt")
+		return card, nil
+	}
+
+	card.Learnt = true
+	card.LearntAt = time.Now().UTC()
+
+	logger.FromContext(ctx).
+		Debug("save learnt card")
+	if err = s.cardRepo.SaveCards(ctx, []entity.Card{card}); err != nil {
+		return entity.Card{}, logAndReturnError(
+			ctx,
+			fmt.Sprintf("save card: %s", err.Error()),
+			map[string]any{
+				"UserID": req.UserID,
+				"CardID": req.CardID,
+			},
+		)
+	}
+
+	return card, nil
+}
+
 func mapCardsToWords(cards []entity.Card) []string {
-	return lo.FlatMap[entity.Card, string](
+	return lo.FlatMap(
 		cards,
 		func(item entity.Card, _ int) []string {
-			return lo.Map[entity.WordInformation, string](
+			return lo.Map(
 				item.WordInformationList,
 				func(item entity.WordInformation, _ int) string {
 					return item.Word

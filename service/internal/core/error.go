@@ -34,3 +34,13 @@ func NewAlreadyExistsError() error {
 func IsAlreadyExistsError(err error) bool {
 	return errors.Is(err, errAlreadyExists)
 }
+
+var errFailedPrecondition = fmt.Errorf("failed precondition")
+
+func NewFailedPreconditionError() error {
+	return errFailedPrecondition
+}
+
+func IsFailedPreconditionError(err error) bool {
+	return errors.Is(err, errFailedPrecondition)
+}

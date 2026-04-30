@@ -16,6 +16,7 @@ service LaleService {
   rpc GetSentences(GetSentencesRequest) returns (GetSentencesResponse);
   rpc GenerateStory(GenerateStoryRequest) returns (GenerateStoryResponse);
   rpc DeleteCard(DeleteCardRequest) returns (Card);
+  rpc MarkCardLearnt(MarkCardLearntRequest) returns (Card);
 }
 
 message Card {
@@ -25,6 +26,8 @@ message Card {
   repeated WordInformation wordInformationList = 4;
   uint32 consecutiveCorrectAnswersNumber = 5;
   google.protobuf.Timestamp nextDueDate = 6;
+  bool learnt = 7;
+  optional google.protobuf.Timestamp learnt_at = 8;
 }
 
 message WordInformation {
@@ -127,6 +130,11 @@ message GenerateStoryResponse {
 }
 
 message DeleteCardRequest {
+  string userID = 1;
+  string cardID = 2;
+}
+
+message MarkCardLearntRequest {
   string userID = 1;
   string cardID = 2;
 }

@@ -66,15 +66,23 @@ func (validator) ValidateUpdateCardRequest(req UpdateCardRequest) error {
 	return nil
 }
 
-func (validator) ValidateDeleteCardRequest(req DeleteCardRequest) error {
-	if len(strings.TrimSpace(req.UserID)) == 0 {
+func validateUserIDAndCardID(userID, cardID string) error {
+	if len(strings.TrimSpace(userID)) == 0 {
 		return errors.New("userID is required")
 	}
-	if len(strings.TrimSpace(req.CardID)) == 0 {
+	if len(strings.TrimSpace(cardID)) == 0 {
 		return errors.New("cardID is required")
 	}
 
 	return nil
+}
+
+func (validator) ValidateDeleteCardRequest(req DeleteCardRequest) error {
+	return validateUserIDAndCardID(req.UserID, req.CardID)
+}
+
+func (validator) ValidateMarkCardLearntRequest(req MarkCardLearntRequest) error {
+	return validateUserIDAndCardID(req.UserID, req.CardID)
 }
 
 func (validator) ValidateUpdateCardPerformanceRequest(req UpdateCardPerformanceRequest) error {
