@@ -2,6 +2,8 @@ package future_test
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,23 +24,24 @@ func TestFutureTaskCorrect(t *testing.T) {
 	task := future.NewTask(ctx, run)
 	require.NotNil(t, task)
 
-	require.False(t, task.IsCancelled())
+	require.False(t, task.IsCanceled())
 
 	res, err := task.Get(time.Second)
 	require.NoError(t, err)
 	require.Equal(t, "done", res)
-	require.False(t, task.IsCancelled())
+	require.False(t, task.IsCanceled())
 	require.True(t, task.IsCompleted())
 
 	res, err = task.Get(time.Second)
-	require.ErrorContains(t, err, "task is completed")
+	require.ErrorIs(t, err, future.ErrResultConsumed)
 	require.Empty(t, res)
 }
 
 func TestFutureTaskContextCanceled(t *testing.T) {
 	defer goleak.VerifyNone(t)
 
-	ctx, cancel := context.WithCancel(t.Context())
+	// taskCtx is pre-canceled so the task's internal context is immediately done.
+	taskCtx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	run := func(ctx context.Context) (string, error) {
@@ -51,14 +54,16 @@ func TestFutureTaskContextCanceled(t *testing.T) {
 		}
 	}
 
-	task := future.NewTask(ctx, run)
+	task := future.NewTask(taskCtx, run)
 	require.NotNil(t, task)
 
-	require.False(t, task.IsCancelled())
+	require.False(t, task.IsCanceled())
 	require.False(t, task.IsCompleted())
 
+	// Use an independent waiting context so Get observes the task context
+	// closure rather than the caller context cancellation.
 	res, err := task.Get(time.Second)
-	require.ErrorContains(t, err, "context closed before the task is completed")
+	require.ErrorIs(t, err, future.ErrContextClosed)
 	require.Empty(t, res)
 	require.False(t, task.IsCompleted())
 }
@@ -82,24 +87,26 @@ func TestFutureTaskTimeoutExpired(t *testing.T) {
 	task := future.NewTask(ctx, run)
 	require.NotNil(t, task)
 
-	require.False(t, task.IsCancelled())
+	require.False(t, task.IsCanceled())
 	require.False(t, task.IsCompleted())
 
 	res, err := task.Get(time.Second)
-	require.ErrorContains(t, err, "timeout expired")
+	require.ErrorIs(t, err, future.ErrTimeoutExpired)
 	require.Empty(t, res)
 	require.False(t, task.IsCompleted())
 
+	waitTimer := time.NewTimer(2 * time.Second)
+	defer waitTimer.Stop()
 	select {
 	case <-ctx.Done():
 		t.Fatalf("context is closed, context error: %s", ctx.Err())
-	case <-time.After(2 * time.Second):
+	case <-waitTimer.C:
 	}
 
 	res, err = task.Get(time.Second)
 	require.NoError(t, err)
 	require.Equal(t, "done", res)
-	require.False(t, task.IsCancelled())
+	require.False(t, task.IsCanceled())
 	require.True(t, task.IsCompleted())
 }
 
@@ -116,14 +123,14 @@ func TestFutureTaskRunWithTaskError(t *testing.T) {
 	task := future.NewTask(ctx, run)
 	require.NotNil(t, task)
 
-	require.False(t, task.IsCancelled())
+	require.False(t, task.IsCanceled())
 	require.False(t, task.IsCompleted())
 
 	res, err := task.Get(time.Second)
 	require.ErrorAs(t, err, &future.TaskError{})
 	require.ErrorIs(t, err, assert.AnError)
 	require.Empty(t, res)
-	require.False(t, task.IsCancelled())
+	require.False(t, task.IsCanceled())
 	require.True(t, task.IsCompleted())
 }
 
@@ -136,10 +143,12 @@ func TestFutureTaskRunTaskCanceled(t *testing.T) {
 	defer cancel()
 
 	run := func(ctx context.Context) (string, error) {
+		runTimer := time.NewTimer(time.Second)
+		defer runTimer.Stop()
 		select {
 		case <-ctx.Done():
 			return "", ctx.Err()
-		case <-time.After(time.Second):
+		case <-runTimer.C:
 			return "done", nil
 		}
 	}
@@ -147,16 +156,16 @@ func TestFutureTaskRunTaskCanceled(t *testing.T) {
 	task := future.NewTask(ctx, run)
 	require.NotNil(t, task)
 
-	require.False(t, task.IsCancelled())
+	require.False(t, task.IsCanceled())
 	require.False(t, task.IsCompleted())
 
 	task.Cancel()
-	require.True(t, task.IsCancelled())
+	require.True(t, task.IsCanceled())
 
 	res, err := task.Get(time.Second)
-	require.ErrorContains(t, err, "task is canceled")
+	require.ErrorIs(t, err, future.ErrCanceled)
 	require.Empty(t, res)
-	require.True(t, task.IsCancelled())
+	require.True(t, task.IsCanceled())
 	require.False(t, task.IsCompleted())
 }
 
@@ -199,10 +208,12 @@ func TestFutureTaskConcurrency(t *testing.T) {
 		{
 			name: "concurrent get and cancel exercise data races",
 			run: func(ctx context.Context) (string, error) {
+				runTimer := time.NewTimer(200 * time.Millisecond)
+				defer runTimer.Stop()
 				select {
 				case <-ctx.Done():
 					return "", ctx.Err()
-				case <-time.After(200 * time.Millisecond):
+				case <-runTimer.C:
 					return "done", nil
 				}
 			},
@@ -240,4 +251,92 @@ func TestFutureTaskConcurrency(t *testing.T) {
 			tc.test(t, task, ctx)
 		})
 	}
+}
+
+func TestFutureConcurrentGetSecondWaiterError(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	started := make(chan struct{})
+	run := func(ctx context.Context) (string, error) {
+		close(started)
+		runTimer := time.NewTimer(500 * time.Millisecond)
+		defer runTimer.Stop()
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-runTimer.C:
+			return "done", nil
+		}
+	}
+
+	task := future.NewTask(ctx, run)
+	<-started
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	firstErr := make(chan error, 1)
+	secondErr := make(chan error, 1)
+
+	go func() {
+		defer wg.Done()
+		_, err := task.Get(time.Second)
+		firstErr <- err
+	}()
+	go func() {
+		defer wg.Done()
+		_, err := task.Get(time.Second)
+		secondErr <- err
+	}()
+
+	wg.Wait()
+	close(firstErr)
+	close(secondErr)
+
+	var errs []error
+	for err := range firstErr {
+		errs = append(errs, err)
+	}
+	for err := range secondErr {
+		errs = append(errs, err)
+	}
+
+	var nilCount, consumedCount int
+	for _, err := range errs {
+		switch {
+		case err == nil:
+			nilCount++
+		case errors.Is(err, future.ErrResultConsumed):
+			consumedCount++
+		default:
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+	require.Equal(t, 1, nilCount)
+	require.Equal(t, 1, consumedCount)
+}
+
+func TestFutureCancelDrainsBufferedResult(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	runFinished := make(chan struct{})
+	run := func(_ context.Context) (string, error) {
+		defer close(runFinished)
+		return "done", nil
+	}
+
+	task := future.NewTask(ctx, run)
+	<-runFinished
+
+	task.Cancel()
+	require.True(t, task.IsCanceled())
+	require.False(t, task.IsCompleted())
+
+	_, err := task.Get(time.Second)
+	require.ErrorIs(t, err, future.ErrCanceled)
 }
