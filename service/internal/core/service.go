@@ -1,4 +1,4 @@
-//nolint:copyloopvar // it's ok
+//nolint:dupl,copyloopvar // it's ok
 package core
 
 import (
@@ -23,6 +23,8 @@ import (
 
 type (
 	CardRepo interface {
+		GetCardsByWords(ctx context.Context, userID string, words []string) ([]entity.Card, error)
+		WordsExist(ctx context.Context, userID string, words []string) (bool, error)
 		GetCardsForUser(ctx context.Context, userID string) ([]entity.Card, error)
 		SaveCards(ctx context.Context, cards []entity.Card) error
 		DeleteCard(ctx context.Context, cardID string) error
@@ -37,7 +39,8 @@ type (
 		CalculateNextDueDate(performance uint32, consecutiveCorrectAnswersNumber uint32) time.Time
 	}
 
-	AIHelper interface { // todo: rename it, the name should not contain "Helper"
+	// todo: rename it to something like AI Generator
+	AIHelper interface {
 		GenerateSentences(word string, size int) ([]string, error)
 		GetFamilyWordsWithTranslation(word string, lang language.Tag) (map[string]string, error)
 		GenStory(words []string, lang language.Tag) (string, error)
@@ -63,6 +66,7 @@ type (
 	}
 )
 
+// todo: implement support for multiple words pronunciations for each word, only british english and american english are supported now.
 func NewService(
 	cardRepo CardRepo,
 	sessionRepo SessionRepo,
@@ -105,6 +109,8 @@ func NewService(
 // the client will be able to choose the voice from the list of available voices.
 // Create a new collection with words and their pronunciation.
 // Language + Word - different voices - audio data.
+
+// TODO: try to use for loop with pointers instead of range loop with values to avoid copying, compare the results.
 
 func (s *Service) InspectCard(ctx context.Context, req InspectCardRequest) (entity.Card, error) {
 	if err := s.validator.ValidateInspectCardRequest(req); err != nil {
@@ -210,6 +216,8 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
 
+	normaliseWords(req.WordInformationList)
+
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
 			"UserID":   req.UserID,
@@ -226,28 +234,19 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 	defer closeSession()
 
 	logger.FromContext(ctx).
-		Debug("get all cards for user")
-	cards, err := s.cardRepo.GetCardsForUser(ctx, req.UserID)
+		Debug("check if words already exist")
+	exist, err := s.cardRepo.WordsExist(ctx, req.UserID, extractWords(req.WordInformationList))
 	if err != nil {
 		return entity.Card{}, logAndReturnError(
 			ctx,
-			fmt.Sprintf("get cards: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			fmt.Sprintf("check if words already exist: %s", err.Error()),
+			map[string]any{"UserID": req.UserID},
 		)
 	}
-
-	for _, wordInfo := range req.WordInformationList {
-		for _, card := range cards {
-			if strings.EqualFold(card.Language.String(), req.Language.String()) {
-				for _, val := range card.WordInformationList {
-					if strings.EqualFold(val.Word, wordInfo.Word) {
-						logger.FromContext(ctx).
-							Debug("card already exists")
-						return entity.Card{}, fmt.Errorf("%w: word %s", NewAlreadyExistsError(), wordInfo.Word)
-					}
-				}
-			}
-		}
+	if exist {
+		logger.FromContext(ctx).
+			Debug("cards with words already exist")
+		return entity.Card{}, fmt.Errorf("%w: words %v", NewAlreadyExistsError(), extractWords(req.WordInformationList))
 	}
 
 	card := entity.Card{
@@ -281,7 +280,7 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("save card: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{"UserID": req.UserID},
 		)
 	}
 
@@ -465,6 +464,7 @@ func (s *Service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity
 			Debug("card not found")
 		return entity.Card{}, fmt.Errorf("%w: card ID %s", NewNotFoundError(), req.CardID)
 	}
+
 	card.WordInformationList = req.WordInformationList
 
 	if err = s.enrichWordsDetailsFromDictionary(card.Language, card.WordInformationList); err != nil {
@@ -521,6 +521,7 @@ func (s *Service) GetCardsToLearn(ctx context.Context, req GetCardsRequest) (Get
 	return resp, nil
 }
 
+// todo: clean a response up to get rid of any definitions/metadata containing the word to repeat.
 func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
@@ -827,10 +828,10 @@ func logAndReturnError(ctx context.Context, msg string, fields map[string]any) e
 }
 
 func extractWords(list []entity.WordInformation) []string {
-	words := make([]string, len(list))
+	words := make([]string, 0, len(list))
 
-	for index, info := range list {
-		words[index] = info.Word
+	for info := range slices.Values(list) {
+		words = append(words, info.Word)
 	}
 
 	return words
@@ -858,7 +859,8 @@ func (s *Service) createUserSession(ctx context.Context, userID string) (func(),
 
 func (s *Service) enrichWordsDetailsFromDictionary(language language.Tag, words []entity.WordInformation) error {
 	for i := range words {
-		enrichedWordInfo, err := s.dictionary.GetWordInformation(words[i].Word, language)
+		enrichedWordInfo, err := s.dictionary.GetWordInformation(words[i].Word, language) // todo:
+		// return exact values instead of "enriched word info"
 		if err == nil {
 			words[i].Origin = enrichedWordInfo.Origin
 			words[i].Phonetics = enrichedWordInfo.Phonetics
@@ -974,5 +976,12 @@ func shuffleWordsInCards(cards []entity.Card) {
 		rand.Shuffle(len(cards[idx].WordInformationList), func(i, j int) {
 			cards[idx].WordInformationList[i], cards[idx].WordInformationList[j] = cards[idx].WordInformationList[j], cards[idx].WordInformationList[i] //nolint:lll // it's ok
 		})
+	}
+}
+
+// normaliseWords normalises words in the list. It trims spaces and converts words to lowercase.
+func normaliseWords(info []entity.WordInformation) {
+	for i := range info {
+		info[i].Word = strings.TrimSpace(strings.ToLower(info[i].Word))
 	}
 }

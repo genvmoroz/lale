@@ -10,10 +10,22 @@ import (
 )
 
 type (
+	// todo: move to core layer
 	Card struct {
 		ID       string
 		UserID   string
 		Language language.Tag
+
+		//todo: add another one field like "StartedLearningAt" to store the date when the user started learning the word,
+		//	so we can:
+		// 		1. calculate the interval between the current date and the "StartedLearningAt".
+		//		2. sort the words by the "StartedLearningAt" field for the repeat stag,
+		//			later the date is the earlier the word will be repeated.
+
+		//todo: add the "CreatedAt" field to store the date when the card was created.
+		//	so we can:
+		//		1. use this field to sort the words by the "CreatedAt" field for the learning stage,
+		//			later the date is the earlier the word will be learned.
 
 		WordInformationList []WordInformation `yaml:"WordInformationList,omitempty"`
 
@@ -22,6 +34,11 @@ type (
 
 		Learnt   bool
 		LearntAt time.Time
+
+		//todo: add the bool field "Learnt" to store the information about the word learning status.
+		//	so we can:
+		//		1. use this field analyze the learning progress.
+		//		2. shrink db memory by removing the words explanation but keeping the word itself.
 	}
 
 	WordInformation struct { // todo: rename to Word
@@ -78,10 +95,11 @@ func NewUserSession(userID string) UserSession {
 	return UserSession{
 		ID:      uuid.NewString(),
 		UserID:  userID,
-		Started: time.Now().UTC(),
+		Started: time.Now(),
 	}
 }
 
+// todo: receive an user time zone. time.Now must be replaced with time.Now().In(userTimeZone)
 func (c *Card) NeedToRepeat() bool {
 	if c.Learnt {
 		return false
