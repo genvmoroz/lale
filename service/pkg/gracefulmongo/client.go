@@ -45,6 +45,9 @@ func WithMonitor(monitor *event.CommandMonitor) Option {
 	}
 }
 
+// disconnectTimeout bounds the graceful Disconnect call on shutdown.
+const disconnectTimeout = 10 * time.Second
+
 func NewClient(ctx context.Context, cfg Config, opts ...Option) (*mongo.Client, error) {
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("validate config: %w", err)
@@ -74,15 +77,16 @@ func NewClient(ctx context.Context, cfg Config, opts ...Option) (*mongo.Client, 
 		return nil, fmt.Errorf("ping mongo: %w", err)
 	}
 
-	// Graceful shutdown
+	// Graceful shutdown: parent ctx is already done, so a fresh timeout-bounded context is required for Disconnect.
+	//nolint:gosec // intentional: parent ctx is canceled here, need a fresh ctx to disconnect cleanly
 	go func() {
 		<-ctx.Done()
 
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), disconnectTimeout)
 		defer cancel()
 
-		if err := client.Disconnect(shutdownCtx); err != nil {
-			logrus.Errorf("failed to disconnect mongodb client gracefully: %s", err)
+		if disconnectErr := client.Disconnect(shutdownCtx); disconnectErr != nil {
+			logrus.Errorf("failed to disconnect mongodb client gracefully: %s", disconnectErr)
 		}
 	}()
 
@@ -92,12 +96,12 @@ func NewClient(ctx context.Context, cfg Config, opts ...Option) (*mongo.Client, 
 func constructURI(cfg Config) string {
 	uri := strings.Builder{}
 
-	uri.WriteString(fmt.Sprintf("%s://", cfg.Protocol))
-	uri.WriteString(fmt.Sprintf("%s:%s", cfg.Creds.User, cfg.Creds.Pass))
-	uri.WriteString(fmt.Sprintf("@%s", cfg.Host))
+	fmt.Fprintf(&uri, "%s://", cfg.Protocol)
+	fmt.Fprintf(&uri, "%s:%s", cfg.Creds.User, cfg.Creds.Pass)
+	fmt.Fprintf(&uri, "@%s", cfg.Host)
 
 	if cfg.Port != nil {
-		uri.WriteString(fmt.Sprintf(":%d", *cfg.Port))
+		fmt.Fprintf(&uri, ":%d", *cfg.Port)
 	}
 
 	uri.WriteString("/")
@@ -110,7 +114,7 @@ func constructURI(cfg Config) string {
 			if !firstParam {
 				uri.WriteString("&")
 			}
-			uri.WriteString(fmt.Sprintf("%s=%s", k, v))
+			fmt.Fprintf(&uri, "%s=%s", k, v)
 			firstParam = false
 		}
 	}

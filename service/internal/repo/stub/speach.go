@@ -8,6 +8,6 @@ import (
 
 type SpeachStub struct{}
 
-func (s *SpeachStub) ToSpeech(ctx context.Context, req speech.ToSpeechRequest) ([]byte, error) {
+func (s *SpeachStub) ToSpeech(_ context.Context, _ speech.ToSpeechRequest) ([]byte, error) {
 	return nil, nil
 }

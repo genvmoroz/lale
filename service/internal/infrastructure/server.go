@@ -30,7 +30,7 @@ func NewServer(ctx context.Context, cfg Config, logger logrus.FieldLogger) (*Ser
 		return nil, fmt.Errorf("server port should be greater than 0")
 	}
 
-	if err := tryToListen(cfg.ServerPort); err != nil {
+	if err := tryToListen(ctx, cfg.ServerPort); err != nil {
 		return nil, fmt.Errorf("can't listen on port %d: %w", cfg.ServerPort, err)
 	}
 
@@ -66,7 +66,8 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 
 	const shutdownTimeout = 2 * time.Second
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout) //nolint:contextcheck // false-positive: https://github.com/kkHAIKE/contextcheck/issues/2
+	//nolint:contextcheck // false-positive: https://github.com/kkHAIKE/contextcheck/issues/2
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
 	if err := s.echo.Shutdown(shutdownCtx); err != nil {
@@ -77,8 +78,9 @@ func (s *Server) Run(ctx context.Context) error {
 	return nil
 }
 
-func tryToListen(port uint) error {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+func tryToListen(ctx context.Context, port uint) error {
+	var lc net.ListenConfig
+	ln, err := lc.Listen(ctx, "tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return fmt.Errorf("can't listen on port %d: %w", port, err)
 	}

@@ -7,8 +7,11 @@ import (
 	faker "github.com/brianvoe/gofakeit/v7"
 )
 
+// totalActionsCount is the maximum number of supported actions.
+const totalActionsCount = 11
+
 func enabledActions(req LoadRequest) []Action {
-	actions := make([]Action, 0, 12)
+	actions := make([]Action, 0, totalActionsCount)
 	switch {
 	case req.ActionCreateCardEnabled:
 		actions = append(actions, ActionCreateCard)
@@ -112,10 +115,13 @@ func generateWords(cardN uint32, wordsNumber uint32) []Word {
 	return words
 }
 
+// translationsPerWord is the number of generated translations per word.
+const translationsPerWord = 10
+
 func generateWord(cardN uint32, n uint32) Word {
 	return Word{
 		Word:        fmt.Sprintf("C-%d-W-%d-(faked-%s)", cardN, n, faker.Word()),
-		Translation: generateTranslations(10),
+		Translation: generateTranslations(translationsPerWord),
 	}
 }
 

@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"slices"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -65,24 +67,27 @@ func (l *Loader) perform(ctx context.Context, action Action, cfg PerformerConfig
 		return fmt.Errorf("create performer for action %s: %w", action, err)
 	}
 
-	fmt.Println("Performing ", action)
+	logrus.Infof("performing %s", action)
 	now := time.Now()
 	if err = performer.Perform(ctx, env); err != nil {
 		return fmt.Errorf("perform %s: %w", action, err)
 	}
-	fmt.Println(action, "completed in", time.Since(now))
+	logrus.Infof("%s completed in %s", action, time.Since(now))
 
 	return nil
 }
 
 func (l *Loader) setupEnvironment(req LoadRequest) *Environment {
-	fmt.Println("Setup environment, may take some time, please wait...")
-	env := &Environment{
-		Users: generateUsersInParallel(req.ParallelUsers, uint32(runtime.NumCPU()), req.CardsPerUser, req.WordsPerCard),
+	logrus.Info("Setup environment, may take some time, please wait...")
+	numCPU := runtime.NumCPU()
+	if numCPU < 1 {
+		numCPU = 1
 	}
-	fmt.Println("Environment setup complete")
-	fmt.Println("Environment:")
-	fmt.Printf("  Parallel users: %d\n", len(env.Users))
+	env := &Environment{
+		Users: generateUsersInParallel(req.ParallelUsers, uint32(numCPU), req.CardsPerUser, req.WordsPerCard),
+	}
+	logrus.Info("Environment setup complete")
+	logrus.Infof("Environment: parallel users: %d", len(env.Users))
 
 	return env
 }

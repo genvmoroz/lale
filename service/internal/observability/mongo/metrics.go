@@ -87,12 +87,12 @@ func (m *Metrics) Unregister(reg prometheus.Registerer) bool {
 // CommandMonitor returns a MongoDB command monitor that records metrics.
 func (m *Metrics) CommandMonitor() *event.CommandMonitor {
 	return &event.CommandMonitor{
-		Started: func(ctx context.Context, evt *event.CommandStartedEvent) {
+		Started: func(_ context.Context, evt *event.CommandStartedEvent) {
 			m.mu.Lock()
 			m.commandDurations[evt.RequestID] = time.Now()
 			m.mu.Unlock()
 		},
-		Succeeded: func(ctx context.Context, evt *event.CommandSucceededEvent) {
+		Succeeded: func(_ context.Context, evt *event.CommandSucceededEvent) {
 			m.mu.Lock()
 			startTime, ok := m.commandDurations[evt.RequestID]
 			if ok {
@@ -106,7 +106,7 @@ func (m *Metrics) CommandMonitor() *event.CommandMonitor {
 				m.requestsTotal.WithLabelValues(evt.CommandName, "success").Inc()
 			}
 		},
-		Failed: func(ctx context.Context, evt *event.CommandFailedEvent) {
+		Failed: func(_ context.Context, evt *event.CommandFailedEvent) {
 			m.mu.Lock()
 			startTime, ok := m.commandDurations[evt.RequestID]
 			if ok {

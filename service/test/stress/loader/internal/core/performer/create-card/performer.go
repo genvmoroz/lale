@@ -12,6 +12,9 @@ import (
 	"golang.org/x/text/language"
 )
 
+// defaultRepoTimeout is the default timeout for lale-service repository calls.
+const defaultRepoTimeout = 10 * time.Second
+
 type Builder struct{}
 
 func NewBuilder() *Builder {
@@ -23,7 +26,7 @@ func (b *Builder) New(cfg core.PerformerConfig) (core.Performer, error) {
 		repository.LaleRepoConfig{
 			Host:    cfg.LaleServiceHost,
 			Port:    cfg.LaleServicePort,
-			Timeout: 10 * time.Second,
+			Timeout: defaultRepoTimeout,
 		},
 	)
 	if err != nil {

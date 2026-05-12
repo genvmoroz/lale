@@ -12,10 +12,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// rootCmd represents the base command when called without any subcommands
+// rootCmd represents the base command when called without any subcommands.
+//
+//nolint:gochecknoglobals // cobra root command is conventionally a package-level variable
 var rootCmd = &cobra.Command{
 	Use: "loader",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		if err := run(cmd); err != nil {
 			cmd.PrintErrf("failed to run: %v", err)
 		}
@@ -48,14 +50,18 @@ const (
 	getSentencesFlag          = "get-sentences"
 	generateStoryFlag         = "generate-story"
 	deleteCardFlag            = "delete-card"
+
+	defaultCardsPerUser = 100
+	defaultWordsPerCard = 10
 )
 
+//nolint:gochecknoinits // cobra flag registration is conventionally done in init
 func init() {
 	rootCmd.Flags().String(laleServiceHostFlag, "", "Lale service host")
 	rootCmd.Flags().Uint32(laleServicePortFlag, 0, "Lale service port")
 	rootCmd.Flags().Uint32(parallelUsersFlag, 0, "Number of parallel users")
-	rootCmd.Flags().Uint32(cardsPerUserFlag, 100, "Number of cards per user")
-	rootCmd.Flags().Uint32(wordsPerCardFlag, 10, "Number of words per card")
+	rootCmd.Flags().Uint32(cardsPerUserFlag, defaultCardsPerUser, "Number of cards per user")
+	rootCmd.Flags().Uint32(wordsPerCardFlag, defaultWordsPerCard, "Number of words per card")
 	rootCmd.Flags().Bool(createCardFlag, false, "Enable create card action")
 	rootCmd.Flags().Bool(inspectCardFlag, false, "Enable inspect card action")
 	rootCmd.Flags().Bool(promptCardFlag, false, "Enable prompt card action")

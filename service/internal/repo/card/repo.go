@@ -19,6 +19,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// userIDField is the BSON field name for user ID on card documents.
+const userIDField = "userid"
+
 type (
 	Config struct {
 		Protocol    string            `envconfig:"APP_MONGO_CARD_PROTOCOL" required:"true"`
@@ -83,7 +86,7 @@ func (r *Repo) GetCardsByWords(ctx context.Context, userID string, words []strin
 	}
 
 	filter := bson.M{
-		"userid": userID,
+		userIDField: userID,
 		"wordinformationlist": bson.M{
 			"$elemMatch": bson.M{
 				"word": bson.M{"$in": words},
@@ -100,8 +103,8 @@ func (r *Repo) GetCardsByWords(ctx context.Context, userID string, words []strin
 		return nil, fmt.Errorf("find one: %w", err)
 	}
 	defer func() {
-		if err := cursor.Close(ctx); err != nil {
-			logrus.Errorf("failed to close cursor: %s", err.Error())
+		if closeErr := cursor.Close(ctx); closeErr != nil {
+			logrus.Errorf("failed to close cursor: %s", closeErr.Error())
 		}
 	}()
 
@@ -114,7 +117,7 @@ func (r *Repo) WordsExist(ctx context.Context, userID string, words []string) (b
 	}
 
 	filter := bson.M{
-		"userid": userID,
+		userIDField: userID,
 		"wordinformationlist": bson.M{
 			"$elemMatch": bson.M{
 				"word": bson.M{"$in": words},
@@ -146,7 +149,7 @@ func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Car
 		Database(r.database).
 		Collection(r.collection)
 
-	query := bson.M{"userid": userID}
+	query := bson.M{userIDField: userID}
 	count, err := cardsCollection.EstimatedDocumentCount(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("estimate document count: %w", err)
@@ -170,7 +173,6 @@ func (r *Repo) GetCardsForUser(ctx context.Context, userID string) ([]entity.Car
 //	return nil, errors.New("not implemented yet")
 // }
 
-//nolint:gocognit // need to fix later
 func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 	if len(cards) == 0 {
 		return nil
@@ -191,36 +193,37 @@ func (r *Repo) SaveCards(ctx context.Context, cards []entity.Card) error {
 
 	return r.transaction(ctx, func() error {
 		for _, card := range cards {
-			var doc []byte
-			doc, err := r.tr.cardToDoc(card)
-			if err != nil {
-				return fmt.Errorf("marshal: %w", err)
-			}
-
-			// check card existence
-			filter := bson.M{"id": card.ID}
-			if err = cardsCollection.FindOne(ctx, filter).Err(); err != nil {
-				if errors.Is(err, mongo.ErrNoDocuments) {
-					// since card does not exist do insert
-					_, err = cardsCollection.InsertOne(ctx, doc)
-					if err != nil {
-						return fmt.Errorf("insert: %w", err)
-					}
-				} else {
-					// checking existence failed with an unpredictable error
-					return fmt.Errorf("check card existence: %w", err)
-				}
-			} else {
-				// since card already exists do replacement
-				_, err = cardsCollection.ReplaceOne(ctx, filter, doc)
-				if err != nil {
-					return fmt.Errorf("replace card: %w", err)
-				}
+			if err := r.saveCard(ctx, cardsCollection, card); err != nil {
+				return err
 			}
 		}
 
 		return nil
 	})
+}
+
+func (r *Repo) saveCard(ctx context.Context, cardsCollection *mongo.Collection, card entity.Card) error {
+	doc, err := r.tr.cardToDoc(card)
+	if err != nil {
+		return fmt.Errorf("marshal: %w", err)
+	}
+
+	filter := bson.M{"id": card.ID}
+	existErr := cardsCollection.FindOne(ctx, filter).Err()
+	switch {
+	case errors.Is(existErr, mongo.ErrNoDocuments):
+		if _, err = cardsCollection.InsertOne(ctx, doc); err != nil {
+			return fmt.Errorf("insert: %w", err)
+		}
+	case existErr != nil:
+		return fmt.Errorf("check card existence: %w", existErr)
+	default:
+		if _, err = cardsCollection.ReplaceOne(ctx, filter, doc); err != nil {
+			return fmt.Errorf("replace card: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (r *Repo) DeleteCard(ctx context.Context, cardID string) error {

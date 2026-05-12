@@ -1,4 +1,4 @@
-//nolint:dupl,copyloopvar // it's ok
+//nolint:copyloopvar // intentional copy of loop var across helper methods
 package core
 
 import (
@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"math/rand/v2"
 	"slices"
 	"strings"
@@ -17,7 +18,6 @@ import (
 	"github.com/genvmoroz/lale/service/pkg/speech"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
-	"golang.org/x/exp/maps"
 	"golang.org/x/text/language"
 )
 
@@ -66,7 +66,17 @@ type (
 	}
 )
 
-// todo: implement support for multiple words pronunciations for each word, only british english and american english are supported now.
+// Common log-field keys repeated across request handlers.
+const (
+	logFieldUserID   = "UserID"
+	logFieldLanguage = "Language"
+	logFieldWord     = "Word"
+	logFieldRequest  = "Request"
+	logFieldCardID   = "CardID"
+)
+
+// todo: implement support for multiple words pronunciations for each word,
+// only british english and american english are supported now.
 func NewService(
 	cardRepo CardRepo,
 	sessionRepo SessionRepo,
@@ -119,10 +129,10 @@ func (s *Service) InspectCard(ctx context.Context, req InspectCardRequest) (enti
 
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":   req.UserID,
-			"Language": req.Language.String(),
-			"Word":     req.Word,
-			"Request":  "InspectCard",
+			logFieldUserID:   req.UserID,
+			logFieldLanguage: req.Language.String(),
+			logFieldWord:     req.Word,
+			logFieldRequest:  "InspectCard",
 		},
 	)
 
@@ -139,7 +149,7 @@ func (s *Service) InspectCard(ctx context.Context, req InspectCardRequest) (enti
 		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("get cards: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 
@@ -171,11 +181,11 @@ func (s *Service) PromptCard(ctx context.Context, req PromptCardRequest) (Prompt
 
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":              req.UserID,
+			logFieldUserID:        req.UserID,
 			"WordLanguage":        req.WordLanguage.String(),
 			"TranslationLanguage": req.TranslationLanguage.String(),
-			"Word":                req.Word,
-			"Request":             "PromptCard",
+			logFieldWord:          req.Word,
+			logFieldRequest:       "PromptCard",
 		},
 	)
 
@@ -211,7 +221,7 @@ func (s *Service) PromptCard(ctx context.Context, req PromptCardRequest) (Prompt
 	}, nil
 }
 
-func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity.Card, error) { //nolint:gocognit,lll // it's ok
+func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity.Card, error) {
 	if err := s.validator.ValidateCreateCardRequest(req); err != nil {
 		return entity.Card{}, fmt.Errorf("%w: %w", NewValidationError(), err)
 	}
@@ -220,10 +230,10 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":   req.UserID,
-			"Language": req.Language.String(),
-			"Words":    extractWords(req.WordInformationList),
-			"Request":  "CreateCard",
+			logFieldUserID:   req.UserID,
+			logFieldLanguage: req.Language.String(),
+			"Words":          extractWords(req.WordInformationList),
+			logFieldRequest:  "CreateCard",
 		},
 	)
 
@@ -240,7 +250,7 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("check if words already exist: %s", err.Error()),
-			map[string]any{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 	if exist {
@@ -263,7 +273,7 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("enrich words details from dictionary: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 
@@ -280,7 +290,7 @@ func (s *Service) CreateCard(ctx context.Context, req CreateCardRequest) (entity
 		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("save card: %s", err.Error()),
-			map[string]any{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 
@@ -294,9 +304,9 @@ func (s *Service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCard
 
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":   req.UserID,
-			"Language": req.Language.String(),
-			"Request":  "GetAllCards",
+			logFieldUserID:   req.UserID,
+			logFieldLanguage: req.Language.String(),
+			logFieldRequest:  "GetAllCards",
 		},
 	)
 
@@ -313,7 +323,7 @@ func (s *Service) GetAllCards(ctx context.Context, req GetCardsRequest) (GetCard
 		return GetCardsResponse{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("get cards: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 
@@ -345,10 +355,10 @@ func (s *Service) UpdateCardPerformance(
 
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":         req.UserID,
-			"CardID":         req.CardID,
+			logFieldUserID:   req.UserID,
+			logFieldCardID:   req.CardID,
 			"IsInputCorrect": req.IsInputCorrect,
-			"Request":        "UpdateCardPerformance",
+			logFieldRequest:  "UpdateCardPerformance",
 		},
 	)
 
@@ -365,7 +375,7 @@ func (s *Service) UpdateCardPerformance(
 		return UpdateCardPerformanceResponse{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("get cards: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 
@@ -414,7 +424,7 @@ func (s *Service) UpdateCardPerformance(
 		return UpdateCardPerformanceResponse{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("save card: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 
@@ -430,9 +440,9 @@ func (s *Service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity
 
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":  req.UserID,
-			"CardID":  req.CardID,
-			"Request": "UpdateCard",
+			logFieldUserID:  req.UserID,
+			logFieldCardID:  req.CardID,
+			logFieldRequest: "UpdateCard",
 		},
 	)
 
@@ -450,7 +460,7 @@ func (s *Service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity
 		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("get cards: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 
@@ -481,7 +491,7 @@ func (s *Service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity
 		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("save card: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 
@@ -491,9 +501,9 @@ func (s *Service) UpdateCard(ctx context.Context, req UpdateCardRequest) (entity
 func (s *Service) GetCardsToLearn(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":   req.UserID,
-			"Language": req.Language.String(),
-			"Request":  "GetCardsToLearn",
+			logFieldUserID:   req.UserID,
+			logFieldLanguage: req.Language.String(),
+			logFieldRequest:  "GetCardsToLearn",
 		},
 	)
 
@@ -525,9 +535,9 @@ func (s *Service) GetCardsToLearn(ctx context.Context, req GetCardsRequest) (Get
 func (s *Service) GetCardsToRepeat(ctx context.Context, req GetCardsRequest) (GetCardsResponse, error) {
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":   req.UserID,
-			"Language": req.Language.String(),
-			"Request":  "GetCardsToRepeat",
+			logFieldUserID:   req.UserID,
+			logFieldLanguage: req.Language.String(),
+			logFieldRequest:  "GetCardsToRepeat",
 		},
 	)
 
@@ -567,7 +577,7 @@ func (s *Service) getCardsByFilter(
 		return GetCardsResponse{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("get cards: %s", err.Error()),
-			map[string]any{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 
@@ -594,10 +604,10 @@ func (s *Service) GetSentences(ctx context.Context, req GetSentencesRequest) (Ge
 
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":         req.UserID,
-			"Word":           req.Word,
+			logFieldUserID:   req.UserID,
+			logFieldWord:     req.Word,
 			"SentencesCount": req.SentencesCount,
-			"Request":        "GetSentences",
+			logFieldRequest:  "GetSentences",
 		},
 	)
 
@@ -620,9 +630,9 @@ func (s *Service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (
 
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":   req.UserID,
-			"Language": req.Language.String(),
-			"Request":  "GenerateStory",
+			logFieldUserID:   req.UserID,
+			logFieldLanguage: req.Language.String(),
+			logFieldRequest:  "GenerateStory",
 		},
 	)
 
@@ -639,7 +649,7 @@ func (s *Service) GenerateStory(ctx context.Context, req GenerateStoryRequest) (
 		return GenerateStoryResponse{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("get cards: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 
@@ -676,9 +686,9 @@ func (s *Service) DeleteCard(ctx context.Context, req DeleteCardRequest) (entity
 
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":  req.UserID,
-			"CardID":  req.CardID,
-			"Request": "DeleteCard",
+			logFieldUserID:  req.UserID,
+			logFieldCardID:  req.CardID,
+			logFieldRequest: "DeleteCard",
 		},
 	)
 
@@ -695,7 +705,7 @@ func (s *Service) DeleteCard(ctx context.Context, req DeleteCardRequest) (entity
 		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("get cards: %s", err.Error()),
-			map[string]interface{}{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 
@@ -716,9 +726,9 @@ func (s *Service) DeleteCard(ctx context.Context, req DeleteCardRequest) (entity
 		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("delete card: %s", err.Error()),
-			map[string]interface{}{
-				"UserID": req.UserID,
-				"CardID": req.CardID,
+			map[string]any{
+				logFieldUserID: req.UserID,
+				logFieldCardID: req.CardID,
 			},
 		)
 	}
@@ -733,9 +743,9 @@ func (s *Service) MarkCardLearnt(ctx context.Context, req MarkCardLearntRequest)
 
 	ctx = createContextWithCorrelationLogger(ctx,
 		map[string]any{
-			"UserID":  req.UserID,
-			"CardID":  req.CardID,
-			"Request": "MarkCardLearnt",
+			logFieldUserID:  req.UserID,
+			logFieldCardID:  req.CardID,
+			logFieldRequest: "MarkCardLearnt",
 		},
 	)
 
@@ -752,7 +762,7 @@ func (s *Service) MarkCardLearnt(ctx context.Context, req MarkCardLearntRequest)
 		return entity.Card{}, logAndReturnError(
 			ctx,
 			fmt.Sprintf("get cards: %s", err.Error()),
-			map[string]any{"UserID": req.UserID},
+			map[string]any{logFieldUserID: req.UserID},
 		)
 	}
 
@@ -783,8 +793,8 @@ func (s *Service) MarkCardLearnt(ctx context.Context, req MarkCardLearntRequest)
 			ctx,
 			fmt.Sprintf("save card: %s", err.Error()),
 			map[string]any{
-				"UserID": req.UserID,
-				"CardID": req.CardID,
+				logFieldUserID: req.UserID,
+				logFieldCardID: req.CardID,
 			},
 		)
 	}
@@ -844,7 +854,7 @@ func (s *Service) createUserSession(ctx context.Context, userID string) (func(),
 		return nil, logAndReturnError(
 			ctx,
 			fmt.Sprintf("create user session: %s", err.Error()),
-			map[string]interface{}{"UserID": userID},
+			map[string]any{logFieldUserID: userID},
 		)
 	}
 	return func() {
